@@ -1,10 +1,10 @@
-package com.ecommerce.backend;
+package com.phegondev.usersmanagementsystem;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class BackendApplicationTests {
+class UsersmanagementsystemApplicationTests {
 
 	@Test
 	void contextLoads() {

@@ -1,0 +1,35 @@
+package com.ecommerce.backend.dto;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
+import com.ecommerce.backend.entity.Usuario;
+import com.ecommerce.backend.entity.Rol;
+
+import java.util.List;
+
+@Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ReqRes {
+    private int statusCode;
+    private String error;
+    private String message;
+    private String token;
+    private String refreshToken;
+    private String expirationTime;
+
+    // Campos para registro
+    private String nombre;
+    private String apellido;
+    private String dni;
+    private String correo;
+    private String password;
+    private String celular;
+    private Integer idrol;
+    private Rol rol;
+
+    // Campos para respuesta
+    private Usuario usuario;
+    private List<Usuario> usuariosList;
+}
