@@ -1,6 +1,8 @@
-import Login from "./pages/Login"
-import RegisterUser from "./pages/RegisterUser"
-import { Route, Routes, BrowserRouter } from "react-router"
+import Login from "./autenticacion/Login"
+import RegisterUser from "./autenticacion/RegisterUser"
+import { Route, Routes, BrowserRouter } from "react-router-dom"
+import Home from "./user/Home"
+import Productos from "./user/pages/Productos"
 
 function App() {
 
@@ -9,7 +11,9 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path='/register' element={<RegisterUser />} />
-          <Route path='/' element={<Login />} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/' element={<Home />} />
+          <Route path='/productos' element={<Productos />} />
         </Routes>
       </BrowserRouter>
     </>
