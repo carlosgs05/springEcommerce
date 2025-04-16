@@ -3,13 +3,14 @@ import axios from 'axios';
 
 function Formulario() {
     const [formData, setFormData] = useState({
-        Nombres: '',
-        Apellidos: '',
-        Dni: '',
-        Telefono: '',
-        Correo: '',
+        nombre: '',
+        apellido: '',
+        dni: '',
+        celular: '',
+        correo: '',
         password: '',
-        passwordconfirmacion: ''
+        idrol: 2,
+
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,8 +47,7 @@ function Formulario() {
                     Dni: '',
                     Telefono: '',
                     Correo: '',
-                    password: '',
-                    passwordconfirmacion: ''
+                    password: ''
                 });
             } else {
                 alert('Error al registrar el usuario');
@@ -85,7 +85,7 @@ function Formulario() {
                                 name="Nombres"
                                 type="text"
                                 placeholder=" "
-                                value={formData.Nombres}
+                                value={formData.nombre}
                                 onChange={handleChange}
                             />
                         </div>
@@ -102,7 +102,7 @@ function Formulario() {
                                 name="Apellidos"
                                 type="text"
                                 placeholder=" "
-                                value={formData.Apellidos}
+                                value={formData.apellido}
                                 onChange={handleChange}
                             />
                         </div>
@@ -123,7 +123,7 @@ function Formulario() {
                                 name="Telefono"
                                 type="text"
                                 placeholder=" "
-                                value={formData.Telefono}
+                                value={formData.celular}
                                 onChange={handleChange}
                             />
                         </div>
@@ -141,7 +141,7 @@ function Formulario() {
                                 name="Dni"
                                 type="text"
                                 placeholder=" "
-                                value={formData.Dni}
+                                value={formData.dni}
                                 onChange={handleChange}
                             />
                         </div>
@@ -162,7 +162,7 @@ function Formulario() {
                                 name="Correo"
                                 type="text"
                                 placeholder=" "
-                                value={formData.Correo}
+                                value={formData.correo}
                                 onChange={handleChange}
                             />
                         </div>
