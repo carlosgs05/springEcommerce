@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 function Formulario() {
-    const [formData, setFormData] = useState({
+    const [formData] = useState({
         Nombres: '',
         Apellidos: '',
         Dni: '',
