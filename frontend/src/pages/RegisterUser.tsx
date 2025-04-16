@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 
 function Formulario() {
     const [formData, setFormData] = useState({
@@ -11,12 +12,50 @@ function Formulario() {
         passwordconfirmacion: ''
     });
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault(); // Evita que la página se recargue
+    
+        // Validación básica (opcional)
+        if (formData.password !== formData.passwordconfirmacion) {
+            alert("Las contraseñas no coinciden");
+            return;
+        }
+    
+        try {
+            // Realiza la solicitud al backend con axios
+            const response = await axios.post('http://localhost:8080/api/auth/register', formData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            // Verifica si la respuesta fue exitosa
+            if (response.status === 200) {
+                alert('Usuario registrado exitosamente');
+                setFormData({
+                    Nombres: '',
+                    Apellidos: '',
+                    Dni: '',
+                    Telefono: '',
+                    Correo: '',
+                    password: '',
+                    passwordconfirmacion: ''
+                });
+            } else {
+                alert('Error al registrar el usuario');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al conectar con el servidor');
+        }
     };
 
     return (
@@ -30,7 +69,7 @@ function Formulario() {
                     />
                 </header>
     
-                <form>
+                <form onSubmit={handleSubmit}>
                     {/* Nombres y Apellidos Fields */}
                     <div className="flex flex-wrap -mx-3 mb-6">
                         <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
