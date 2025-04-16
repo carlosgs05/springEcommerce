@@ -1,60 +1,76 @@
-import { useState } from 'react';
+import React, { useState, FormEvent, ChangeEvent, useRef } from 'react';
 import axios from 'axios';
+import swal from 'sweetalert2/dist/sweetalert2.all.js';
 
-function Formulario() {
-    const [formData, setFormData] = useState({
+interface FormData {
+    nombre: string;
+    apellido: string;
+    dni: string;
+    celular: string;
+    correo: string;
+    password: string;
+    passwordconfirmacion: string;
+    idrol: number;
+}
+
+const RegisterUser: React.FC = () => {
+    const [formData, setFormData] = useState<FormData>({
         nombre: '',
         apellido: '',
         dni: '',
         celular: '',
         correo: '',
         password: '',
+        passwordconfirmacion: '',
         idrol: 2,
-
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formRef = useRef<HTMLFormElement>(null);
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
-    const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault(); // Evita que la página se recargue
-    
-        // Validación básica (opcional)
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        // Validación de contraseña
         if (formData.password !== formData.passwordconfirmacion) {
-            alert("Las contraseñas no coinciden");
+            swal.fire("Error", "Las contraseñas no coinciden", "error");
             return;
         }
-    
+
+        const { nombre, apellido, dni, celular, correo, password, idrol } = formData;
+        const payload = { nombre, apellido, dni, celular, correo, password, idrol };
+
         try {
-            // Realiza la solicitud al backend con axios
-            const response = await axios.post('http://localhost:8080/api/auth/register', formData, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-    
-            // Verifica si la respuesta fue exitosa
+            const response = await axios.post('http://localhost:8080/api/auth/register', payload);
+
             if (response.status === 200) {
-                alert('Usuario registrado exitosamente');
+                swal.fire("Éxito", "Usuario registrado exitosamente", "success");
+
                 setFormData({
-                    Nombres: '',
-                    Apellidos: '',
-                    Dni: '',
-                    Telefono: '',
-                    Correo: '',
-                    password: ''
+                    nombre: '',
+                    apellido: '',
+                    dni: '',
+                    celular: '',
+                    correo: '',
+                    password: '',
+                    passwordconfirmacion: '',
+                    idrol: 2,
                 });
-            } else {
-                alert('Error al registrar el usuario');
+
+                if (formRef.current) {
+                    formRef.current.reset();
+                }
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al conectar con el servidor');
+            swal.fire("Error", "Error al conectar con el servidor", "error");
         }
     };
 
@@ -67,151 +83,154 @@ function Formulario() {
                         src="https://img.icons8.com/fluent/344/year-of-tiger.png"
                         alt="Logo"
                     />
+                    <h1 className="text-2xl text-center text-white font-bold mb-6">Registro de Usuario</h1>
                 </header>
-    
-                <form onSubmit={handleSubmit}>
-                    {/* Nombres y Apellidos Fields */}
+
+                <form onSubmit={handleSubmit} ref={formRef} noValidate>
+                    {/* Nombres y Apellidos */}
                     <div className="flex flex-wrap -mx-3 mb-6">
                         <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                             <label
                                 className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="grid-first-name"
+                                htmlFor="nombre"
                             >
                                 Nombres
                             </label>
                             <input
-                                className="appearance-none block w-full text-cyan-600  bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
-                                id="grid-first-name"
-                                name="Nombres"
+                                className="appearance-none block w-full text-cyan-600 bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
+                                id="nombre"
+                                name="nombre"
                                 type="text"
-                                placeholder=" "
-                                value={formData.nombre}
+                                placeholder="Ingresa tus nombres"
                                 onChange={handleChange}
+                                required
                             />
                         </div>
+
                         <div className="w-full md:w-1/2 px-3">
                             <label
                                 className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="grid-last-name"
+                                htmlFor="apellido"
                             >
                                 Apellidos
                             </label>
                             <input
-                                className="appearance-none block w-full text-cyan-600  bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
-                                id="grid-last-name"
-                                name="Apellidos"
+                                className="appearance-none block w-full text-cyan-600 bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
+                                id="apellido"
+                                name="apellido"
                                 type="text"
-                                placeholder=" "
-                                value={formData.apellido}
+                                placeholder="Ingresa tus apellidos"
                                 onChange={handleChange}
+                                required
                             />
                         </div>
                     </div>
-    
-                    {/* Telefono y DNI */}
+
+                    {/* Teléfono y DNI */}
                     <div className="flex flex-wrap -mx-3 mb-2">
                         <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                             <label
                                 className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="grid-city"
+                                htmlFor="celular"
                             >
-                                Telefono
+                                Teléfono
                             </label>
                             <input
-                                className="appearance-none block w-full text-cyan-600  bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
-                                id="grid-telefono"
-                                name="Telefono"
-                                type="text"
-                                placeholder=" "
-                                value={formData.celular}
+                                className="appearance-none block w-full text-cyan-600 bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
+                                id="celular"
+                                name="celular"
+                                type="tel"
+                                placeholder="Ingresa tu teléfono"
                                 onChange={handleChange}
+                                required
                             />
                         </div>
-                        
+
                         <div className="w-full md:w-1/2 px-3 mb-6 md:mb-0">
                             <label
                                 className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="grid-zip"
+                                htmlFor="dni"
                             >
                                 DNI
                             </label>
                             <input
-                                className="appearance-none block w-full text-cyan-600  bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
-                                id="grid-dni"
-                                name="Dni"
+                                className="appearance-none block w-full text-cyan-600 bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
+                                id="dni"
+                                name="dni"
                                 type="text"
-                                placeholder=" "
-                                value={formData.dni}
+                                placeholder="Ingresa tu DNI"
                                 onChange={handleChange}
+                                required
                             />
                         </div>
                     </div>
-    
-                    {/* Correo Field */}
+
+                    {/* Correo */}
                     <div className="flex flex-wrap -mx-3 mb-6">
                         <div className="w-full px-3">
                             <label
                                 className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="grid-email"
+                                htmlFor="correo"
                             >
                                 Correo
                             </label>
                             <input
-                                className="appearance-none block w-full text-cyan-600  bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
-                                id="grid-email"
-                                name="Correo"
-                                type="text"
-                                placeholder=" "
-                                value={formData.correo}
+                                className="appearance-none block w-full text-cyan-600 bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
+                                id="correo"
+                                name="correo"
+                                type="email"
+                                placeholder="Ingresa tu correo"
                                 onChange={handleChange}
+                                required
                             />
                         </div>
                     </div>
-    
-                    {/* Password Field */}
+
+                    {/* Contraseña */}
                     <div className="flex flex-wrap -mx-3 mb-6">
                         <div className="w-full px-3">
                             <label
                                 className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="grid-password"
+                                htmlFor="password"
                             >
                                 Contraseña
                             </label>
                             <input
-                                className="appearance-none block w-full text-cyan-600  bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
-                                id="grid-password"
+                                className="appearance-none block w-full text-cyan-600 bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
+                                id="password"
                                 name="password"
                                 type="password"
-                                placeholder="******************"
-                                value={formData.password}
+                                placeholder="Escribe una contraseña segura"
                                 onChange={handleChange}
+                                required
+                                minLength={6}
                             />
-                            <p className="text-cyan-600  text-xs italic">Escribe una contraseña segura mierda</p>
                         </div>
                     </div>
-    
+
+                    {/* Confirmación de Contraseña */}
                     <div className="flex flex-wrap -mx-3 mb-6">
                         <div className="w-full px-3">
                             <label
                                 className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="grid-password"
+                                htmlFor="passwordconfirmacion"
                             >
                                 Confirma Contraseña
                             </label>
                             <input
-                                className="appearance-none block w-full text-cyan-600  bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
-                                id="grid-password"
+                                className="appearance-none block w-full text-cyan-600 bg-gray-800 border border-gray-700 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-zinc-900 focus:border-zinc-800"
+                                id="passwordconfirmacion"
                                 name="passwordconfirmacion"
                                 type="password"
-                                placeholder="******************"
-                                value={formData.passwordconfirmacion}
+                                placeholder="Confirma tu contraseña"
                                 onChange={handleChange}
+                                required
+                                minLength={6}
                             />
-                            <p className="text-cyan-600  text-xs italic">Que sea igual a la de arriba mierda</p>
                         </div>
                     </div>
-    
-                    {/* Submit Button */}
+
+                    {/* Botón de Envío */}
                     <div className="mt-6">
                         <button
                             type="submit"
@@ -224,6 +243,6 @@ function Formulario() {
             </div>
         </div>
     );
-}
+};
 
-export default Formulario;
+export default RegisterUser;

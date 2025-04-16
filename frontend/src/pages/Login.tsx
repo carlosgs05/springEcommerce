@@ -93,7 +93,7 @@ export const Login = () => {
             <div className="bg-gray-50 px-6 py-4 text-center">
               <p className="text-sm text-gray-600">
                 ¿No tienes cuenta?{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-500 font-medium">
+                <a href="/register" className="text-blue-600 hover:text-blue-500 font-medium">
                   Regístrate
                 </a>
               </p>
