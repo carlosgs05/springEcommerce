@@ -1,5 +1,6 @@
 package com.ecommerce.backend.dto;
 
+import com.ecommerce.backend.entity.Permiso;
 import com.ecommerce.backend.entity.Rol;
 import com.ecommerce.backend.entity.Usuario;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -32,4 +33,5 @@ public class ReqRes {
     // Campos para respuesta
     private Usuario usuario;
     private List<Usuario> usuariosList;
+    private List<Permiso> permisos;
 }

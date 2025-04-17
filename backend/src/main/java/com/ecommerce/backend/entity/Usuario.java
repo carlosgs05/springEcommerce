@@ -13,7 +13,7 @@ import java.util.List;
 @Data
 @Entity
 @Table(name = "usuario")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
 public class Usuario implements UserDetails {
 
     @Id

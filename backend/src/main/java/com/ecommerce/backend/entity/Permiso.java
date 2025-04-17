@@ -1,7 +1,7 @@
 package com.ecommerce.backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -10,7 +10,10 @@ import java.util.List;
 @Data
 @Entity
 @Table(name = "permiso")
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+@JsonIdentityInfo(
+  generator = ObjectIdGenerators.PropertyGenerator.class,
+  property = "idpermiso"
+)
 public class Permiso {
 
     @Id
@@ -19,6 +22,5 @@ public class Permiso {
     private Integer idpermiso;
 
     @OneToMany(mappedBy = "permiso", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
     private List<RolPermiso> roles;
 }

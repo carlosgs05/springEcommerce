@@ -20,7 +20,8 @@ public class UsuarioController {
 
     @PostMapping("/login")
     public ResponseEntity<ReqRes> login(@RequestBody ReqRes req){
-        return ResponseEntity.ok(usuarioService.login(req));
+        ReqRes res = usuarioService.login(req);
+        return ResponseEntity.status(res.getStatusCode()).body(res);
     }
 
 }
