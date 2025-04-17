@@ -1,10 +1,10 @@
 package com.ecommerce.backend.dto;
 
+import com.ecommerce.backend.entity.Rol;
+import com.ecommerce.backend.entity.Usuario;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
-import com.ecommerce.backend.entity.Usuario;
-import com.ecommerce.backend.entity.Rol;
 
 import java.util.List;
 

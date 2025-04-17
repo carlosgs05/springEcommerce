@@ -21,7 +21,6 @@ public class ProductoImg {
     private String nombre;
 
     public Object getId() {
-        // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getId'");
     }
 }

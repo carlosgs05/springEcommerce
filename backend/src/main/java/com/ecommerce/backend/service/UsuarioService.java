@@ -1,7 +1,5 @@
 package com.ecommerce.backend.service;
 
-import java.util.HashMap;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,8 +24,10 @@ public class UsuarioService {
 
     @Autowired
     private JWTUtils jwtUtils;
+
     @Autowired
     private AuthenticationManager authenticationManager;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -88,7 +88,7 @@ public class UsuarioService {
         return resp;
     }
 
-    public ReqRes login(ReqRes loginRequest) {
+public ReqRes login(ReqRes loginRequest) {
         ReqRes response = new ReqRes();
         try {
             // 1. Autenticación
@@ -97,26 +97,20 @@ public class UsuarioService {
                             loginRequest.getCorreo(),
                             loginRequest.getPassword()));
 
-            // 2. Obtener usuario
-            var user = usersRepo.findByCorreo(loginRequest.getCorreo())
+            // 2. Obtener usuario con rol y permisos
+            Usuario user = usersRepo.findByCorreo(loginRequest.getCorreo())
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
             // 3. Generar tokens
-            var jwt = jwtUtils.generateToken(user);
-            var refreshToken = jwtUtils.generateRefreshToken(new HashMap<>(), user);
+            String jwt = jwtUtils.generateToken(user);
 
             // 4. Configurar respuesta
             response.setStatusCode(200);
             response.setToken(jwt);
-            response.setRefreshToken(refreshToken);
             response.setExpirationTime("24Hrs");
             response.setMessage("Inicio de sesión exitoso");
             response.setUsuario(user);
-
-            // Obtener el nombre del rol si es necesario
-            if (user.getRol() != null) {
-                response.setRol(user.getRol());
-            }
+            response.setRol(user.getRol());
 
         } catch (BadCredentialsException e) {
             response.setStatusCode(401);

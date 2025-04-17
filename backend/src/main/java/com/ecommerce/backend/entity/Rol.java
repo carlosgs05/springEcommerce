@@ -1,12 +1,16 @@
 package com.ecommerce.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.util.List;
 
 @Data
 @Entity
 @Table(name = "rol")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Rol {
 
     @Id
@@ -17,6 +21,7 @@ public class Rol {
     @Column(name = "nombre", length = 20)
     private String nombre;
 
-    @OneToMany(mappedBy = "rol", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "rol", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<RolPermiso> permisos;
 }

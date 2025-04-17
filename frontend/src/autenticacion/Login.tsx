@@ -11,19 +11,21 @@ interface LoginData {
 interface Rol {
     idrol: number;
     nombre: string;
-    [key: string]: any; // Propiedades adicionales
+    permisos?: any[];
 }
 
 interface UserData {
-    iduser?: number;
-    nombre?: string;
+    iduser: number;
+    nombre: string;
     apellido?: string;
     dni?: string;
-    correo?: string;
-    rol?: Rol;
-    enabled?: boolean;
+    correo: string;
+    password?: string;
+    celular?: string;
+    rol: Rol;
+    enabled: boolean;
     authorities?: Array<{ authority: string }>;
-    [key: string]: any; // Otras propiedades posibles
+    [key: string]: any;
 }
 
 interface LoginResponse {
@@ -32,12 +34,8 @@ interface LoginResponse {
     token: string;
     refreshToken: string;
     expirationTime: string;
-    rol?: Rol;
-    usuario?: UserData;
-    user?: UserData;
-    // Para administradores puede venir directamente
-    idrol?: number;
-    nombre?: string;
+    rol: Rol;
+    usuario: UserData;
 }
 
 const Login: React.FC = () => {
@@ -62,49 +60,14 @@ const Login: React.FC = () => {
             const { data } = response;
 
             if (response.status === 200) {
-                // Extraer token y refreshToken
-                const { token, refreshToken } = data;
+                // Extraer datos importantes de la respuesta
+                const { token, refreshToken, rol, usuario } = data;
                 
-                // Determinar el rol del usuario (compatible con múltiples estructuras)
-                let userRole: Rol | undefined;
-                let userData: UserData | undefined;
-
-                // Caso 1: Rol directamente en la respuesta
-                if (data.rol) {
-                    userRole = data.rol;
-                } 
-                // Caso 2: Rol dentro de usuario/user
-                else if (data.usuario?.rol) {
-                    userRole = data.usuario.rol;
-                    userData = data.usuario;
-                } 
-                else if (data.user?.rol) {
-                    userRole = data.user.rol;
-                    userData = data.user;
-                }
-                // Caso 3: Para administradores (puede venir idrol directamente)
-                else if (data.idrol) {
-                    userRole = {
-                        idrol: data.idrol,
-                        nombre: data.nombre || 'ADMIN'
-                    };
-                }
-
-                // Verificar si se determinó el rol
-                if (!userRole) {
-                    console.error('Estructura de respuesta inesperada:', data);
-                    throw new Error('La estructura de la respuesta no contiene información de rol');
-                }
-
                 // Guardar datos en localStorage
                 localStorage.setItem('authToken', token);
                 localStorage.setItem('refreshToken', refreshToken);
-                
-                if (userData) {
-                    localStorage.setItem('userData', JSON.stringify(userData));
-                }
-                
-                localStorage.setItem('userRole', JSON.stringify(userRole));
+                localStorage.setItem('userData', JSON.stringify(usuario));
+                localStorage.setItem('userRole', JSON.stringify(rol));
 
                 // Mostrar mensaje de éxito
                 await swal.fire({
@@ -115,8 +78,8 @@ const Login: React.FC = () => {
                 });
 
                 // Redirigir según el rol
-                switch (userRole.idrol) {
-                    case 1: // Admin
+                switch (rol.idrol) {
+                    case 1: // Administrador
                         navigate('/admin');
                         break;
                     case 2: // Cliente
