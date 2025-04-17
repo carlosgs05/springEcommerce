@@ -1,57 +1,73 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FaSearch, FaShoppingCart, FaUser } from 'react-icons/fa';
+import { FaSearch, FaShoppingCart, FaUser, FaSignOutAlt } from 'react-icons/fa';
 import { HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
+import { useAuth } from '../context/AuthContext';
+import { DropdownMenu, DropdownItem } from './Dropdown';
 
 interface Tab {
   id: string;
   label: string;
   href: string;
+  roles?: number[];
 }
 
 const TABS: Tab[] = [
   { id: 'home', label: 'Home', href: '/' },
-  { id: 'products', label: 'Products', href: '/productos' },
+  { id: 'products', label: 'Products', href: '/productos', roles: [2] },
   { id: 'testimonials', label: 'Testimonials', href: '/testimonials' },
   { id: 'contact', label: 'Contact', href: '/contact' },
 ];
 
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout, hasRole } = useAuth();
 
-  // Función para verificar si el enlace está activo
   const isActive = (path: string) => location.pathname === path;
 
   const toggleMenu = () => setMenuOpen(open => !open);
   const closeMenu = () => setMenuOpen(false);
+  const toggleUserDropdown = () => setUserDropdownOpen(open => !open);
 
-  // Clases para los enlaces de escritorio
   const getLinkClasses = (path: string) => {
     const baseClasses = "px-3 py-2 transition-all duration-200 cursor-pointer border-b-2";
     const activeClasses = "text-cyan-400 border-cyan-400";
     const inactiveClasses = "text-white border-transparent";
     const hoverClasses = "hover:text-cyan-400 hover:border-cyan-400";
-    
+
     return `${baseClasses} ${isActive(path) ? activeClasses : inactiveClasses} ${hoverClasses}`;
   };
 
-  // Clases para el menú móvil
   const getMobileLinkClasses = (path: string) => {
     const baseClasses = "block px-3 py-2 transition-all duration-200";
     const activeClasses = "text-cyan-400 bg-gray-800";
     const inactiveClasses = "text-white";
     const hoverClasses = "hover:text-cyan-400 hover:bg-gray-800";
-    
+
     return `${baseClasses} ${isActive(path) ? activeClasses : inactiveClasses} ${hoverClasses}`;
   };
 
   const iconBtnClasses = "p-2 text-white transition-colors duration-200 hover:text-cyan-400";
+  const textBtnClasses = "px-3 py-2 text-white hover:text-cyan-400 transition-colors duration-200";
+
+  const handleUserAction = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else {
+      toggleUserDropdown();
+    }
+  };
+
+  const filteredTabs = TABS.filter(tab =>
+    !tab.roles || (user && tab.roles.some(role => hasRole(role)))
+  );
 
   return (
-    <header className="w-full bg-gradient-to-tr from-gray-900 to-stone-800 shadow-2xl">
-      <nav className="max-w-7xl mx-auto px-6 py-5 lg:py-6 flex items-center justify-between">
+    <header className="w-full bg-gradient-to-tr from-gray-900 to-stone-800 shadow-2xl sticky top-0 z-50">
+      <nav className="max-w-7xl mx-auto px-6 py-5 lg:py-6 flex items-center justify-between relative">
         {/* Logo */}
         <a href="/" onClick={closeMenu} className="flex items-center space-x-3">
           <img
@@ -71,7 +87,7 @@ const Header: React.FC = () => {
 
         {/* Desktop Tabs */}
         <ul className="hidden md:flex items-center space-x-6">
-          {TABS.map(tab => (
+          {filteredTabs.map(tab => (
             <li key={tab.id}>
               <a
                 href={tab.href}
@@ -92,13 +108,43 @@ const Header: React.FC = () => {
           <button aria-label="Carrito" className={iconBtnClasses}>
             <FaShoppingCart size={20} />
           </button>
-          <button 
-            aria-label="Usuario" 
-            className={iconBtnClasses}
-            onClick={() => navigate('/login')}
-          >
-            <FaUser size={20} />
-          </button>
+
+          {/* Botón condicional para usuario */}
+          {isAuthenticated && user?.rol.idrol === 2 ? (
+            <div className="relative">
+              <button
+                aria-label="Usuario"
+                className={iconBtnClasses}
+                onClick={handleUserAction}
+              >
+                <FaUser size={20} />
+              </button>
+
+              {userDropdownOpen && (
+                <DropdownMenu onClose={() => setUserDropdownOpen(false)}>
+                  <DropdownItem
+                    onClick={() => navigate('/perfil')}
+                    icon={<FaUser className="mr-2" />}
+                  >
+                    Mi Perfil
+                  </DropdownItem>
+                  <DropdownItem
+                    onClick={logout}
+                    icon={<FaSignOutAlt className="mr-2" />}
+                  >
+                    Cerrar Sesión
+                  </DropdownItem>
+                </DropdownMenu>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/login')}
+              className={textBtnClasses}
+            >
+              Iniciar Sesión
+            </button>
+          )}
         </div>
 
         {/* Botón hamburguesa (móvil) */}
@@ -115,7 +161,7 @@ const Header: React.FC = () => {
       {menuOpen && (
         <div className="md:hidden px-6 pb-5 border-t border-gray-700">
           <ul className="flex flex-col space-y-3">
-            {TABS.map(tab => (
+            {filteredTabs.map(tab => (
               <li key={tab.id}>
                 <a
                   href={tab.href}
@@ -134,16 +180,28 @@ const Header: React.FC = () => {
             <button aria-label="Carrito" className={iconBtnClasses}>
               <FaShoppingCart size={20} />
             </button>
-            <button 
-              aria-label="Usuario" 
-              className={iconBtnClasses}
-              onClick={() => {
-                closeMenu();
-                navigate('/login');
-              }}
-            >
-              <FaUser size={20} />
-            </button>
+            {isAuthenticated && user?.rol.idrol === 2 ? (
+              <button
+                aria-label="Usuario"
+                className={iconBtnClasses}
+                onClick={() => {
+                  closeMenu();
+                  handleUserAction();
+                }}
+              >
+                <FaUser size={20} />
+              </button>
+            ) : (
+              <button
+                className={textBtnClasses}
+                onClick={() => {
+                  closeMenu();
+                  navigate('/login');
+                }}
+              >
+                Iniciar Sesión
+              </button>
+            )}
           </div>
         </div>
       )}
