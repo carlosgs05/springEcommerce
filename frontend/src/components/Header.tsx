@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { FaSearch, FaShoppingCart, FaUser } from 'react-icons/fa';
 import { HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
 
@@ -19,6 +19,7 @@ const TABS: Tab[] = [
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Función para verificar si el enlace está activo
   const isActive = (path: string) => location.pathname === path;
@@ -91,7 +92,11 @@ const Header: React.FC = () => {
           <button aria-label="Carrito" className={iconBtnClasses}>
             <FaShoppingCart size={20} />
           </button>
-          <button aria-label="Usuario" className={iconBtnClasses}>
+          <button 
+            aria-label="Usuario" 
+            className={iconBtnClasses}
+            onClick={() => navigate('/login')}
+          >
             <FaUser size={20} />
           </button>
         </div>
@@ -129,7 +134,14 @@ const Header: React.FC = () => {
             <button aria-label="Carrito" className={iconBtnClasses}>
               <FaShoppingCart size={20} />
             </button>
-            <button aria-label="Usuario" className={iconBtnClasses}>
+            <button 
+              aria-label="Usuario" 
+              className={iconBtnClasses}
+              onClick={() => {
+                closeMenu();
+                navigate('/login');
+              }}
+            >
               <FaUser size={20} />
             </button>
           </div>

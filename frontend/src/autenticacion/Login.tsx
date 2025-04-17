@@ -8,6 +8,38 @@ interface LoginData {
     password: string;
 }
 
+interface Rol {
+    idrol: number;
+    nombre: string;
+    [key: string]: any; // Propiedades adicionales
+}
+
+interface UserData {
+    iduser?: number;
+    nombre?: string;
+    apellido?: string;
+    dni?: string;
+    correo?: string;
+    rol?: Rol;
+    enabled?: boolean;
+    authorities?: Array<{ authority: string }>;
+    [key: string]: any; // Otras propiedades posibles
+}
+
+interface LoginResponse {
+    statusCode: number;
+    message: string;
+    token: string;
+    refreshToken: string;
+    expirationTime: string;
+    rol?: Rol;
+    usuario?: UserData;
+    user?: UserData;
+    // Para administradores puede venir directamente
+    idrol?: number;
+    nombre?: string;
+}
+
 const Login: React.FC = () => {
     const [formData, setFormData] = useState<LoginData>({
         correo: '',
@@ -18,10 +50,7 @@ const Login: React.FC = () => {
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value,
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -29,36 +58,94 @@ const Login: React.FC = () => {
         setLoading(true);
 
         try {
-            const response = await axios.post('http://localhost:8080/api/auth/login', formData);
+            const response = await axios.post<LoginResponse>('http://localhost:8080/api/auth/login', formData);
+            const { data } = response;
 
             if (response.status === 200) {
-                // Guardar token y datos del usuario
-                const { token, user } = response.data;
-                localStorage.setItem('authToken', token);
-                localStorage.setItem('userData', JSON.stringify(user));
+                // Extraer token y refreshToken
+                const { token, refreshToken } = data;
+                
+                // Determinar el rol del usuario (compatible con múltiples estructuras)
+                let userRole: Rol | undefined;
+                let userData: UserData | undefined;
 
-                swal.fire({
+                // Caso 1: Rol directamente en la respuesta
+                if (data.rol) {
+                    userRole = data.rol;
+                } 
+                // Caso 2: Rol dentro de usuario/user
+                else if (data.usuario?.rol) {
+                    userRole = data.usuario.rol;
+                    userData = data.usuario;
+                } 
+                else if (data.user?.rol) {
+                    userRole = data.user.rol;
+                    userData = data.user;
+                }
+                // Caso 3: Para administradores (puede venir idrol directamente)
+                else if (data.idrol) {
+                    userRole = {
+                        idrol: data.idrol,
+                        nombre: data.nombre || 'ADMIN'
+                    };
+                }
+
+                // Verificar si se determinó el rol
+                if (!userRole) {
+                    console.error('Estructura de respuesta inesperada:', data);
+                    throw new Error('La estructura de la respuesta no contiene información de rol');
+                }
+
+                // Guardar datos en localStorage
+                localStorage.setItem('authToken', token);
+                localStorage.setItem('refreshToken', refreshToken);
+                
+                if (userData) {
+                    localStorage.setItem('userData', JSON.stringify(userData));
+                }
+                
+                localStorage.setItem('userRole', JSON.stringify(userRole));
+
+                // Mostrar mensaje de éxito
+                await swal.fire({
                     title: '¡Bienvenido!',
-                    text: 'Has iniciado sesión correctamente',
+                    text: data.message,
                     icon: 'success',
                     confirmButtonText: 'Continuar'
-                }).then(() => {
-                    navigate('/dashboard'); // Redirigir al dashboard
                 });
+
+                // Redirigir según el rol
+                switch (userRole.idrol) {
+                    case 1: // Admin
+                        navigate('/admin');
+                        break;
+                    case 2: // Cliente
+                        navigate('/');
+                        break;
+                    default:
+                        navigate('/');
+                }
             }
         } catch (error: any) {
-            console.error('Error:', error);
+            console.error('Error en login:', error);
             let errorMessage = 'Error al iniciar sesión';
             
             if (error.response) {
                 if (error.response.status === 401) {
                     errorMessage = 'Credenciales incorrectas';
-                } else if (error.response.data && error.response.data.message) {
+                } else if (error.response.data?.message) {
                     errorMessage = error.response.data.message;
                 }
+            } else if (error.message) {
+                errorMessage = error.message;
             }
 
-            swal.fire("Error", errorMessage, "error");
+            await swal.fire({
+                title: 'Error',
+                text: errorMessage,
+                icon: 'error',
+                confirmButtonText: 'Entendido'
+            });
         } finally {
             setLoading(false);
         }
@@ -77,13 +164,9 @@ const Login: React.FC = () => {
                 </header>
 
                 <form onSubmit={handleSubmit} noValidate>
-                    {/* Correo */}
                     <div className="flex flex-wrap -mx-3 mb-6">
                         <div className="w-full px-3">
-                            <label
-                                className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="correo"
-                            >
+                            <label className="block uppercase tracking-wide text-white text-xs font-bold mb-2" htmlFor="correo">
                                 Correo Electrónico
                             </label>
                             <input
@@ -99,13 +182,9 @@ const Login: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Contraseña */}
                     <div className="flex flex-wrap -mx-3 mb-6">
                         <div className="w-full px-3">
-                            <label
-                                className="block uppercase tracking-wide text-white text-xs font-bold mb-2"
-                                htmlFor="password"
-                            >
+                            <label className="block uppercase tracking-wide text-white text-xs font-bold mb-2" htmlFor="password">
                                 Contraseña
                             </label>
                             <input
@@ -122,7 +201,6 @@ const Login: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Recordar sesión y olvidé contraseña */}
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center">
                             <input
@@ -139,7 +217,6 @@ const Login: React.FC = () => {
                         </a>
                     </div>
 
-                    {/* Botón de Envío */}
                     <div className="mt-6">
                         <button
                             type="submit"
@@ -158,7 +235,6 @@ const Login: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Enlace a registro */}
                     <div className="mt-6 text-center">
                         <p className="text-sm text-gray-400">
                             ¿No tienes una cuenta?{' '}

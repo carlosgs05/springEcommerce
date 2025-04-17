@@ -3,6 +3,8 @@ import RegisterUser from "./autenticacion/RegisterUser"
 import { Route, Routes, BrowserRouter } from "react-router-dom"
 import Home from "./user/Home"
 import Productos from "./user/pages/Productos"
+import Layout from "./admin/Layout"
+
 
 function App() {
 
@@ -14,6 +16,7 @@ function App() {
           <Route path='/login' element={<Login />} />
           <Route path='/' element={<Home />} />
           <Route path='/productos' element={<Productos />} />
+          <Route path='/admin' element={<Layout />} />
         </Routes>
       </BrowserRouter>
     </>
