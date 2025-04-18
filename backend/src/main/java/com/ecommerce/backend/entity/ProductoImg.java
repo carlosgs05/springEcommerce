@@ -1,26 +1,23 @@
 package com.ecommerce.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
 @Entity
+@Getter
+@Setter
 @Table(name = "producto_img")
 public class ProductoImg {
 
-    @Id
-    @ManyToOne
-    @JoinColumn(name = "idproducto", referencedColumnName = "idproducto")
+    @EmbeddedId
+    private ProductoImgId id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("idproducto")
+    @JoinColumn(name = "idproducto")
     private Producto producto;
 
-    @Id
-    @Column(name = "idinteger")
-    private Integer idInteger;
-
-    @Column(name = "nombre", length = 255)
+    @Column(length = 255)
     private String nombre;
-
-    public Object getId() {
-        throw new UnsupportedOperationException("Unimplemented method 'getId'");
-    }
 }

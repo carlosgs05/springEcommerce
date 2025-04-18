@@ -1,22 +1,31 @@
 package com.ecommerce.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "comentario")
 public class Comentario {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idcomentario")
-    private Integer idcomentario;
+    @EmbeddedId
+    private ComentarioId id;
 
-    @Column(name = "descripcion", columnDefinition = "text")
+    @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
-    @ManyToOne
+    @Column(name = "fechacomentario", columnDefinition = "TIMESTAMP")
+    private LocalDateTime fechacomentario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "iduser", referencedColumnName = "iduser")
     private Usuario usuario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idproducto", referencedColumnName = "idproducto", 
+               insertable = false, updatable = false)
+    private Producto producto;
 }

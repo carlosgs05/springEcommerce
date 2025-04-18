@@ -1,6 +1,6 @@
 package com.ecommerce.backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
@@ -13,7 +13,6 @@ import java.util.List;
 @Data
 @Entity
 @Table(name = "usuario")
-@JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
 public class Usuario implements UserDetails {
 
     @Id
@@ -42,6 +41,10 @@ public class Usuario implements UserDetails {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idrol", referencedColumnName = "idrol")
     private Rol rol;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Comentario> comentarios;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

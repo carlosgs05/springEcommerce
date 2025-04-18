@@ -1,21 +1,22 @@
 package com.ecommerce.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
 @Entity
+@Getter
+@Setter
 @Table(name = "especificacion")
 public class Especificacion {
 
-    @Id
-    @ManyToOne
-    @JoinColumn(name = "idproducto", referencedColumnName = "idproducto")
-    private Producto producto;
+    @EmbeddedId
+    private EspecificacionId id;
 
-    @Id
-    @Column(name = "idespecificacion")
-    private Integer idespecificacion;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("idproducto")
+    @JoinColumn(name = "idproducto")
+    private Producto producto;
 
     @Column(name = "unidadmedida", length = 4)
     private String unidadmedida;
@@ -23,6 +24,6 @@ public class Especificacion {
     @Column(name = "valor")
     private Double valor;
 
-    @Column(name = "descripcion", columnDefinition = "text")
+    @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 }
