@@ -2,18 +2,17 @@ package com.ecommerce.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
 @Entity
 @Table(name = "permiso")
-@JsonIdentityInfo(
-  generator = ObjectIdGenerators.PropertyGenerator.class,
-  property = "idpermiso"
-)
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "idpermiso")
 public class Permiso {
 
     @Id
@@ -21,6 +20,10 @@ public class Permiso {
     @Column(name = "idpermiso")
     private Integer idpermiso;
 
-    @OneToMany(mappedBy = "permiso", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<RolPermiso> roles;
+    @Column(name = "descripcion", length = 100, nullable = false)
+    private String descripcion;
+
+    @OneToMany(mappedBy = "permiso", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference("permiso-rolpermiso")
+    private List<RolPermiso> roles = new ArrayList<>();
 }
