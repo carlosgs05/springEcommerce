@@ -1,17 +1,23 @@
+// Producto.java
 package com.ecommerce.backend.entity;
+
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 
 @Entity
 @Getter
 @Setter
 @Table(name = "producto")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "idproducto")
 public class Producto {
 
     @Id
@@ -42,12 +48,15 @@ public class Producto {
     @Column(name = "fechacreacion", columnDefinition = "TIMESTAMP")
     private LocalDateTime fechacreacion;
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference("producto-especificacion")
     private List<Especificacion> especificaciones = new ArrayList<>();
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference("producto-imagen")
     private List<ProductoImg> imagenes = new ArrayList<>();
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference("producto-comentario")
     private List<Comentario> comentarios = new ArrayList<>();
 }
