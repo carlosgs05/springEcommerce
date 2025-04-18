@@ -20,8 +20,8 @@ public class Permiso {
     @Column(name = "idpermiso")
     private Integer idpermiso;
 
-    @Column(name = "descripcion", length = 100, nullable = false)
-    private String descripcion;
+    @Column(name = "nombre", length = 100, nullable = false)
+    private String nombre;
 
     @OneToMany(mappedBy = "permiso", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference("permiso-rolpermiso")

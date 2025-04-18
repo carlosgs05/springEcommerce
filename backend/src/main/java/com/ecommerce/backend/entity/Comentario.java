@@ -1,8 +1,6 @@
 package com.ecommerce.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,11 +11,12 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Table(name = "comentario")
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Comentario {
 
-    @EmbeddedId
-    private ComentarioId id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idcomentario")
+    private Long idcomentario;
 
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
@@ -26,12 +25,11 @@ public class Comentario {
     private LocalDateTime fechacomentario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "iduser", referencedColumnName = "iduser")
+    @JoinColumn(name = "iduser")
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idproducto", referencedColumnName = "idproducto",
-               insertable = false, updatable = false)
+    @JoinColumn(name = "idproducto")
     @JsonBackReference("producto-comentario")
     private Producto producto;
 }
