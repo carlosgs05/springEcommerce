@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   FaSignOutAlt, 
@@ -10,7 +10,9 @@ import {
   FaThList,
   FaTags,
   FaStar,
-  FaHome
+  FaHome,
+  FaChevronDown,
+  FaChevronRight
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,6 +24,32 @@ interface SidebarAdminProps {
 const SidebarAdmin: React.FC<SidebarAdminProps> = ({ isOpen, toggle }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [reviewsOpen, setReviewsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar el dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setReviewsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Manejar el blur con un pequeño retraso para permitir la navegación
+  const handleBlur = (e: React.FocusEvent) => {
+    // Verificar si el nuevo elemento enfocado está dentro del dropdown
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setTimeout(() => {
+        setReviewsOpen(false);
+      }, 100);
+    }
+  };
 
   return (
     <aside
@@ -110,13 +138,54 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({ isOpen, toggle }) => {
               <FaBoxOpen className="w-4 h-4 mr-3 min-w-[16px]" />
               Productos
             </button>
-            <button
-              onClick={() => navigate('/admin/reseñas')}
-              className="w-full flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 transition text-left text-sm"
+            
+            {/* Dropdown de Reseñas */}
+            <div 
+              ref={dropdownRef}
+              onBlur={handleBlur}
+              tabIndex={-1} // Hace que el div pueda recibir foco
+              className="relative"
             >
-              <FaStar className="w-4 h-4 mr-3 min-w-[16px]" />
-              Reseñas
-            </button>
+              <button
+                onClick={() => setReviewsOpen(!reviewsOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-800 transition text-left text-sm"
+              >
+                <div className="flex items-center">
+                  <FaStar className="w-4 h-4 mr-3 min-w-[16px]" />
+                  Reseñas
+                </div>
+                {reviewsOpen ? (
+                  <FaChevronDown className="w-3 h-3" />
+                ) : (
+                  <FaChevronRight className="w-3 h-3" />
+                )}
+              </button>
+              
+              {reviewsOpen && (
+                <div className="ml-6 space-y-1 mt-1">
+                  <button
+                    onClick={() => {
+                      navigate('/admin/reviews_productos');
+                      setReviewsOpen(false);
+                    }}
+                    className="w-full flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 transition text-left text-sm"
+                  >
+                    <span className="w-4 h-4 mr-3 min-w-[16px]"></span>
+                    Productos Reviews
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/admin/testimonios');
+                      setReviewsOpen(false);
+                    }}
+                    className="w-full flex items-center px-3 py-2 rounded-lg hover:bg-gray-800 transition text-left text-sm"
+                  >
+                    <span className="w-4 h-4 mr-3 min-w-[16px]"></span>
+                    Testimonios
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>

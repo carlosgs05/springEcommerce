@@ -17,7 +17,8 @@ import ProductosAdmin from './admin/pages/ProductosAdmin';
 import PerfilUser from './user/pages/PerfilUser';
 import CategoriasAdmin from './admin/pages/CategoriasAdmin';
 import MarcasAdmin from './admin/pages/MarcasAdmin';
-import ReseñasAdmin from './admin/pages/ReseñasAdmin';
+import TestimoniosAdmin from './admin/pages/TestimoniosAdmin';
+import ReviewsProductosAdmin from './admin/pages/ReviewsProductosAdmin';
 
 function App() {
   return (
@@ -47,7 +48,8 @@ function App() {
             <Route path="categorias" element={<CategoriasAdmin />} />
             <Route path="marcas" element={<MarcasAdmin />} />
             <Route path="productos" element={<ProductosAdmin />} />
-            <Route path="reseñas" element={<ReseñasAdmin />} />
+            <Route path="reviews_productos" element={<ReviewsProductosAdmin />} />
+            <Route path="testimonios" element={<TestimoniosAdmin />} />
           </Route>
         </Route>
 

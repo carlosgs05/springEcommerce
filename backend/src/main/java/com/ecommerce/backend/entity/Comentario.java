@@ -24,6 +24,9 @@ public class Comentario {
     @Column(name = "fechacomentario", columnDefinition = "TIMESTAMP")
     private LocalDateTime fechacomentario;
 
+    @Column(name = "estado", columnDefinition = "INTEGER DEFAULT -1")
+    private Integer estado = -1;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "iduser")
     private Usuario usuario;
