@@ -19,6 +19,7 @@ import CategoriasAdmin from './admin/pages/CategoriasAdmin';
 import MarcasAdmin from './admin/pages/MarcasAdmin';
 import TestimoniosAdmin from './admin/pages/TestimoniosAdmin';
 import ReviewsProductosAdmin from './admin/pages/ReviewsProductosAdmin';
+import ProductoDetails from './user/pages/ProductoDetails';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
           <Route path="/nosotros" element={<Nosotros />} />
           <Route path="/tienda" element={<Tienda />} />
           <Route path="/contacto" element={<Contacto />} />
+          <Route path="/tienda/producto/:id" element={<ProductoDetails />} />
         </Route>
 
         {/* Rutas para admin (rol 1) */}

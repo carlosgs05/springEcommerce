@@ -1,3 +1,4 @@
+// src/main/java/com/ecommerce/backend/repository/EspecificacionRepository.java
 package com.ecommerce.backend.repository;
 
 import com.ecommerce.backend.entity.Especificacion;

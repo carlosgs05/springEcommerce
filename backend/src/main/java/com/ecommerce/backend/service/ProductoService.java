@@ -1,9 +1,11 @@
+// src/main/java/com/ecommerce/backend/service/ProductoService.java
 package com.ecommerce.backend.service;
 
-import com.ecommerce.backend.dto.ProductoRequest;
 import com.ecommerce.backend.dto.EspecificacionRequest;
+import com.ecommerce.backend.dto.ProductoRequest;
 import com.ecommerce.backend.entity.*;
 import com.ecommerce.backend.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,9 +15,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,69 +26,151 @@ public class ProductoService {
     private final ProductoRepository productoRepository;
     private final ProductoImgRepository productoImgRepository;
     private final EspecificacionRepository especificacionRepository;
+    private final ComentarioRepository comentarioRepository;
     private final CategoriaRepository categoriaRepository;
     private final MarcaRepository marcaRepository;
 
-    // Ruta ABSOLUTA dentro de backend/uploads
-    private final String uploadDir = Paths.get("backend", "uploads").toAbsolutePath().toString() + File.separator;
+    private final String uploadDir = Paths.get("backend", "src", "main", "resources", "static", "uploads")
+            .toAbsolutePath()
+            .toString() + File.separator;
+
+    public ProductoRequest parsearJson(String json, List<MultipartFile> imgs) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        ProductoRequest req = mapper.readValue(json, ProductoRequest.class);
+        req.setImagenes(imgs);
+        return req;
+    }
 
     @Transactional
-    public Producto crearProducto(ProductoRequest request) throws IOException {
-        // Validar y obtener categoría y marca
-        Categoria categoria = categoriaRepository.findById(request.getIdcategoria())
+    public ProductoRequest crearProducto(ProductoRequest req) throws IOException {
+        Categoria cat = categoriaRepository.findById(req.getIdcategoria())
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
-        Marca marca = marcaRepository.findById(request.getIdmarca())
+        Marca mar = marcaRepository.findById(req.getIdmarca())
                 .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
 
-        // Crear producto
-        Producto producto = new Producto();
-        producto.setNombre(request.getNombre());
-        producto.setDescripcion(request.getDescripcion());
-        producto.setPrecio(request.getPrecio());
-        producto.setStock(request.getStock());
-        producto.setCategoria(categoria);
-        producto.setMarca(marca);
-        producto.setFechacreacion(LocalDateTime.now());
-        producto = productoRepository.save(producto);
+        Producto prod = new Producto();
+        prod.setNombre(req.getNombre());
+        prod.setDescripcion(req.getDescripcion());
+        prod.setPrecio(req.getPrecio());
+        prod.setStock(req.getStock());
+        prod.setCategoria(cat);
+        prod.setMarca(mar);
+        prod.setFechacreacion(LocalDateTime.now());
+        prod = productoRepository.save(prod);
 
-        // Crear directorio si no existe
-        File uploadFolder = new File(uploadDir);
-        if (!uploadFolder.exists()) {
-            uploadFolder.mkdirs(); // Crea todos los directorios necesarios
-        }
+        File carpeta = new File(uploadDir);
+        if (!carpeta.exists())
+            carpeta.mkdirs();
 
-        // Guardar imágenes
-        if (request.getImagenes() != null && !request.getImagenes().isEmpty()) {
-            List<ProductoImg> imagenesGuardadas = new ArrayList<>();
-            for (MultipartFile imagen : request.getImagenes()) {
-                if (!imagen.isEmpty()) {
+        if (req.getImagenes() != null) {
+            for (MultipartFile mf : req.getImagenes()) {
+                if (!mf.isEmpty()) {
                     ProductoImg img = new ProductoImg();
-                    img.setProducto(producto);
-                    img.setNombre(UUID.randomUUID() + "_" + imagen.getOriginalFilename());
-                    imagenesGuardadas.add(productoImgRepository.save(img));
-
-                    // Guardar archivo físico
-                    File destino = new File(uploadDir + img.getNombre());
-                    imagen.transferTo(destino);
+                    img.setProducto(prod);
+                    img.setNombre(UUID.randomUUID() + "_" + mf.getOriginalFilename());
+                    productoImgRepository.save(img);
+                    mf.transferTo(new File(uploadDir + img.getNombre()));
                 }
             }
-            producto.setImagenes(imagenesGuardadas); // Asignar la lista al producto
         }
 
-        // Guardar especificaciones
-        if (request.getEspecificaciones() != null && !request.getEspecificaciones().isEmpty()) {
-            List<Especificacion> especificacionesGuardadas = new ArrayList<>();
-            for (EspecificacionRequest e : request.getEspecificaciones()) {
-                Especificacion esp = new Especificacion();
-                esp.setProducto(producto);
-                esp.setUnidadMedida(e.getUnidadmedida());
-                esp.setValor(e.getValor());
-                esp.setDescripcion(e.getDescripcion());
-                especificacionesGuardadas.add(especificacionRepository.save(esp));
+        if (req.getEspecificaciones() != null) {
+            for (EspecificacionRequest er : req.getEspecificaciones()) {
+                Especificacion e = new Especificacion();
+                e.setProducto(prod);
+                e.setUnidadMedida(er.getUnidadmedida());
+                e.setValor(er.getValor());
+                e.setDescripcion(er.getDescripcion());
+                especificacionRepository.save(e);
             }
-            producto.setEspecificaciones(especificacionesGuardadas); // Asignar la lista al producto
         }
 
-        return productoRepository.save(producto); // Guardar cambios finales
+        return obtenerProductoConRelaciones(prod.getIdproducto());
     }
+
+    // obtener un producto con relaciones
+    @Transactional
+    public ProductoRequest obtenerProductoConRelaciones(Long idProd) {
+        // fetch specifications only
+        Producto prod = productoRepository.findByIdWithRelations(idProd)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+
+        // luego cargo imágenes en una consulta separada
+        List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProd);
+
+        List<Comentario> comentarios = comentarioRepository
+                .findByProductoIdAndEstado(idProd, 1);
+
+        ProductoRequest dto = new ProductoRequest();
+        dto.setIdproducto(prod.getIdproducto());
+        dto.setNombre(prod.getNombre());
+        dto.setDescripcion(prod.getDescripcion());
+        dto.setPrecio(prod.getPrecio());
+        dto.setStock(prod.getStock());
+        dto.setIdcategoria(prod.getCategoria().getIdcategoria());
+        dto.setNombreCategoria(prod.getCategoria().getNombre());
+        dto.setIdmarca(prod.getMarca().getIdmarca());
+        dto.setNombreMarca(prod.getMarca().getNombre());
+        dto.setFechacreacion(prod.getFechacreacion());
+
+        dto.setImagenesNombres(
+                imagenes.stream()
+                        .map(ProductoImg::getNombre)
+                        .collect(Collectors.toList()));
+
+        dto.setEspecificaciones(
+                prod.getEspecificaciones()
+                        .stream()
+                        .map(e -> {
+                            EspecificacionRequest er = new EspecificacionRequest();
+                            er.setUnidadmedida(e.getUnidadMedida());
+                            er.setValor(e.getValor());
+                            er.setDescripcion(e.getDescripcion());
+                            return er;
+                        })
+                        .collect(Collectors.toList()));
+
+        dto.setComentariosAprobados(comentarios);
+        return dto;
+    }
+
+    // obtener todos los productos con relaciones
+    public List<ProductoRequest> listarTodosLosProductos() {
+        List<Producto> productos = productoRepository.findAllWithEspecificaciones();
+
+        return productos.stream().map(prod -> {
+            List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(prod.getIdproducto());
+            List<Comentario> comentariosAprobados = comentarioRepository.findByProductoIdAndEstado(prod.getIdproducto(),
+                    1);
+
+            ProductoRequest dto = new ProductoRequest();
+            dto.setIdproducto(prod.getIdproducto());
+            dto.setNombre(prod.getNombre());
+            dto.setDescripcion(prod.getDescripcion());
+            dto.setPrecio(prod.getPrecio());
+            dto.setStock(prod.getStock());
+            dto.setFechacreacion(prod.getFechacreacion());
+            dto.setIdcategoria(prod.getCategoria().getIdcategoria());
+            dto.setNombreCategoria(prod.getCategoria().getNombre());
+            dto.setIdmarca(prod.getMarca().getIdmarca());
+            dto.setNombreMarca(prod.getMarca().getNombre());
+
+            dto.setImagenesNombres(
+                    imagenes.stream().map(ProductoImg::getNombre).collect(Collectors.toList()));
+
+            dto.setEspecificaciones(
+                    prod.getEspecificaciones().stream().map(e -> {
+                        EspecificacionRequest er = new EspecificacionRequest();
+                        er.setUnidadmedida(e.getUnidadMedida());
+                        er.setValor(e.getValor());
+                        er.setDescripcion(e.getDescripcion());
+                        return er;
+                    }).collect(Collectors.toList()));
+
+            dto.setComentariosAprobados(comentariosAprobados);
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
 }
