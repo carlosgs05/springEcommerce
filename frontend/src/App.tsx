@@ -1,46 +1,68 @@
 import { Routes, Route } from 'react-router-dom';
-
 import { AuthProvider } from './context/AuthContext';
 import GuestRoute from './components/GuestRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import HomeRoute from './components/HomeRoute';
+import PublicRoute from './components/PublicRoute';
 
 import Login from './autenticacion/Login';
 import RegisterUser from './autenticacion/RegisterUser';
-import Productos from './user/pages/Productos';
+import Nosotros from './user/pages/Nosotros';
+import Tienda from './user/pages/Tienda';
+import Contacto from './user/pages/Contacto';
 import Layout from './admin/Layout';
 import HomeAdmin from './admin/pages/HomeAdmin';
-import UserAdmin from './admin/pages/UserAdmin';
-import ProductsAdmin from './admin/pages/ProductsAdmin';
+import PerfilAdmin from './admin/pages/PerfilAdmin';
+import ProductosAdmin from './admin/pages/ProductosAdmin';
+import PerfilUser from './user/pages/PerfilUser';
+import CategoriasAdmin from './admin/pages/CategoriasAdmin';
+import MarcasAdmin from './admin/pages/MarcasAdmin';
+import ReseñasAdmin from './admin/pages/ReseñasAdmin';
 
 function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* 1) Ruta raíz: si eres admin → /admin, sino HomeUser */}
+        {/* Ruta raíz */}
         <Route path="/" element={<HomeRoute />} />
 
-        {/* 2) Sólo para invitados */}
+        {/* Rutas para invitados */}
         <Route element={<GuestRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterUser />} />
         </Route>
 
-        {/* 3) Sólo para clientes (rol 2) */}
-        <Route element={<ProtectedRoute roles={[2]} redirectTo="/" />}>
-          <Route path="/productos" element={<Productos />} />
+        {/* Rutas públicas */}
+        <Route element={<PublicRoute />}>
+          <Route path="/nosotros" element={<Nosotros />} />
+          <Route path="/tienda" element={<Tienda />} />
+          <Route path="/contacto" element={<Contacto />} />
         </Route>
 
-        {/* 4) Sólo para admins (rol 1) */}
+        {/* Rutas para admin (rol 1) */}
         <Route element={<ProtectedRoute roles={[1]} redirectTo="/" />}>
           <Route path="/admin/*" element={<Layout />}>
-            {/* ruta /admin */}
             <Route index element={<HomeAdmin />} />
-            {/* ruta /admin/users */}
-            <Route path="users" element={<UserAdmin />} />
-            {/* ruta /admin/users */}
-            <Route path="products" element={<ProductsAdmin />} />
+            <Route path="perfil" element={<PerfilAdmin />} />
+            <Route path="categorias" element={<CategoriasAdmin />} />
+            <Route path="marcas" element={<MarcasAdmin />} />
+            <Route path="productos" element={<ProductosAdmin />} />
+            <Route path="reseñas" element={<ReseñasAdmin />} />
           </Route>
+        </Route>
+
+        {/* Ruta de perfil especial para clientes (rol 2) */}
+        <Route
+          path="/perfil"
+          element={
+            <ProtectedRoute
+              roles={[2]}
+              redirectTo="/"
+              specialRedirectPath="/" // Redirige a '/' cuando no autenticado
+            />
+          }
+        >
+          <Route index element={<PerfilUser />} />
         </Route>
       </Routes>
     </AuthProvider>

@@ -14,9 +14,9 @@ interface Tab {
 
 const TABS: Tab[] = [
   { id: 'home', label: 'Home', href: '/' },
-  { id: 'products', label: 'Products', href: '/productos', roles: [2] },
-  { id: 'testimonials', label: 'Testimonials', href: '/testimonials' },
-  { id: 'contact', label: 'Contact', href: '/contact' },
+  { id: 'nosotros', label: 'Nosotros', href: '/nosotros' },
+  { id: 'tienda', label: 'Tienda', href: '/tienda' },
+  { id: 'contacto', label: 'Contacto', href: '/contacto' },
 ];
 
 const Header: React.FC = () => {
@@ -28,9 +28,15 @@ const Header: React.FC = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const toggleMenu = () => setMenuOpen(open => !open);
+  const toggleMenu = () => setMenuOpen(prev => !prev);
   const closeMenu = () => setMenuOpen(false);
-  const toggleUserDropdown = () => setUserDropdownOpen(open => !open);
+  const toggleUserDropdown = () => setUserDropdownOpen(prev => !prev);
+
+  const handleLogout = () => {
+    logout();
+    setUserDropdownOpen(false);
+    closeMenu();
+  };
 
   const getLinkClasses = (path: string) => {
     const baseClasses = "px-3 py-2 transition-all duration-200 cursor-pointer border-b-2";
@@ -67,7 +73,7 @@ const Header: React.FC = () => {
 
   return (
     <header className="w-full bg-gradient-to-tr from-gray-900 to-stone-800 shadow-2xl sticky top-0 z-50">
-      <nav className="max-w-7xl mx-auto px-6 py-5 lg:py-6 flex items-center justify-between relative">
+      <nav className="max-w-8xl mx-auto px-11 py-5 lg:py-6 flex items-center justify-between relative">
         {/* Logo */}
         <a href="/" onClick={closeMenu} className="flex items-center space-x-3">
           <img
@@ -85,7 +91,7 @@ const Header: React.FC = () => {
           </div>
         </a>
 
-        {/* Desktop Tabs */}
+        {/* Desktop Navigation */}
         <ul className="hidden md:flex items-center space-x-6">
           {filteredTabs.map(tab => (
             <li key={tab.id}>
@@ -100,7 +106,7 @@ const Header: React.FC = () => {
           ))}
         </ul>
 
-        {/* Desktop Icons */}
+        {/* Desktop Actions */}
         <div className="hidden md:flex items-center space-x-4">
           <button aria-label="Buscar" className={iconBtnClasses}>
             <FaSearch size={20} />
@@ -109,8 +115,7 @@ const Header: React.FC = () => {
             <FaShoppingCart size={20} />
           </button>
 
-          {/* Botón condicional para usuario */}
-          {isAuthenticated && user?.rol.idrol === 2 ? (
+          {isAuthenticated ? (
             <div className="relative">
               <button
                 aria-label="Usuario"
@@ -122,14 +127,19 @@ const Header: React.FC = () => {
 
               {userDropdownOpen && (
                 <DropdownMenu onClose={() => setUserDropdownOpen(false)}>
+                  {user?.rol.idrol === 2 && (
+                    <DropdownItem
+                      onClick={() => {
+                        navigate('/perfil');
+                        setUserDropdownOpen(false);
+                      }}
+                      icon={<FaUser className="mr-2" />}
+                    >
+                      Mi Perfil
+                    </DropdownItem>
+                  )}
                   <DropdownItem
-                    onClick={() => navigate('/perfil')}
-                    icon={<FaUser className="mr-2" />}
-                  >
-                    Mi Perfil
-                  </DropdownItem>
-                  <DropdownItem
-                    onClick={logout}
+                    onClick={handleLogout}
                     icon={<FaSignOutAlt className="mr-2" />}
                   >
                     Cerrar Sesión
@@ -147,17 +157,17 @@ const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Botón hamburguesa (móvil) */}
+        {/* Mobile Menu Button */}
         <button
           onClick={toggleMenu}
           className="md:hidden p-2 text-white hover:text-cyan-400 focus:outline-none"
-          aria-label="Abrir o cerrar menú"
+          aria-label="Abrir menú"
         >
           {menuOpen ? <HiOutlineX size={28} /> : <HiOutlineMenu size={28} />}
         </button>
       </nav>
 
-      {/* Menú móvil */}
+      {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden px-6 pb-5 border-t border-gray-700">
           <ul className="flex flex-col space-y-3">
@@ -180,23 +190,48 @@ const Header: React.FC = () => {
             <button aria-label="Carrito" className={iconBtnClasses}>
               <FaShoppingCart size={20} />
             </button>
-            {isAuthenticated && user?.rol.idrol === 2 ? (
-              <button
-                aria-label="Usuario"
-                className={iconBtnClasses}
-                onClick={() => {
-                  closeMenu();
-                  handleUserAction();
-                }}
-              >
-                <FaUser size={20} />
-              </button>
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  aria-label="Usuario"
+                  className={iconBtnClasses}
+                  onClick={handleUserAction}
+                >
+                  <FaUser size={20} />
+                </button>
+
+                {userDropdownOpen && (
+                  <DropdownMenu onClose={() => setUserDropdownOpen(false)}>
+                    {user?.rol.idrol === 2 && (
+                      <DropdownItem
+                        onClick={() => {
+                          navigate('/perfil');
+                          setUserDropdownOpen(false);
+                          closeMenu();
+                        }}
+                        icon={<FaUser className="mr-2" />}
+                      >
+                        Mi Perfil
+                      </DropdownItem>
+                    )}
+                    <DropdownItem
+                      onClick={() => {
+                        handleLogout();
+                        closeMenu();
+                      }}
+                      icon={<FaSignOutAlt className="mr-2" />}
+                    >
+                      Cerrar Sesión
+                    </DropdownItem>
+                  </DropdownMenu>
+                )}
+              </div>
             ) : (
               <button
                 className={textBtnClasses}
                 onClick={() => {
-                  closeMenu();
                   navigate('/login');
+                  closeMenu();
                 }}
               >
                 Iniciar Sesión

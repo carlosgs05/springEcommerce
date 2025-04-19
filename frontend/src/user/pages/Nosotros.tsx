@@ -1,16 +1,16 @@
-import Header from '../Header'
-import Footer from '../Footer'
+import Footer from "../Footer"
+import Header from "../Header"
 
-const Productos = () => {
+const Nosotros = () => {
     return (
         <div>
             <Header />
             <section>
-                Productos
+                Nosotros
             </section>
             <Footer />
         </div>
     )
 }
 
-export default Productos
+export default Nosotros

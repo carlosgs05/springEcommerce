@@ -50,13 +50,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    const userRole = user?.rol.idrol;
+    
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userRole');
     setUser(null);
     setIsAuthenticated(false);
-    navigate('/');
+    
+    // Redirige según el rol del usuario
+    if (userRole === 2) {
+      navigate('/', { replace: true }); // Clientes a home
+    } else {
+      navigate('/login', { replace: true }); // Admins a login
+    }
   };
 
   const hasRole = (roleId: number) => {
@@ -68,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user, 
       login, 
       logout, 
-      isAuthenticated: isAuthenticated,
+      isAuthenticated,
       hasRole 
     }}>
       {children}
