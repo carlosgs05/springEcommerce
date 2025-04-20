@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { FaStar, FaCartPlus, FaTimes } from 'react-icons/fa'
+import { FaStar, FaRegStar, FaCartPlus, FaTimes } from 'react-icons/fa'
 import axios from 'axios'
 import swal from 'sweetalert2/dist/sweetalert2.all.js'
 import Footer from '../Footer'
@@ -15,9 +15,16 @@ interface Especificacion {
 
 interface Comentario {
   idcomentario: number
-  texto: string
-  usuarioNombre: string
-  fecha: string
+  descripcion: string
+  fechacomentario: string
+  usuario: {
+    nombre: string
+    apellido: string
+  }
+}
+
+interface ComentarioConEstrellas extends Comentario {
+  stars: number
 }
 
 interface Producto {
@@ -33,28 +40,13 @@ interface Producto {
   comentariosAprobados?: Comentario[]
 }
 
-// interface User {
-//   iduser: number
-//   rol: {
-//     idrol: number
-//   }
-// }
-
 const tabs = [
   { key: 'description', label: 'Descripción' },
   { key: 'additional', label: 'Información adicional' },
   { key: 'reviews', label: 'Reseñas' }
-]
+] as const
 
-type TabKey = 'description' | 'additional' | 'reviews'
-
-const generateProductRating = (productId: number) => {
-  const seed = productId % 10
-  const stars = Math.min(5, Math.max(2, Math.floor(seed / 2) + 2))
-  const baseCount = 2000 + (stars - 2) * 800
-  const count = baseCount + (productId % 500)
-  return { stars, count }
-}
+type TabKey = typeof tabs[number]['key']
 
 const ProductoDetails = () => {
   const navigate = useNavigate()
@@ -62,33 +54,42 @@ const ProductoDetails = () => {
   const producto = state as Producto
   const { user, isAuthenticated } = useAuth()
 
+  // Generar 3–5 estrellas cíclicas:
+  const reviewsWithStars: ComentarioConEstrellas[] =
+    (producto.comentariosAprobados ?? []).map((c, i) => ({
+      ...c,
+      stars: 3 + (i % 3)
+    }))
+
+  const maxStars = reviewsWithStars.length
+    ? Math.max(...reviewsWithStars.map(r => r.stars))
+    : 0
+
   const [selectedImage, setSelectedImage] = useState(0)
   const [activeTab, setActiveTab] = useState<TabKey>('description')
   const [loaded, setLoaded] = useState(false)
-  const [ratingData, setRatingData] = useState<{stars: number, count: number} | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isOpinionModalOpen, setIsOpinionModalOpen] = useState(false)
   const [opinionText, setOpinionText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (producto) {
-      const rating = generateProductRating(producto.idproducto)
-      setRatingData(rating)
-    }
-    setLoaded(false)
-  }, [producto?.idproducto])
+  const formatDate = (ds: string) =>
+    new Date(ds).toLocaleDateString('es-ES', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    })
 
   const handleSubmitOpinion = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
     try {
       const { data } = await axios.post(
-        `http://localhost:8080/api/comentarios/crear/${user?.iduser}/${producto.idproducto}`,
-        { texto: opinionText.trim() }
+        `http://localhost:8080/api/comentarios/crear`,
+        {
+          descripcion: opinionText.trim(),
+          iduser: user?.iduser,
+          idproducto: producto.idproducto
+        }
       )
-      
       if (data.success) {
         swal.fire('¡Éxito!', 'Tu opinión ha sido enviada para revisión', 'success')
         setIsOpinionModalOpen(false)
@@ -96,8 +97,8 @@ const ProductoDetails = () => {
       } else {
         swal.fire('Error', data.message, 'error')
       }
-    } catch (error: any) {
-      swal.fire('Error', error.response?.data?.message || error.message, 'error')
+    } catch (err: any) {
+      swal.fire('Error', err.response?.data?.message || err.message, 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -110,7 +111,9 @@ const ProductoDetails = () => {
         <button
           className="mt-4 px-4 py-2 bg-gray-200 rounded"
           onClick={() => navigate('/')}
-        >Volver</button>
+        >
+          Volver
+        </button>
       </div>
     )
   }
@@ -121,222 +124,223 @@ const ProductoDetails = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8 max-w-8xl mx-auto">
+      <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8 max-w-[1450px] mx-auto">
+        {/* Volver */}
         <button
-          className="mb-4 text-blue-500 hover:underline"
+          className="mb-4 text-blue-500 hover:underline flex items-center"
           onClick={() => navigate(-1)}
-        >← Volver</button>
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Volver
+        </button>
 
-        {/* Gallery & Basic Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-x-12 xl:gap-x-20">
-          {/* Gallery */}
-          <div>
-            <div className="w-full h-80 sm:h-96 lg:h-[450px] rounded-lg overflow-hidden bg-white shadow-sm">
+          {/* Imágenes */}
+          <div className="space-y-6">
+            <div className="aspect-w-1 aspect-h-1 bg-gray-50 rounded-xl overflow-hidden shadow-sm">
               <img
-                src={`http://localhost:8080/uploads/${encodeURIComponent(
-                  producto.imagenesNombres[selectedImage]
-                )}`}
+                src={`http://localhost:8080/uploads/${encodeURIComponent(producto.imagenesNombres[selectedImage])}`}
                 alt={producto.nombre}
-                className={`w-full h-full object-contain transition-opacity duration-500 ease-in-out ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                className={`w-full h-full object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
                 onLoad={() => setLoaded(true)}
               />
             </div>
-            
-            <div className="flex flex-wrap mt-4 gap-2">
-              {producto.imagenesNombres.map((imgName, idx) => (
-                <div
-                  key={imgName}
-                  className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg cursor-pointer overflow-hidden transition-all duration-300 ${
-                    idx === selectedImage
-                      ? 'ring-2 ring-indigo-500'
-                      : 'hover:ring-1 hover:ring-gray-300'
-                  }`}
-                  onClick={() => setSelectedImage(idx)}
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {producto.imagenesNombres.map((img, i) => (
+                <button
+                  key={img}
+                  onClick={() => setSelectedImage(i)}
+                  className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 overflow-hidden transition-all ${i === selectedImage
+                    ? 'border-indigo-500 ring-2 ring-indigo-200'
+                    : 'border-gray-200 hover:border-indigo-300'
+                    }`}
                 >
                   <img
-                    src={`http://localhost:8080/uploads/${encodeURIComponent(imgName)}`}
-                    alt={`${producto.nombre} ${idx + 1}`}
+                    src={`http://localhost:8080/uploads/${encodeURIComponent(img)}`}
+                    alt={`Vista ${i + 1}`}
                     className="w-full h-full object-cover"
                   />
-                </div>
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Basic Details */}
-          <div className="flex flex-col">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{producto.nombre}</h1>
-            <p className="text-gray-600 mb-4 line-clamp-3">{producto.descripcion}</p>
-
-            {ratingData && (
-              <div className="flex items-center mb-4">
-                <div className="flex mr-2">
-                  {[...Array(5)].map((_, i) => (
-                    <FaStar 
-                      key={i} 
-                      className={`${i < ratingData.stars ? 'text-yellow-400' : 'text-gray-300'} mr-1`} 
-                    />
-                  ))}
-                </div>
-                <span className="text-sm text-gray-500">({ratingData.count.toLocaleString()})</span>
+          {/* Detalles */}
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-gray-900">{producto.nombre}</h1>
+            <div className="flex items-center space-x-2">
+              <div className="flex text-yellow-400">
+                {[...Array(5)].map((_, i) =>
+                  i < maxStars
+                    ? <FaStar key={i} className="w-5 h-5" />
+                    : <FaRegStar key={i} className="w-5 h-5" />
+                )}
               </div>
-            )}
-
-            <div className="mb-4">
-              <span className="text-2xl font-semibold text-gray-800">S/ {producto.precio.toFixed(2)}</span>
+              <span className="text-sm text-gray-500">({reviewsWithStars.length} reseñas)</span>
+            </div>
+            <div className="text-3xl font-bold text-gray-900">
+              S/ {producto.precio.toFixed(2)}
             </div>
 
-            <div className="mb-6">
-              <span className={`px-2 py-1 rounded-full text-sm ${
-                hasStock 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-red-100 text-red-700'
-              }`}>
-                {hasStock ? 'Disponible' : 'Agotado'}
-              </span>
-            </div>
-
-            <div className="mb-6">
-              <button 
+            {/* Stock y metadatos */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${hasStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                  {hasStock ? 'En stock' : 'Agotado'}
+                </span>
+                <span className="text-sm text-gray-500">{producto.stock} unidades</span>
+              </div>
+              <button
+                className={`w-full flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition ${isDetailsOpen ? 'bg-gray-100' : ''
+                  }`}
                 onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-                className="w-full flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition-colors"
               >
-                <span className="font-medium text-gray-800">Características</span>
-                <svg 
-                  className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isDetailsOpen ? 'rotate-180' : ''}`}
-                  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                >
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                <span className="font-medium">Metadatos del producto</span>
+                <svg className={`w-5 h-5 transform transition-transform ${isDetailsOpen ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                    d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isDetailsOpen ? 'max-h-96' : 'max-h-0'}`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+              {isDetailsOpen && (
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div className="space-y-1">
                     <p className="text-sm text-gray-500">Marca</p>
-                    <p className="font-medium text-gray-800">{producto.nombreMarca}</p>
+                    <p className="font-medium">{producto.nombreMarca}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-gray-500">Categoría</p>
-                    <p className="font-medium text-gray-800">{producto.nombreCategoria}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-500">Stock</p>
-                    <p className={`font-medium ${hasStock ? 'text-green-600' : 'text-red-600'}`}>
-                      {hasStock ? 'Disponible' : 'Agotado'}
-                    </p>
+                    <p className="font-medium">{producto.nombreCategoria}</p>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            <div className="flex items-center space-x-4 mb-8">
-              <button 
-                className={`flex items-center px-6 py-3 rounded-lg transition ${
-                  hasStock 
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+            {/* Añadir al carrito / Opinar */}
+            <div className="flex gap-4">
+              <button
+                className={`flex-1 flex items-center justify-center py-3 px-6 rounded-lg transition ${hasStock ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 disabled={!hasStock}
               >
-                <FaCartPlus className="mr-2" /> Agregar al carrito
+                <FaCartPlus className="mr-2" /> Añadir al carrito
               </button>
-
               {showOpinionButton && (
                 <button
                   onClick={() => setIsOpinionModalOpen(true)}
-                  className="flex items-center px-6 py-3 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
+                  className="py-3 px-6 rounded-lg bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition"
                 >
-                  Danos tu opinión
+                  Opinar
                 </button>
               )}
             </div>
 
-            <div className="space-y-4 mb-8">
-              <div className="flex items-start">
-                <svg className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+            {/* Info envío */}
+            <div className="space-y-4 pt-4">
+              <div className="flex items-start space-x-3 p-4 bg-indigo-50 rounded-lg">
+                <svg className="w-5 h-5 text-indigo-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="font-medium">Envío gratis</p>
-                  <p className="text-sm text-gray-600">Ingresa tu código postal para ver disponibilidad de envío.</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <svg className="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                <div>
-                  <p className="font-medium">Devoluciones</p>
-                  <p className="text-sm text-gray-600">Devoluciones gratis durante 30 días. Detalles</p>
+                  <p className="font-medium text-indigo-600">Envío rápido y seguro</p>
+                  <p className="text-sm text-gray-600">
+                    Recibe tu producto en 24-48 horas con envío express disponible
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs Section */}
-        <div className="mt-9">
-          <div className="flex border-b mb-4">
+        {/* Pestañas con mismo ancho y padding */}
+        <div className="mt-12 border-t border-gray-200 pt-8">
+          {/* Botones de tab */}
+          <div className="flex space-x-8 -mt-px">
             {tabs.map(tab => (
               <button
                 key={tab.key}
-                className={`px-4 py-2 -mb-px font-medium text-sm transition ${
-                  activeTab === tab.key
-                    ? 'border-b-2 border-indigo-600 text-indigo-600'
-                    : 'border-b-2 border-transparent text-gray-600 hover:text-indigo-600'
-                }`}
-                onClick={() => setActiveTab(tab.key as TabKey)}
+                className={`py-4 px-1 font-medium text-sm border-b-2 transition-colors ${activeTab === tab.key
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                onClick={() => setActiveTab(tab.key)}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-
-          <div>
+          {/* Contenido de cada tab */}
+          <div className="py-8">
             {activeTab === 'description' && (
-              <div className="prose prose-sm text-gray-700">
-                <p>{producto.descripcion}</p>
+              <div className="prose max-w-none">
+                <p className="text-gray-600">{producto.descripcion}</p>
               </div>
             )}
-
             {activeTab === 'additional' && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Descripción</th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Valor</th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Unidad</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {producto.especificaciones.map((es, idx) => (
-                      <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-4 py-3 text-sm text-gray-700">{es.descripcion}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{es.valor}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{es.unidadmedida}</td>
-                      </tr>
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Especificaciones técnicas
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {producto.especificaciones.map((es, i) => (
+                      <div key={i} className="py-2">
+                        <dt className="text-sm font-medium text-gray-500">{es.descripcion}</dt>
+                        <dd className="mt-1 text-gray-900">
+                          {es.valor} {es.unidadmedida}
+                        </dd>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </dl>
+                </div>
               </div>
             )}
-
             {activeTab === 'reviews' && (
-              <div className="space-y-6">
-                {producto.comentariosAprobados && producto.comentariosAprobados.length > 0 ? (
-                  producto.comentariosAprobados.map(c => (
-                    <div key={c.idcomentario} className="border rounded-lg p-4">
-                      <div className="flex justify-between mb-2">
-                        <span className="font-medium text-gray-800">{c.usuarioNombre}</span>
-                        <span className="text-sm text-gray-500">{new Date(c.fecha).toLocaleDateString()}</span>
+              <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    ¿Qué opinan nuestros clientes?
+                  </h3>
+                </div>
+                {reviewsWithStars.length > 0 ? (
+                  <div className="space-y-8">
+                    {reviewsWithStars.map(c => (
+                      <div key={c.idcomentario} className="pb-8 border-b border-gray-100 last:border-0">
+                        <div className="flex items-center space-x-2 mb-3">
+                          <div className="flex text-yellow-400">
+                            {[...Array(5)].map((_, i) =>
+                              i < c.stars
+                                ? <FaStar key={i} className="w-5 h-5" />
+                                : <FaRegStar key={i} className="w-5 h-5" />
+                            )}
+                          </div>
+                          <h4 className="font-medium text-gray-900">
+                            {c.usuario.nombre} {c.usuario.apellido}
+                          </h4>
+                          <span className="text-sm text-gray-500">
+                            {formatDate(c.fechacomentario)}
+                          </span>
+                        </div>
+                        <div className="prose max-w-none">
+                          <p className="text-gray-600 whitespace-pre-wrap">
+                            {c.descripcion}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-gray-700">{c.texto}</p>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 ) : (
-                  <p className="text-gray-600">No hay comentarios aún.</p>
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">
+                      Este producto aún no tiene reseñas
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -345,46 +349,50 @@ const ProductoDetails = () => {
       </main>
       <Footer />
 
-      {/* Modal de Opinión */}
+      {/* Modal Opinión */}
       {isOpinionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full h-2/3 p-6 relative">
-            <button
-              onClick={() => setIsOpinionModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-            >
-              <FaTimes />
-            </button>
-            
-            <h2 className="text-2xl font-bold mb-4">Danos tu opinión</h2>
-            <p className="text-gray-600 mb-4">¿Qué te parece este producto?</p>
-            
-            <form onSubmit={handleSubmitOpinion}>
-              <textarea
-                value={opinionText}
-                onChange={(e) => setOpinionText(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                rows={11}
-                placeholder="Escribe tu opinión aquí..."
-                required
-              />
-              
-              <div className="mt-4 flex justify-end space-x-3">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h3 className="text-xl font-semibold">Escribe tu reseña</h3>
+              <button
+                onClick={() => setIsOpinionModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitOpinion} className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tu reseña
+                  </label>
+                  <textarea
+                    value={opinionText}
+                    onChange={(e) => setOpinionText(e.target.value)}
+                    rows={8}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Escribe tu experiencia con el producto..."
+                    required
+                  />
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end space-x-3">
                 <button
                   type="button"
                   onClick={() => setIsOpinionModalOpen(false)}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition ${
-                    isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
-                  }`}
+                  className={`px-4 py-2 bg-indigo-600 text-white rounded-lg transition ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-indigo-700'
+                    }`}
                 >
-                  {isSubmitting ? 'Enviando...' : 'Enviar opinión'}
+                  {isSubmitting ? 'Publicando...' : 'Publicar reseña'}
                 </button>
               </div>
             </form>

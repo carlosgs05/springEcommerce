@@ -135,13 +135,14 @@ public class ProductoService {
     }
 
     // obtener todos los productos con relaciones
+    @Transactional // <- AÑADE ESTA ANOTACIÓN
     public List<ProductoRequest> listarTodosLosProductos() {
         List<Producto> productos = productoRepository.findAllWithEspecificaciones();
 
         return productos.stream().map(prod -> {
             List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(prod.getIdproducto());
-            List<Comentario> comentariosAprobados = comentarioRepository.findByProductoIdAndEstado(prod.getIdproducto(),
-                    1);
+            List<Comentario> comentariosAprobados = comentarioRepository
+            .findByProductoIdAndEstadoWithUsuario(prod.getIdproducto(), 1);
 
             ProductoRequest dto = new ProductoRequest();
             dto.setIdproducto(prod.getIdproducto());

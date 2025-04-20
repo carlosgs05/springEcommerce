@@ -1,6 +1,8 @@
 package com.ecommerce.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,6 +31,7 @@ public class Comentario {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "iduser")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // <- AÑADE ESTO
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)

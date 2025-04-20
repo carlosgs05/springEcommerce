@@ -42,8 +42,8 @@ public class Usuario implements UserDetails {
     @JoinColumn(name = "idrol", referencedColumnName = "idrol")
     private Rol rol;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "usuario")
+    @JsonIgnore // <- AÑADE ESTO PARA ROMPER LA RECURSIÓN
     private List<Comentario> comentarios;
 
     @JsonIgnore
