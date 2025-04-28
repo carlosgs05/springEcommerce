@@ -32,6 +32,22 @@ public class MarcaController {
         }
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> obtenerMarca(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Marca marca = marcaService.obtenerMarcaPorId(id);
+            response.put("success", true);
+            response.put("message", "Marca obtenida correctamente");
+            response.put("data", marca);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error al obtener marca: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
     @PostMapping("/crear")
     public ResponseEntity<?> crearMarca(@RequestBody Marca marca) {
         Map<String, Object> response = new HashMap<>();
@@ -44,6 +60,39 @@ public class MarcaController {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "Error al crear marca: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @PutMapping("/actualizar/{id}")
+    public ResponseEntity<?> actualizarMarca(
+            @PathVariable Long id,
+            @RequestBody Marca marca) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Marca actualizada = marcaService.actualizarMarca(id, marca);
+            response.put("success", true);
+            response.put("message", "Marca actualizada correctamente");
+            response.put("data", actualizada);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error al actualizar marca: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @DeleteMapping("/eliminar/{id}")
+    public ResponseEntity<?> eliminarMarca(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            marcaService.eliminarMarca(id);
+            response.put("success", true);
+            response.put("message", "Marca eliminada correctamente");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error al eliminar marca: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
         }
     }
