@@ -211,4 +211,16 @@ public class UsuarioService {
         return response;
     }
 
+    public ReqRes getUserByCorreo(String correo) {
+        ReqRes response = new ReqRes();
+        try {
+            Usuario user = usersRepo.findByCorreo(correo).orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            response.setStatusCode(200);
+            response.setUsuario(user);
+        } catch (Exception e) {
+            response.setStatusCode(500);
+            response.setMessage("Error: " + e.getMessage());
+        }
+        return response;
+    }
 }
