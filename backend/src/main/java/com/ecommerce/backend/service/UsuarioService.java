@@ -1,5 +1,6 @@
 package com.ecommerce.backend.service;
 
+import java.io.BufferedReader;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,12 +10,19 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.ecommerce.backend.dto.ReqRes;
+import com.ecommerce.backend.dto.UsuarioUpdateRequest;
 import com.ecommerce.backend.entity.Permiso;
 import com.ecommerce.backend.entity.Rol;
 import com.ecommerce.backend.entity.Usuario;
 import com.ecommerce.backend.repository.UsuarioRepo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import com.ecommerce.backend.repository.RolRepo;
 
 @Service
@@ -34,6 +42,8 @@ public class UsuarioService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // refresh token
     public ReqRes refreshToken(ReqRes refreshTokenReqiest) {
@@ -128,4 +138,81 @@ public class UsuarioService {
         }
         return response;
     }
+
+    // update user
+    public ReqRes actualizarUsuario(Long usuarioId) {
+        ReqRes response = new ReqRes();
+
+        try {
+            // 0. Obtener el cuerpo de la petición HTTP como String
+            HttpServletRequest servletReq = ((ServletRequestAttributes) RequestContextHolder
+                    .currentRequestAttributes())
+                    .getRequest();
+            String jsonBody;
+            try (BufferedReader reader = servletReq.getReader()) {
+                jsonBody = reader.lines().collect(Collectors.joining());
+            }
+
+            // 1. Mapear el JSON al DTO
+            UsuarioUpdateRequest updateRequest = objectMapper.readValue(jsonBody, UsuarioUpdateRequest.class);
+
+            // 2. Buscar usuario por ID
+            Usuario usuario = usersRepo.findById(usuarioId)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            // 3. Actualizar datos básicos
+            usuario.setNombre(updateRequest.getNombre());
+            usuario.setApellido(updateRequest.getApellido());
+            usuario.setCorreo(updateRequest.getCorreo());
+            usuario.setCelular(updateRequest.getCelular());
+
+            // 4. Validar y actualizar contraseña (si viene nueva)
+            String newPw = updateRequest.getNewPassword();
+            if (newPw != null && !newPw.isBlank()) {
+                String currPw = updateRequest.getCurrentPassword();
+                if (currPw == null || currPw.isBlank()
+                        || !passwordEncoder.matches(currPw, usuario.getPassword())) {
+                    response.setStatusCode(400);
+                    response.setError("Contraseña actual incorrecta");
+                    return response;
+                }
+                usuario.setPassword(passwordEncoder.encode(newPw));
+            }
+
+            // 5. Guardar cambios
+            Usuario usuarioActualizado = usersRepo.save(usuario);
+
+            // 6. Construir respuesta
+            response.setStatusCode(200);
+            response.setMessage("Usuario actualizado exitosamente");
+            response.setUsuario(usuarioActualizado);
+            response.setRol(usuarioActualizado.getRol());
+
+        } catch (RuntimeException e) {
+            // Error controlado (e.g. usuario no encontrado)
+            response.setStatusCode(404);
+            response.setError(e.getMessage());
+        } catch (Exception e) {
+            // Cualquier otro error
+            response.setStatusCode(500);
+            response.setError("Error al actualizar: " + e.getMessage());
+        }
+
+        return response;
+    }
+
+    public ReqRes obtenerUsuarioPorId(Long id) {
+        ReqRes response = new ReqRes();
+        try {
+            Usuario user = usersRepo.findById(id).orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            response.setStatusCode(200);
+            response.setUsuario(user);
+            return response;
+        } catch (Exception e) {
+            response.setStatusCode(500);
+            response.setError("Error al obtener usuario: " + e.getMessage());
+            return response;
+        }
+    }
+
 }
