@@ -20,6 +20,7 @@ import MarcasAdmin from './admin/pages/MarcasAdmin';
 import TestimoniosAdmin from './admin/pages/TestimoniosAdmin';
 import ReviewsProductosAdmin from './admin/pages/ReviewsProductosAdmin';
 import ProductoDetails from './user/pages/ProductoDetails';
+import ForgotPassword from './autenticacion/ForgotPassword';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route element={<GuestRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterUser />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
 
         {/* Rutas públicas */}

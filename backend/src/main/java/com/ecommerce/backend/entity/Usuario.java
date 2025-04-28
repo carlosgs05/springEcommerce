@@ -7,6 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -37,6 +38,12 @@ public class Usuario implements UserDetails {
 
     @Column(name = "celular", length = 9)
     private String celular;
+
+    @Column(name = "reset_code")
+    private Integer resetCode;
+
+    @Column(name = "reset_code_expires_at", columnDefinition = "TIMESTAMP")
+    private LocalDateTime resetCodeExpiresAt;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idrol", referencedColumnName = "idrol")

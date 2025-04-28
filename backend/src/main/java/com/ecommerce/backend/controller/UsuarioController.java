@@ -19,9 +19,24 @@ public class UsuarioController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ReqRes> login(@RequestBody ReqRes req){
+    public ResponseEntity<ReqRes> login(@RequestBody ReqRes req) {
         ReqRes res = usuarioService.login(req);
         return ResponseEntity.status(res.getStatusCode()).body(res);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ReqRes> forgotPassword(@RequestBody ReqRes req) {
+        return ResponseEntity.ok(usuarioService.forgotPassword(req));
+    }
+
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<ReqRes> verifyResetCode(@RequestBody ReqRes req) {
+        return ResponseEntity.ok(usuarioService.verifyResetCode(req));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ReqRes> resetPassword(@RequestBody ReqRes req) {
+        return ResponseEntity.ok(usuarioService.resetPassword(req));
     }
 
 }

@@ -54,7 +54,6 @@ const ProductoDetails = () => {
   const producto = state as Producto
   const { user, isAuthenticated } = useAuth()
 
-  // Generar 3–5 estrellas cíclicas:
   const reviewsWithStars: ComentarioConEstrellas[] =
     (producto.comentariosAprobados ?? []).map((c, i) => ({
       ...c,
@@ -124,8 +123,7 @@ const ProductoDetails = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8 max-w-[1450px] mx-auto">
-        {/* Volver */}
+      <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8 max-w-[1350px] mx-auto">
         <button
           className="mb-4 text-blue-500 hover:underline flex items-center"
           onClick={() => navigate(-1)}
@@ -138,9 +136,10 @@ const ProductoDetails = () => {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-x-12 xl:gap-x-20">
-          {/* Imágenes */}
+          {/* Sección de imágenes */}
           <div className="space-y-6">
-            <div className="aspect-w-1 aspect-h-1 bg-gray-50 rounded-xl overflow-hidden shadow-sm">
+            {/* Contenedor principal de imagen */}
+            <div className="w-[600px] h-96 bg-gray-50 rounded-xl overflow-hidden shadow-sm">
               <img
                 src={`http://localhost:8080/uploads/${encodeURIComponent(producto.imagenesNombres[selectedImage])}`}
                 alt={producto.nombre}
@@ -148,15 +147,18 @@ const ProductoDetails = () => {
                 onLoad={() => setLoaded(true)}
               />
             </div>
+            
+            {/* Miniaturas */}
             <div className="flex gap-3 overflow-x-auto pb-2">
               {producto.imagenesNombres.map((img, i) => (
                 <button
                   key={img}
                   onClick={() => setSelectedImage(i)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 overflow-hidden transition-all ${i === selectedImage
-                    ? 'border-indigo-500 ring-2 ring-indigo-200'
-                    : 'border-gray-200 hover:border-indigo-300'
-                    }`}
+                  className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 overflow-hidden transition-all ${
+                    i === selectedImage
+                      ? 'border-indigo-500 ring-2 ring-indigo-200'
+                      : 'border-gray-200 hover:border-indigo-300'
+                  }`}
                 >
                   <img
                     src={`http://localhost:8080/uploads/${encodeURIComponent(img)}`}
@@ -168,7 +170,7 @@ const ProductoDetails = () => {
             </div>
           </div>
 
-          {/* Detalles */}
+          {/* Detalles del producto */}
           <div className="space-y-6">
             <h1 className="text-3xl font-bold text-gray-900">{producto.nombre}</h1>
             <div className="flex items-center space-x-2">
@@ -188,19 +190,23 @@ const ProductoDetails = () => {
             {/* Stock y metadatos */}
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${hasStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  hasStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
                   {hasStock ? 'En stock' : 'Agotado'}
                 </span>
                 <span className="text-sm text-gray-500">{producto.stock} unidades</span>
               </div>
               <button
-                className={`w-full flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition ${isDetailsOpen ? 'bg-gray-100' : ''
-                  }`}
+                className={`w-full flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition ${
+                  isDetailsOpen ? 'bg-gray-100' : ''
+                }`}
                 onClick={() => setIsDetailsOpen(!isDetailsOpen)}
               >
                 <span className="font-medium">Metadatos del producto</span>
-                <svg className={`w-5 h-5 transform transition-transform ${isDetailsOpen ? 'rotate-180' : ''}`}
+                <svg className={`w-5 h-5 transform transition-transform ${
+                  isDetailsOpen ? 'rotate-180' : ''
+                }`}
                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                     d="M19 9l-7 7-7-7" />
@@ -220,12 +226,14 @@ const ProductoDetails = () => {
               )}
             </div>
 
-            {/* Añadir al carrito / Opinar */}
+            {/* Botones de acción */}
             <div className="flex gap-4">
               <button
-                className={`flex-1 flex items-center justify-center py-3 px-6 rounded-lg transition ${hasStock ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                className={`flex-1 flex items-center justify-center py-3 px-6 rounded-lg transition ${
+                  hasStock 
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
                 disabled={!hasStock}
               >
                 <FaCartPlus className="mr-2" /> Añadir al carrito
@@ -240,7 +248,7 @@ const ProductoDetails = () => {
               )}
             </div>
 
-            {/* Info envío */}
+            {/* Info de envío */}
             <div className="space-y-4 pt-4">
               <div className="flex items-start space-x-3 p-4 bg-indigo-50 rounded-lg">
                 <svg className="w-5 h-5 text-indigo-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,24 +266,25 @@ const ProductoDetails = () => {
           </div>
         </div>
 
-        {/* Pestañas con mismo ancho y padding */}
+        {/* Sección de pestañas */}
         <div className="mt-12 border-t border-gray-200 pt-8">
-          {/* Botones de tab */}
           <div className="flex space-x-8 -mt-px">
             {tabs.map(tab => (
               <button
                 key={tab.key}
-                className={`py-4 px-1 font-medium text-sm border-b-2 transition-colors ${activeTab === tab.key
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                className={`py-4 px-1 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === tab.key
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
                 onClick={() => setActiveTab(tab.key)}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          {/* Contenido de cada tab */}
+
+          {/* Contenido de las pestañas */}
           <div className="py-8">
             {activeTab === 'description' && (
               <div className="prose max-w-none">
@@ -349,7 +358,7 @@ const ProductoDetails = () => {
       </main>
       <Footer />
 
-      {/* Modal Opinión */}
+      {/* Modal de opinión */}
       {isOpinionModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -389,8 +398,9 @@ const ProductoDetails = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`px-4 py-2 bg-indigo-600 text-white rounded-lg transition ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-indigo-700'
-                    }`}
+                  className={`px-4 py-2 bg-indigo-600 text-white rounded-lg transition ${
+                    isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-indigo-700'
+                  }`}
                 >
                   {isSubmitting ? 'Publicando...' : 'Publicar reseña'}
                 </button>

@@ -1,5 +1,7 @@
 package com.ecommerce.backend.service;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,11 @@ public class UsuarioService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EmailService emailService;
+
+    private static final int RESET_CODE_EXPIRATION_MINUTES = 10;
 
     // refresh token
     public ReqRes refreshToken(ReqRes refreshTokenReqiest) {
@@ -92,6 +99,7 @@ public class UsuarioService {
         return resp;
     }
 
+    // login
     public ReqRes login(ReqRes loginRequest) {
         ReqRes response = new ReqRes();
         try {
@@ -128,4 +136,79 @@ public class UsuarioService {
         }
         return response;
     }
+
+    // forgot password
+    public ReqRes forgotPassword(ReqRes forgotRequest) {
+        ReqRes response = new ReqRes();
+        try {
+            Usuario user = usersRepo.findByCorreo(forgotRequest.getCorreo())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            // Generar código de 6 dígitos
+            int resetCode = new SecureRandom().nextInt(900000) + 100000;
+
+            user.setResetCode(resetCode);
+            user.setResetCodeExpiresAt(LocalDateTime.now().plusMinutes(RESET_CODE_EXPIRATION_MINUTES));
+            usersRepo.save(user);
+
+            emailService.sendPasswordResetEmail(user.getCorreo(), user.getNombre(), resetCode);
+
+            response.setStatusCode(200);
+            response.setMessage("Correo de recuperación enviado");
+        } catch (Exception e) {
+            response.setStatusCode(500);
+            response.setMessage("Error: " + e.getMessage());
+        }
+        return response;
+    }
+
+    // verify reset code
+    public ReqRes verifyResetCode(ReqRes verificationRequest) {
+        ReqRes response = new ReqRes();
+        try {
+            Usuario user = usersRepo.findByCorreo(verificationRequest.getCorreo())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            if (user.getResetCode() == null || !user.getResetCode().equals(verificationRequest.getResetCode())) {
+                throw new RuntimeException("Código inválido");
+            }
+
+            if (LocalDateTime.now().isAfter(user.getResetCodeExpiresAt())) {
+                throw new RuntimeException("Código expirado");
+            }
+
+            response.setStatusCode(200);
+            response.setMessage("Código verificado correctamente");
+        } catch (Exception e) {
+            response.setStatusCode(400);
+            response.setMessage("Error: " + e.getMessage());
+        }
+        return response;
+    }
+
+    // reset password
+    public ReqRes resetPassword(ReqRes resetRequest) {
+        ReqRes response = new ReqRes();
+        try {
+            if (!resetRequest.getNewPassword().equals(resetRequest.getConfirmPassword())) {
+                throw new RuntimeException("Las contraseñas no coinciden");
+            }
+
+            Usuario user = usersRepo.findByCorreo(resetRequest.getCorreo())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            user.setPassword(passwordEncoder.encode(resetRequest.getNewPassword()));
+            user.setResetCode(null);
+            user.setResetCodeExpiresAt(null);
+            usersRepo.save(user);
+
+            response.setStatusCode(200);
+            response.setMessage("Contraseña actualizada exitosamente");
+        } catch (Exception e) {
+            response.setStatusCode(400);
+            response.setMessage("Error: " + e.getMessage());
+        }
+        return response;
+    }
+
 }

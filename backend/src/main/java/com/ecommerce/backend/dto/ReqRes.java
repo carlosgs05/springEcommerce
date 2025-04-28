@@ -34,4 +34,9 @@ public class ReqRes {
     private Usuario usuario;
     private List<Usuario> usuariosList;
     private List<Permiso> permisos;
+
+    // Campos para recuperar contraseña
+    private String newPassword;
+    private String confirmPassword;
+    private Integer resetCode;
 }
