@@ -1,10 +1,14 @@
+// AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface User {
   iduser: number;
   nombre: string;
+  apellido: string;
   correo: string;
+  celular: string;
+  dni?: string;
   rol: {
     idrol: number;
     nombre: string;
@@ -32,8 +36,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (token && userData) {
       try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
+        const parsedUser: User = JSON.parse(userData);
+        // Verificamos que tenga todos los campos esperados
+        const safeUser: User = {
+          iduser: parsedUser.iduser,
+          nombre: parsedUser.nombre || '',
+          apellido: parsedUser.apellido || '',
+          correo: parsedUser.correo || '',
+          celular: parsedUser.celular || '',
+          dni: parsedUser.dni || undefined,
+          rol: {
+            idrol: parsedUser.rol?.idrol ?? 0,
+            nombre: parsedUser.rol?.nombre || ''
+          }
+        };
+        setUser(safeUser);
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Error parsing user data', error);
@@ -51,34 +68,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     const userRole = user?.rol.idrol;
-    
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userRole');
     setUser(null);
     setIsAuthenticated(false);
-    
-    // Redirige según el rol del usuario
     if (userRole === 2) {
-      navigate('/', { replace: true }); // Clientes a home
+      navigate('/', { replace: true });
     } else {
-      navigate('/login', { replace: true }); // Admins a login
+      navigate('/login', { replace: true });
     }
   };
 
-  const hasRole = (roleId: number) => {
-    return user?.rol.idrol === roleId;
-  };
+  const hasRole = (roleId: number) => user?.rol.idrol === roleId;
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      isAuthenticated,
-      hasRole 
-    }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, hasRole }}>
       {children}
     </AuthContext.Provider>
   );
@@ -86,8 +91,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

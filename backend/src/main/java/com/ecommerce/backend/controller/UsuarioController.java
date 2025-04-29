@@ -39,4 +39,8 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.resetPassword(req));
     }
 
+    @PostMapping("/correo")
+    public ResponseEntity<ReqRes> getUserByCorreo(@RequestBody ReqRes req) {
+        return ResponseEntity.ok(usuarioService.getUserByCorreo(req.getCorreo()));
+    }
 }

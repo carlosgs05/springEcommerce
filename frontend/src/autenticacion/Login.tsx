@@ -23,6 +23,8 @@ interface LoginResponse {
     nombre: string;
     apellido?: string;
     correo: string;
+    celular?: string;
+    dni?: string;
     rol: {
       idrol: number;
       nombre: string;
@@ -69,6 +71,8 @@ const Login: React.FC = () => {
           nombre: usuario.nombre,
           apellido: usuario.apellido || '',
           correo: usuario.correo,
+          celular: usuario.celular || '',
+          dni: usuario.dni || '',
           rol: {
             idrol: rol.idrol,
             nombre: rol.nombre,
