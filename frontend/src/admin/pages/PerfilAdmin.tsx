@@ -1,14 +1,13 @@
-// PerfilAdmin.tsx
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
+import { EyeIcon, EyeSlashIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../../context/AuthContext';
 
 interface UserData {
   nombre: string;
   apellido: string;
-  correo: string;
   celular: string;
-  currentPassword: string;
+  dni: string;
+  correo: string;
   newPassword: string;
   confirmPassword: string;
 }
@@ -18,32 +17,28 @@ const PerfilAdmin: React.FC = () => {
   const [userData, setUserData] = useState<UserData>({
     nombre: '',
     apellido: '',
-    correo: '',
     celular: '',
-    currentPassword: '',
+    dni: '',
+    correo: '',
     newPassword: '',
     confirmPassword: '',
   });
 
   const [showPassword, setShowPassword] = useState({
-    current: false,
     new: false,
     confirm: false,
   });
-  const [errors, setErrors] = useState<Partial<UserData & { general: string }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [activeSection, setActiveSection] = useState<'personal' | 'security'>('personal');
 
-  // Cargamos todos los campos desde user
   useEffect(() => {
     if (user) {
       setUserData({
-        nombre: user.nombre || '',
-        apellido: user.apellido || '',
-        correo: user.correo || '',
+        nombre: user.nombre,
+        apellido: user.apellido,
         celular: user.celular || '',
-        currentPassword: '',
+        dni: user.dni || '',
+        correo: user.correo,
         newPassword: '',
         confirmPassword: '',
       });
@@ -53,256 +48,213 @@ const PerfilAdmin: React.FC = () => {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUserData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: '' }));
-    setIsSaved(false);
-  };
-
-  const validarFormulario = () => {
-    const nuevosErrores: Partial<UserData> = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!userData.nombre.trim()) nuevosErrores.nombre = 'Nombre requerido';
-    if (!userData.apellido.trim()) nuevosErrores.apellido = 'Apellido requerido';
-    if (!userData.correo.trim()) {
-      nuevosErrores.correo = 'Correo requerido';
-    } else if (!emailRegex.test(userData.correo)) {
-      nuevosErrores.correo = 'Correo inválido';
-    }
-    // Opcional validar celular
-    if (!/^[0-9]{10}$/.test(userData.celular)) {
-      nuevosErrores.celular = 'Celular inválido (10 dígitos)';
-    }
-
-    if (userData.newPassword) {
-      if (!userData.currentPassword) nuevosErrores.currentPassword = 'Contraseña actual requerida';
-      if (userData.newPassword.length < 8) nuevosErrores.newPassword = 'Mínimo 8 caracteres';
-      if (userData.newPassword !== userData.confirmPassword) nuevosErrores.confirmPassword = 'Las contraseñas no coinciden';
-    }
-
-    setErrors(nuevosErrores);
-    return Object.keys(nuevosErrores).length === 0;
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!validarFormulario()) return;
     setIsSubmitting(true);
-    // Aún sin implementación de llamada al backend
     setTimeout(() => {
       setIsSubmitting(false);
-      setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 3000);
     }, 500);
   };
 
-  const togglePasswordVisibility = (campo: keyof typeof showPassword) => {
-    setShowPassword(prev => ({ ...prev, [campo]: !prev[campo] }));
+  const togglePasswordVisibility = (field: keyof typeof showPassword) => {
+    setShowPassword(prev => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const handleTabChange = (section: 'personal' | 'security') => {
+    setActiveSection(section);
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-xl">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">Editar Perfil Administrativo</h1>
-      <p className="text-gray-600 mb-6">Actualiza tu información personal y de seguridad</p>
-
-      {errors.general && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center">
-          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 9a1 1 0 112 0v3a1 1 0 11-2 0V9zm1-5a1 1 0 00-1 1v1a1 1 0 002 0V5a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          <span>{errors.general}</span>
+    <div className="flex items-center justify-center min-h-[590px] py-8"> {/* Cambiado a min-h y agregado py-8 */}
+      <div className="w-full max-w-5xl mx-auto bg-white rounded-xl shadow-lg relative">
+        {/* Avatar position */}
+        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2">
+          <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center border-4 border-white shadow-md">
+            <UserCircleIcon className="w-16 h-16 text-blue-600" />
+          </div>
+          <span className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+            Admin
+          </span>
         </div>
-      )}
 
-      <div className="mb-8 border-b">
-        <nav className="flex space-x-8">
-          <button
-            onClick={() => setActiveSection('personal')}
-            className={`pb-3 px-1 ${
-              activeSection === 'personal'
-                ? 'border-b-2 border-blue-500 text-blue-600 font-medium'
+        <div className="pt-16 px-6 pb-6"> {/* Añadido pb-6 para padding bottom */}
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">Configuración de Perfil</h1>
+            <p className="text-gray-500 mt-1">Administra tu información personal y de seguridad</p>
+          </div>
+
+          <div className="flex space-x-4 mb-8 border-b border-gray-200 justify-center">
+            <button
+              onClick={() => handleTabChange('personal')}
+              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out ${activeSection === 'personal'
+                ? 'border-b-2 border-blue-500 text-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Datos Personales
-          </button>
-          <button
-            onClick={() => setActiveSection('security')}
-            className={`pb-3 px-1 ${
-              activeSection === 'security'
-                ? 'border-b-2 border-blue-500 text-blue-600 font-medium'
+                }`}
+            >
+              Información Personal
+            </button>
+            <button
+              onClick={() => handleTabChange('security')}
+              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out ${activeSection === 'security'
+                ? 'border-b-2 border-blue-500 text-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Seguridad
-          </button>
-        </nav>
+                }`}
+            >
+              Seguridad
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-8 transition-all duration-300 ease-in-out">
+            {activeSection === 'personal' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 transition-all duration-300 ease-in-out">
+                <div className="space-y-7">
+                  <div className="flex flex-col">
+                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Nombre</label>
+                    <input
+                      name="nombre"
+                      value={userData.nombre}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Celular</label>
+                    <div className="flex rounded-lg shadow-sm w-full">
+                      <span className="px-4 inline-flex items-center text-base text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-md">
+                        +51
+                      </span>
+                      <input
+                        name="celular"
+                        value={userData.celular}
+                        onChange={handleChange}
+                        className="py-2.5 px-4 w-full text-base border border-gray-300 rounded-r-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        placeholder="Ej: 987654321"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-7">
+                  <div className="flex flex-col">
+                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Apellido</label>
+                    <input
+                      name="apellido"
+                      value={userData.apellido}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="block w-full text-base font-medium text-gray-700 mb-2">DNI</label>
+                    <input
+                      name="dni"
+                      value={userData.dni}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      placeholder="Ingrese su DNI"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'security' && (
+              <div className="space-y-6 transition-all duration-300 ease-in-out pb-4"> {/* Añadido pb-4 */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="flex flex-col">
+                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Correo electrónico</label>
+                    <input
+                      name="correo"
+                      value={userData.correo}
+                      disabled
+                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Contraseña actual</label>
+                    <input
+                      type="password"
+                      value="••••••••••••••••••••"
+                      disabled
+                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-7">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="flex flex-col">
+                      <label className="block w-full text-base font-medium text-gray-700 mb-2">Nueva contraseña</label>
+                      <div className="relative w-full">
+                        <input
+                          type={showPassword.new ? 'text' : 'password'}
+                          name="newPassword"
+                          value={userData.newPassword}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-12"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('new')}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500 cursor-pointer"
+                        >
+                          {showPassword.new ? (
+                            <EyeSlashIcon className="w-5 h-5" />
+                          ) : (
+                            <EyeIcon className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="block w-full text-base font-medium text-gray-700 mb-2">Confirmar contraseña</label>
+                      <div className="relative w-full">
+                        <input
+                          type={showPassword.confirm ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={userData.confirmPassword}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-12"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('confirm')}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500 cursor-pointer"
+                        >
+                          {showPassword.confirm ? (
+                            <EyeSlashIcon className="w-5 h-5" />
+                          ) : (
+                            <EyeIcon className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-center gap-3 pt-8 border-t border-gray-200">
+              <button
+                type="button"
+                className="px-6 py-2.5 text-base font-medium text-gray-600 hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-6 py-2.5 text-base font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-
-      {isSaved && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex items-center">
-          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          <span>¡Cambios guardados correctamente!</span>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {activeSection === 'personal' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Nombre */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nombre
-                <input
-                  name="nombre"
-                  value={userData.nombre}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-              </label>
-              {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
-            </div>
-            {/* Apellido */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Apellido
-                <input
-                  name="apellido"
-                  value={userData.apellido}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-              </label>
-              {errors.apellido && <p className="text-red-500 text-sm mt-1">{errors.apellido}</p>}
-            </div>
-            {/* Correo */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Correo Electrónico
-                <input
-                  type="email"
-                  name="correo"
-                  value={userData.correo}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-              </label>
-              {errors.correo && <p className="text-red-500 text-sm mt-1">{errors.correo}</p>}
-            </div>
-            {/* Celular */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Celular
-                <div className="flex items-center">
-                  <span className="mr-2">+51</span>
-                  <input
-                    type="tel"
-                    name="celular"
-                    value={userData.celular}
-                    onChange={handleChange}
-                    pattern="[0-9]{10}"
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-              </label>
-              {errors.celular && <p className="text-red-500 text-sm mt-1">{errors.celular}</p>}
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'security' && (
-          <div className="space-y-4">
-            {/* Contraseña Actual */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña Actual
-                <div className="relative">
-                  <input
-                    type={showPassword.current ? 'text' : 'password'}
-                    name="currentPassword"
-                    value={userData.currentPassword}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 pr-10 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility('current')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  >
-                    {showPassword.current ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                  </button>
-                </div>
-              </label>
-              {errors.currentPassword && <p className="text-red-500 text-sm mt-1">{errors.currentPassword}</p>}
-            </div>
-            {/* Nueva Contraseña */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nueva Contraseña
-                <div className="relative">
-                  <input
-                    type={showPassword.new ? 'text' : 'password'}
-                    name="newPassword"
-                    value={userData.newPassword}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 pr-10 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility('new')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  >
-                    {showPassword.new ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                  </button>
-                </div>
-              </label>
-              {errors.newPassword && <p className="text-red-500 text-sm mt-1">{errors.newPassword}</p>}
-            </div>
-            {/* Confirmar Contraseña */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmar Contraseña
-                <div className="relative">
-                  <input
-                    type={showPassword.confirm ? 'text' : 'password'}
-                    name="confirmPassword"
-                    value={userData.confirmPassword}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 pr-10 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => togglePasswordVisibility('confirm')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  >
-                    {showPassword.confirm ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                  </button>
-                </div>
-              </label>
-              {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-4 mt-8">
-          <button
-            type="button"
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
-              isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
-          </button>
-        </div>
-      </form>
     </div>
   );
 };

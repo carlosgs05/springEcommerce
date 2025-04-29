@@ -7,7 +7,8 @@ interface User {
   nombre: string;
   apellido: string;
   correo: string;
-  celular: string;         // siempre string
+  celular: string;
+  dni?: string;
   rol: {
     idrol: number;
     nombre: string;
@@ -43,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           apellido: parsedUser.apellido || '',
           correo: parsedUser.correo || '',
           celular: parsedUser.celular || '',
+          dni: parsedUser.dni || undefined,
           rol: {
             idrol: parsedUser.rol?.idrol ?? 0,
             nombre: parsedUser.rol?.nombre || ''
