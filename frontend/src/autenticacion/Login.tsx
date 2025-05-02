@@ -2,6 +2,7 @@ import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { FaEye, FaEyeSlash } from 'react-icons/fa'; // Nuevas importaciones
 
 interface LoginData {
   correo: string;
@@ -37,10 +38,15 @@ const Login: React.FC = () => {
   const [formData, setFormData] = useState<LoginData>({ correo: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Nuevo estado para mostrar contraseña
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Actualiza formData al cambiar cualquiera de los inputs
+  // Toggle para mostrar/ocultar contraseña
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
@@ -79,16 +85,13 @@ const Login: React.FC = () => {
           },
         };
 
-        // Guardar en contexto
         login(userData, token);
 
-        // Persistir tokens
         const storage = rememberMe ? localStorage : sessionStorage;
         storage.setItem('authToken', token);
         storage.setItem('refreshToken', refreshToken);
         storage.setItem('userData', JSON.stringify(userData));
 
-        // Redirigir según rol
         if (rol.idrol === 1) {
           navigate('/admin', { replace: true });
         } else {
@@ -147,18 +150,31 @@ const Login: React.FC = () => {
             <label htmlFor="password" className="block uppercase text-white text-xs font-bold mb-2">
               Contraseña
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="Ingresa tu contraseña"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength={6}
-              autoComplete="current-password"
-              className="w-full px-4 py-3 bg-gray-800 text-cyan-600 border border-gray-700 rounded focus:outline-none focus:bg-zinc-900"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"} // Cambio dinámico del tipo
+                placeholder="Ingresa tu contraseña"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+                autoComplete="current-password"
+                className="w-full px-4 py-3 bg-gray-800 text-cyan-600 border border-gray-700 rounded focus:outline-none focus:bg-zinc-900 pr-12"
+              />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-cyan-600"
+              >
+                {showPassword ? (
+                  <FaEyeSlash className="h-5 w-5" />
+                ) : (
+                  <FaEye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Recordar sesión y enlace olvidar */}

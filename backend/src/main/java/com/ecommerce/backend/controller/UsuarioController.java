@@ -43,4 +43,11 @@ public class UsuarioController {
     public ResponseEntity<ReqRes> getUserByCorreo(@RequestBody ReqRes req) {
         return ResponseEntity.ok(usuarioService.getUserByCorreo(req.getCorreo()));
     }
+
+    // Nuevo endpoint para actualizar datos de usuario
+    @PutMapping("/update-user")
+    public ResponseEntity<ReqRes> updateUser(@RequestBody ReqRes updateRequest) {
+        return ResponseEntity.ok(usuarioService.updateUser(updateRequest));
+    }
+
 }
