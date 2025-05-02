@@ -67,4 +67,33 @@ public class ProductoController {
         }
     }
 
+    @DeleteMapping("/eliminar/{id}")
+    public ResponseEntity<?> eliminarProducto(@PathVariable Long id) {
+        Map<String,Object> resp = new HashMap<>();
+        try {
+            productoService.eliminarProducto(id);
+            resp.put("success", true);
+            resp.put("message", "Producto y sus imágenes eliminados correctamente");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al eliminar producto: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(resp);
+        }
+    }
+
+    @DeleteMapping("/imagenes/eliminar/{nombre}")
+    public ResponseEntity<?> eliminarImagen(@PathVariable String nombre) {
+        Map<String,Object> resp = new HashMap<>();
+        try {
+            productoService.eliminarImagen(nombre);
+            resp.put("success", true);
+            resp.put("message", "Imagen eliminada correctamente");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al eliminar imagen: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(resp);
+        }
+    }
 }

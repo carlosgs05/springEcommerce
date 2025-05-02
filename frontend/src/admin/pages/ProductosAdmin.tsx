@@ -104,17 +104,20 @@ const ProductosAdmin = () => {
   };
 
   const handleImageDelete = async (name: string) => {
-    const confirm = await Swal.fire({ title: '¿Eliminar imagen?', text: name, icon: 'warning', showCancelButton: true, confirmButtonText: 'Eliminar' });
-    if (confirm.isConfirmed && idEdit) {
-      try {
-        const resp = await axios.delete(`http://localhost:8080/api/productos/imagenes/eliminar/${encodeURIComponent(name)}`);
-        if (resp.data.success) {
-          await Swal.fire('Eliminada', 'Imagen eliminada correctamente', 'success');
-          setExistingImages(img => img.filter(i => i !== name));
-        } else throw new Error(resp.data.message);
-      } catch (err: any) {
-        Swal.fire('Error', err.response?.data?.message || err.message, 'error'); console.error(err);
-      }
+    const { isConfirmed } = await Swal.fire({
+      title: 'Eliminar imagen?',
+      text: name, icon:'warning',
+      showCancelButton:true
+    });
+    if (!isConfirmed || idEdit===null) return;
+    try {
+      const resp = await axios.delete(`http://localhost:8080/api/productos/imagenes/eliminar/${encodeURIComponent(name)}`);
+      if (resp.data.success) {
+        Swal.fire('¡Eliminada!','Imagen eliminada','success');
+        setExistingImages(imgs => imgs.filter(i=>i!==name));
+      } else throw new Error(resp.data.message);
+    } catch (e:any) {
+      Swal.fire('Error', e.response?.data?.message||e.message,'error');
     }
   };
 

@@ -174,4 +174,35 @@ public class ProductoService {
         }).collect(Collectors.toList());
     }
 
+
+
+// — Eliminar un producto completo junto con sus imágenes —
+@Transactional
+public void eliminarProducto(Long idProducto) {
+    // 1) Borrar archivos físicos
+    List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProducto);
+    for (ProductoImg img : imagenes) {
+        File f = new File(uploadDir + img.getNombre());
+        if (f.exists()) {
+            f.delete();
+        }
+    }
+    // 2) Borrar el producto (orphanRemoval en la entidad eliminará los registros de producto_img)
+    productoRepository.deleteById(idProducto);
+}
+
+// — Eliminar una sola imagen del producto —
+@Transactional
+public void eliminarImagen(String nombreImagen) {
+    ProductoImg img = productoImgRepository.findByNombre(nombreImagen)
+        .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada: " + nombreImagen));
+    // Borrar archivo físico
+    File f = new File(uploadDir + nombreImagen);
+    if (f.exists()) {
+        f.delete();
+    }
+    // Borrar registro en BD
+    productoImgRepository.delete(img);
+}
+
 }
