@@ -1,6 +1,6 @@
 package com.ecommerce.backend.controller;
 
-import com.ecommerce.backend.dto.ProductoRequest;
+import com.ecommerce.backend.dto.ProductoDTO;
 import com.ecommerce.backend.service.ProductoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,8 +26,8 @@ public class ProductoController {
             @RequestParam("imagenes") MultipartFile[] imagenes) {
         Map<String, Object> resp = new HashMap<>();
         try {
-            ProductoRequest req = productoService.parsearJson(productoJson, Arrays.asList(imagenes));
-            ProductoRequest creado = productoService.crearProducto(req);
+            ProductoDTO req = productoService.parsearJson(productoJson, Arrays.asList(imagenes));
+            ProductoDTO creado = productoService.crearProducto(req);
 
             resp.put("success", true);
             resp.put("message", "Producto creado correctamente");
@@ -55,7 +55,7 @@ public class ProductoController {
     public ResponseEntity<?> listarTodosLosProductos() {
         Map<String, Object> resp = new HashMap<>();
         try {
-            List<ProductoRequest> lista = productoService.listarTodosLosProductos();
+            List<ProductoDTO> lista = productoService.listarTodosLosProductos();
             resp.put("success", true);
             resp.put("data", lista);
             return ResponseEntity.ok(resp);

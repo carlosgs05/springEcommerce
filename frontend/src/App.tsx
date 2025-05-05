@@ -21,6 +21,9 @@ import TestimoniosAdmin from './admin/pages/TestimoniosAdmin';
 import ReviewsProductosAdmin from './admin/pages/ReviewsProductosAdmin';
 import ProductoDetails from './user/pages/ProductoDetails';
 import ForgotPassword from './autenticacion/ForgotPassword';
+import VerificationAccount from './autenticacion/VerificationAccount';
+import VerifyResetCode from './autenticacion/VerifyResetCode';
+import ResetPassword from './autenticacion/ResetPassword';
 
 function App() {
   return (
@@ -33,7 +36,10 @@ function App() {
         <Route element={<GuestRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterUser />} />
+          <Route path="/verify-account" element={<VerificationAccount />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-reset-code" element={<VerifyResetCode />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
 
         {/* Rutas públicas */}
