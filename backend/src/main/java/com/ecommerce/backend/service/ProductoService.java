@@ -1,8 +1,8 @@
 // src/main/java/com/ecommerce/backend/service/ProductoService.java
 package com.ecommerce.backend.service;
 
-import com.ecommerce.backend.dto.EspecificacionRequest;
-import com.ecommerce.backend.dto.ProductoRequest;
+import com.ecommerce.backend.dto.EspecificacionDTO;
+import com.ecommerce.backend.dto.ProductoDTO;
 import com.ecommerce.backend.entity.*;
 import com.ecommerce.backend.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,15 +41,15 @@ public class ProductoService {
             .toAbsolutePath()
             .toString() + File.separator;
 
-    public ProductoRequest parsearJson(String json, List<MultipartFile> imgs) throws IOException {
+    public ProductoDTO parsearJson(String json, List<MultipartFile> imgs) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        ProductoRequest req = mapper.readValue(json, ProductoRequest.class);
+        ProductoDTO req = mapper.readValue(json, ProductoDTO.class);
         req.setImagenes(imgs);
         return req;
     }
 
     @Transactional
-    public ProductoRequest crearProducto(ProductoRequest req) throws IOException {
+    public ProductoDTO crearProducto(ProductoDTO req) throws IOException {
         Categoria cat = categoriaRepository.findById(req.getIdcategoria())
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
         Marca mar = marcaRepository.findById(req.getIdmarca())
@@ -82,7 +82,7 @@ public class ProductoService {
         }
 
         if (req.getEspecificaciones() != null) {
-            for (EspecificacionRequest er : req.getEspecificaciones()) {
+            for (EspecificacionDTO er : req.getEspecificaciones()) {
                 Especificacion e = new Especificacion();
                 e.setProducto(prod);
                 e.setUnidadMedida(er.getUnidadmedida());
@@ -97,7 +97,7 @@ public class ProductoService {
 
     // obtener un producto con relaciones
     @Transactional
-    public ProductoRequest obtenerProductoConRelaciones(Long idProd) {
+    public ProductoDTO obtenerProductoConRelaciones(Long idProd) {
         // fetch specifications only
         Producto prod = productoRepository.findByIdWithRelations(idProd)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
@@ -108,7 +108,7 @@ public class ProductoService {
         List<Comentario> comentarios = comentarioRepository
                 .findByProductoIdAndEstado(idProd, 1);
 
-        ProductoRequest dto = new ProductoRequest();
+        ProductoDTO dto = new ProductoDTO();
         dto.setIdproducto(prod.getIdproducto());
         dto.setNombre(prod.getNombre());
         dto.setDescripcion(prod.getDescripcion());
@@ -129,7 +129,7 @@ public class ProductoService {
                 prod.getEspecificaciones()
                         .stream()
                         .map(e -> {
-                            EspecificacionRequest er = new EspecificacionRequest();
+                            EspecificacionDTO er = new EspecificacionDTO();
                             er.setUnidadmedida(e.getUnidadMedida());
                             er.setValor(e.getValor());
                             er.setDescripcion(e.getDescripcion());
@@ -143,7 +143,7 @@ public class ProductoService {
 
     // obtener todos los productos con relaciones
     @Transactional // <- AÑADE ESTA ANOTACIÓN
-    public List<ProductoRequest> listarTodosLosProductos() {
+    public List<ProductoDTO> listarTodosLosProductos() {
         List<Producto> productos = productoRepository.findAllWithEspecificaciones();
 
         return productos.stream().map(prod -> {
@@ -151,7 +151,7 @@ public class ProductoService {
             List<Comentario> comentariosAprobados = comentarioRepository
                     .findByProductoIdAndEstadoWithUsuario(prod.getIdproducto(), 1);
 
-            ProductoRequest dto = new ProductoRequest();
+            ProductoDTO dto = new ProductoDTO();
             dto.setIdproducto(prod.getIdproducto());
             dto.setNombre(prod.getNombre());
             dto.setDescripcion(prod.getDescripcion());
@@ -168,7 +168,7 @@ public class ProductoService {
 
             dto.setEspecificaciones(
                     prod.getEspecificaciones().stream().map(e -> {
-                        EspecificacionRequest er = new EspecificacionRequest();
+                        EspecificacionDTO er = new EspecificacionDTO();
                         er.setUnidadmedida(e.getUnidadMedida());
                         er.setValor(e.getValor());
                         er.setDescripcion(e.getDescripcion());

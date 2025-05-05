@@ -1,11 +1,12 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
-import Swal from 'sweetalert2/dist/sweetalert2.all.js';
+import React, { useState, ChangeEvent, FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import swal from "sweetalert2/dist/sweetalert2.all.js";
 
 const ForgotPassword: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
@@ -16,29 +17,21 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/forgot-password', {
-        correo: email
-      });
+      const { data, status } = await axios.post(
+        "http://localhost:8080/api/auth/forgot-password",
+        { correo: email }
+      );
 
-      if (response.status === 200) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Correo enviado',
-          text: 'Hemos enviado un código de verificación a tu correo electrónico',
-          background: '#1f2937',
-          color: '#fff',
-          confirmButtonColor: '#3b82f6'
-        });
+      if (status === 200 && data.statusCode === 200) {
+        swal.fire("Éxito", data.message, "success");
+        navigate("/verify-reset-code", { state: { correo: email } });
+      } else {
+        swal.fire("Error", data.message || "Error inesperado", "error");
       }
     } catch (error: any) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.message || 'Error al enviar el correo',
-        background: '#1f2937',
-        color: '#fff',
-        confirmButtonColor: '#3b82f6'
-      });
+      const msg =
+        error.response?.data?.message || "Error al conectar con el servidor";
+      swal.fire("Error", msg, "error");
     } finally {
       setLoading(false);
     }
@@ -53,13 +46,17 @@ const ForgotPassword: React.FC = () => {
             src="https://img.icons8.com/fluent/344/year-of-tiger.png"
             alt="Logo"
           />
-          <h1 className="text-2xl text-center text-white font-bold mb-6">Recuperar Contraseña</h1>
+          <h1 className="text-2xl text-center text-white font-bold mb-6">
+            Recuperar Contraseña
+          </h1>
         </header>
 
         <form onSubmit={handleSubmit} noValidate>
-          {/* Correo */}
           <div className="mb-6">
-            <label htmlFor="email" className="block uppercase text-white text-xs font-bold mb-2">
+            <label
+              htmlFor="email"
+              className="block uppercase text-white text-xs font-bold mb-2"
+            >
               Correo Electrónico
             </label>
             <input
@@ -75,11 +72,10 @@ const ForgotPassword: React.FC = () => {
             />
           </div>
 
-          {/* Botón enviar */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 font-bold text-white rounded bg-gradient-to-r from-blue-950 to-blue-800 hover:from-cyan-900 hover:to-cyan-600 disabled:opacity-75 transition-all mb-6"
+            className="w-full py-3 font-bold text-white rounded bg-gradient-to-r from-blue-950 to-blue-800 hover:from-cyan-900 hover:to-cyan-600 disabled:opacity-75 transition-all mb-6 cursor-pointer"
           >
             {loading ? (
               <svg
@@ -103,17 +99,16 @@ const ForgotPassword: React.FC = () => {
                 />
               </svg>
             ) : (
-              'ENVIAR CÓDIGO'
+              "BUSCAR CUENTA"
             )}
           </button>
 
-          {/* Enlace para volver al login */}
           <p className="text-center text-sm text-gray-400">
             <Link
               to="/login"
               className="font-medium text-cyan-400 hover:text-cyan-300"
             >
-                Regresar a login
+              Regresar a login
             </Link>
           </p>
         </form>
