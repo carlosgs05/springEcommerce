@@ -1,134 +1,250 @@
-// src/pages/Tienda.tsx
-import { useEffect, useState } from 'react'
-import axios from 'axios'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { FaSpinner } from 'react-icons/fa'
-import Header from '../Header'
-import Footer from '../Footer'
-
-interface Especificacion {
-  unidadmedida: string
-  valor: number
-  descripcion: string
-}
-
-interface Producto {
-  idproducto: number
-  nombre: string
-  descripcion: string
-  precio: number
-  stock: number
-  idcategoria: number
-  nombreCategoria: string
-  nombreMarca: string
-  especificaciones: Especificacion[]
-  imagenesNombres: string[]
-}
-
-interface Categoria {
-  idcategoria: number
-  nombre: string
-}
+import { useState, useEffect } from "react";
+import axios from "axios";
+import Header from "../Header";
+import Footer from "../Footer";
+import { useNavigate } from "react-router-dom";
 
 const Tienda = () => {
-  const [productos, setProductos] = useState<Producto[]>([])
-  const [categoriaNombre, setCategoriaNombre] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
+  const [categorias, setCategorias] = useState<any[]>([]); // Estado para las categorías
+  const [marcas, setMarcas] = useState<any[]>([]); // Estado para las marcas
+  const [productos, setProductos] = useState<any[]>([]); // Estado para los productos
+  const [selectedCategoria, setSelectedCategoria] = useState<number | null>(
+    null
+  ); // Solo una categoría seleccionada
+  const [selectedMarca, setSelectedMarca] = useState<number | null>(null); // Solo una marca seleccionada
+  const navigate = useNavigate();
 
-  // Leer parámetro ?categoria=
-  const categoriaParam = searchParams.get('categoria')
+  const [openSections, setOpenSections] = useState({
+    categoria: false,
+    smarca: false,
+  });
+
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  // Actualiza solo una categoría seleccionada
+  const handleCategoriaChange = (idcategoria: number) => {
+    setSelectedCategoria(
+      idcategoria === selectedCategoria ? null : idcategoria
+    ); // Selecciona o deselecciona
+  };
+
+  // Actualiza solo una marca seleccionada
+  const handleMarcaChange = (idmarca: number) => {
+    setSelectedMarca(idmarca === selectedMarca ? null : idmarca); // Selecciona o deselecciona
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchProductos = async () => {
       try {
-        setLoading(true)
-        // Traer productos
-        const prodRes = await axios.get('http://localhost:8080/api/productos/listarAll')
-        let lista: Producto[] = []
-        if (prodRes.data.success) lista = prodRes.data.data
+        console.log("Categoría seleccionada:", selectedCategoria);
+        console.log("Marca seleccionada:", selectedMarca);
 
-        // Filtrar si viene categoria
-        if (categoriaParam) {
-          lista = lista.filter(p => p.idcategoria.toString() === categoriaParam)
-          // Obtener nombre de categoría
-          const catRes = await axios.get('http://localhost:8080/api/categorias/listar')
-          if (catRes.data.success) {
-            const cat = (catRes.data.data as Categoria[])
-              .find(c => c.idcategoria.toString() === categoriaParam)
-            setCategoriaNombre(cat?.nombre || '')
+        // Enviar parámetros correctamente
+        const response = await axios.get(
+          "http://localhost:8080/api/productos/filtrar",
+          {
+            params: {
+              categoria:
+                selectedCategoria !== null ? selectedCategoria : undefined, // Enviar solo si no es null
+              marca: selectedMarca !== null ? selectedMarca : undefined, // Enviar solo si no es null
+            },
           }
-        }
+        );
 
-        setProductos(lista)
-      } catch (err) {
-        console.error(err)
-        setError('Error al cargar productos')
-      } finally {
-        setLoading(false)
+        console.log("Productos filtrados:", response.data.data);
+        setProductos(response.data.data);
+      } catch (error) {
+        console.error("Error al cargar productos filtrados:", error);
       }
+    };
+
+    // Solo hacer la solicitud si hay filtros aplicados
+    if (selectedCategoria !== null || selectedMarca !== null) {
+      fetchProductos();
+    } else {
+      // Si no hay filtros, cargar todos los productos
+      axios
+        .get("http://localhost:8080/api/productos/listarAll")
+        .then((response) => {
+          console.log("Productos cargados:", response.data.data);
+          setProductos(response.data.data);
+        })
+        .catch((error) => console.error("Error al cargar productos:", error));
     }
-    fetchData()
-  }, [categoriaParam])
+  }, [selectedCategoria, selectedMarca]); // Ejecutar cuando las categorías o marcas seleccionadas cambian
+
+  useEffect(() => {
+    // Obtener categorías desde el backend
+    axios
+      .get("http://localhost:8080/api/categorias/listar")
+      .then((response) => setCategorias(response.data.data)) // Guardar las categorías en el estado
+      .catch((error) => console.error("Error al cargar categorías:", error));
+
+    // Obtener marcas desde el backend
+    axios
+      .get("http://localhost:8080/api/marcas/listar")
+      .then((response) => setMarcas(response.data.data)) // Guardar las marcas en el estado
+      .catch((error) => console.error("Error al cargar marcas:", error));
+  }, []);
 
   return (
-    <div>
-      <Header />
-      <section className="p-6">
-        <h2 className="text-2xl font-bold mb-4">
-          {categoriaParam ? `Categoría: ${categoriaNombre}` : 'Tienda'}
-        </h2>
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <FaSpinner className="animate-spin text-4xl text-blue-500" />
-          </div>
-        ) : error ? (
-          <div className="text-red-500 text-center">{error}</div>
-        ) : productos.length === 0 ? (
-          <div className="text-gray-500 text-center">No hay productos disponibles.</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {productos.map(prod => (
-              <div
-                key={prod.idproducto}
-                className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden"
-              >
-                {/* Thumbnail */}
-                {prod.imagenesNombres.length > 0 && (
-                  <img
-                    src={`http://localhost:8080/uploads/${encodeURIComponent(
-                      prod.imagenesNombres[0]
-                    )}`}
-                    alt={prod.nombre}
-                    className="w-full h-48 object-cover"
-                  />
-                )}
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold mb-2 truncate">{prod.nombre}</h3>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                    {prod.descripcion}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-bold">S/ {prod.precio.toFixed(2)}</span>
-                    <button
-                      onClick={() => navigate(`/tienda/producto/${prod.idproducto}`, { state: prod })}
-                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                    >
-                      Ver detalles
-                    </button>
+    <div className="bg-white">
+      <div>
+        <Header />
+        <section aria-labelledby="products-heading" className="pt-6 pb-24">
+          <h2 id="products-heading" className="sr-only">
+            Products
+          </h2>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-4">
+            {/* Filtros de escritorio */}
+            <form className="hidden lg:block ml-10">
+              {/* Filtro de categorías */}
+              <div className="border-b border-gray-200 py-6">
+                <h3 className="-my-3 flow-root">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between bg-white py-3 text-sm text-gray-400 hover:text-gray-500"
+                    onClick={() => toggleSection("categoria")}
+                    aria-expanded={openSections.categoria}
+                  >
+                    <span className="font-medium text-gray-900">
+                      Categorías
+                    </span>
+                    <span className="ml-6 flex items-center">
+                      {openSections.categoria ? "-" : "+"}
+                    </span>
+                  </button>
+                </h3>
+                {openSections.categoria && (
+                  <div className="pt-6">
+                    <ul className="space-y-4">
+                      {categorias.map((categoria: any) => (
+                        <li key={categoria.idcategoria}>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              value={categoria.idcategoria}
+                              className="mr-2"
+                              checked={
+                                selectedCategoria === categoria.idcategoria
+                              }
+                              onChange={() =>
+                                handleCategoriaChange(categoria.idcategoria)
+                              }
+                            />
+                            {categoria.nombre}
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </div>
+                )}
               </div>
-            ))}
+
+              {/* Filtro de marcas */}
+              <div className="border-b border-gray-200 py-6">
+                <h3 className="-my-3 flow-root">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between bg-white py-3 text-sm text-gray-400 hover:text-gray-500"
+                    onClick={() => toggleSection("smarca")}
+                    aria-expanded={openSections.smarca}
+                  >
+                    <span className="font-medium text-gray-900">Marcas</span>
+                    <span className="ml-6 flex items-center">
+                      {openSections.smarca ? "-" : "+"}
+                    </span>
+                  </button>
+                </h3>
+                {openSections.smarca && (
+                  <div className="pt-6">
+                    <ul className="space-y-4">
+                      {marcas.map((marca: any) => (
+                        <li key={marca.idmarca}>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              value={marca.idmarca}
+                              className="mr-2"
+                              checked={selectedMarca === marca.idmarca}
+                              onChange={() => handleMarcaChange(marca.idmarca)}
+                            />
+                            {marca.nombre}
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              {/* Botón para limpiar filtros */}
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategoria(null);
+                    setSelectedMarca(null);
+                  }}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            </form>
+
+            {/* Contenido principal de Productos */}
+            <div className="lg:col-span-3">
+              <h1 className="text-2xl font-bold">Productos</h1>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {productos.length > 0 ? (
+                  productos.map((producto: any) => (
+                    <div
+                      key={producto.idproducto}
+                      className="bg-white p-4 rounded-lg shadow-md"
+                    >
+                      <img
+                        src={`http://localhost:8080/uploads/${producto.imagenesNombres[0]}`}
+                        alt={producto.nombre}
+                        className="w-full h-32 object-cover rounded mb-4"
+                      />
+                      <h3 className="text-lg font-medium">{producto.nombre}</h3>
+                      <p className="text-sm text-gray-500">
+                        {producto.descripcion || "Descripción no disponible"}
+                      </p>
+                      <p className="font-semibold text-gray-800">
+                        ${producto.precio}
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <button
+                          className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                          onClick={() =>
+                            navigate(
+                              `/tienda/producto/${producto.idproducto}`,
+                              { state: producto }
+                            )
+                          }
+                        >
+                          Ver detalles
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p>No se encontraron productos.</p>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-      </section>
-      <Footer />
+        </section>
+        <Footer />
+      </div>
     </div>
-  )
-}
+  );
+};
 
 export default Tienda;
