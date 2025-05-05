@@ -158,7 +158,7 @@ const HomeUser = () => {
                 />
               )}
               <p className="text-sm text-gray-500 truncate">{producto.descripcion}</p>
-              <div className="mt-2 text-sm text-gray-800 font-bold text-red-500">S/ {producto.precio}</div>
+              <div className="mt-2 text-sm text-gray-800 font-bold">S/ {producto.precio}</div>
             </div>
           ))}
         </div>
