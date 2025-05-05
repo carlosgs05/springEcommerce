@@ -11,6 +11,7 @@ interface Especificacion {
   descripcion: string
 }
 
+
 interface Producto {
   idproducto: number
   nombre: string
@@ -23,6 +24,7 @@ interface Producto {
   imagenesNombres: string[]
   fechacreacion: string
 }
+
 
 interface Categoria {
   idcategoria: number
@@ -186,6 +188,7 @@ const HomeUser = () => {
                 idx === activeBanner ? 'bg-white w-6' : 'bg-white/60'
               }`}
               aria-label={`Ver banner ${idx + 1}`}
+              aria-label={`Ver banner ${idx + 1}`}
             />
           ))}
         </div>
@@ -206,6 +209,62 @@ const HomeUser = () => {
               <span className="font-medium text-gray-800">{cat.nombre}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Ofertas Relámpago */}
+      <section className="container mx-auto py-10 px-4">
+        <div className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl overflow-hidden">
+          <div className="p-6 sm:p-8">
+            <div className="flex justify-between items-center flex-wrap mb-6">
+              <div className="flex items-center">
+                <FaFire className="text-white text-3xl mr-3" />
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">Ofertas Relámpago</h2>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 mt-2 sm:mt-0">
+                <div className="flex items-center gap-1">
+                  <FaClock className="text-white" />
+                  <span className="font-mono text-xl text-white">
+                    {formatTime(countdown)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {ofertasRelampago.map(producto => (
+                <div
+                  key={producto.idproducto}
+                  className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300"
+                >
+                  {producto.imagenesNombres.length > 0 && (
+                    <div className="h-36 overflow-hidden">
+                      <img
+                        src={`http://localhost:8080/uploads/${encodeURIComponent(producto.imagenesNombres[0])}`}
+                        alt={producto.nombre}
+                        className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
+                      />
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg text-gray-800 truncate">{producto.nombre}</h3>
+                    <p className="text-sm text-gray-500 mb-2 line-clamp-2">{producto.descripcion}</p>
+                    <div className="flex justify-between items-center">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-400 line-through">S/ {(producto.precio * 1.2).toFixed(2)}</span>
+                        <span className="font-bold text-lg text-red-600">S/ {producto.precio.toFixed(2)}</span>
+                      </div>
+                      <button 
+                        onClick={() => navigate(`/tienda/producto/${producto.idproducto}`, { state: producto })}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded font-medium text-sm transition-colors"
+                      >
+                        Comprar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
