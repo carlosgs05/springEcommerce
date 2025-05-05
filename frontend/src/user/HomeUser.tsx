@@ -188,7 +188,6 @@ const HomeUser = () => {
                 idx === activeBanner ? 'bg-white w-6' : 'bg-white/60'
               }`}
               aria-label={`Ver banner ${idx + 1}`}
-              aria-label={`Ver banner ${idx + 1}`}
             />
           ))}
         </div>
