@@ -17,6 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/productos")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*") // Permite todos los orígenes
 public class ProductoController {
     private final ProductoService productoService;
 
@@ -59,12 +60,20 @@ public class ProductoController {
             resp.put("success", true);
             resp.put("data", lista);
             return ResponseEntity.ok(resp);
-    
+
         } catch (Exception e) {
             resp.put("success", false);
             resp.put("message", "Error interno: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
         }
+    }
+
+    @GetMapping("/filtrar")
+    public ResponseEntity<?> filtrarProductos(
+            @RequestParam(required = false) Long categoria,
+            @RequestParam(required = false) Long marca) {
+        List<ProductoRequest> productos = productoService.filtrarProductos(categoria, marca);
+        return ResponseEntity.ok(Map.of("data", productos, "success", true));
     }
 
     @DeleteMapping("/eliminar/{id}")
