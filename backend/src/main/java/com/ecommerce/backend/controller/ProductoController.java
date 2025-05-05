@@ -72,7 +72,7 @@ public class ProductoController {
     public ResponseEntity<?> filtrarProductos(
             @RequestParam(required = false) Long categoria,
             @RequestParam(required = false) Long marca) {
-        List<ProductoRequest> productos = productoService.filtrarProductos(categoria, marca);
+        List<ProductoDTO> productos = productoService.filtrarProductos(categoria, marca);
         return ResponseEntity.ok(Map.of("data", productos, "success", true));
     }
 

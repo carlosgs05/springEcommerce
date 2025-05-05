@@ -182,7 +182,7 @@ public class ProductoService {
     }
 
     @Transactional
-    public List<ProductoRequest> filtrarProductos(Long categoria, Long marca) {
+    public List<ProductoDTO> filtrarProductos(Long categoria, Long marca) {
         System.out.println("FILTRANDO -> categoria: " + categoria + ", marca: " + marca);
 
         List<Producto> productos = productoRepository.findByCategoriaAndMarca(categoria, marca);
@@ -195,7 +195,7 @@ public class ProductoService {
             List<Comentario> comentariosAprobados = comentarioRepository
                     .findByProductoIdAndEstadoWithUsuario(prod.getIdproducto(), 1);
 
-            ProductoRequest dto = new ProductoRequest();
+            ProductoDTO dto = new ProductoDTO();
             dto.setIdproducto(prod.getIdproducto());
             dto.setNombre(prod.getNombre());
             dto.setDescripcion(prod.getDescripcion());
@@ -210,7 +210,7 @@ public class ProductoService {
             dto.setImagenesNombres(imagenes.stream().map(ProductoImg::getNombre).toList());
 
             dto.setEspecificaciones(prod.getEspecificaciones().stream().map(e -> {
-                EspecificacionRequest er = new EspecificacionRequest();
+                EspecificacionDTO er = new EspecificacionDTO();
                 er.setUnidadmedida(e.getUnidadMedida());
                 er.setValor(e.getValor());
                 er.setDescripcion(e.getDescripcion());
