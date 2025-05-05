@@ -22,15 +22,23 @@ interface Producto {
   nombreMarca: string;
   fechacreacion: string;
   imagenesNombres: string[];
+  especificaciones: EspecificacionDTO[];
 }
 
 interface Categoria {
   idcategoria: number;
   nombre: string;
 }
+
 interface Marca {
   idmarca: number;
   nombre: string;
+}
+
+interface EspecificacionDTO {
+  unidadmedida: string;
+  valor: string;
+  descripcion: string;
 }
 
 const ProductosAdmin = () => {
@@ -42,6 +50,7 @@ const ProductosAdmin = () => {
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
   const [dragActive, setDragActive] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [especificaciones, setEspecificaciones] = useState<EspecificacionDTO[]>([]);
 
   // Form state
   const [idEdit, setIdEdit] = useState<number | null>(null);
@@ -68,8 +77,16 @@ const ProductosAdmin = () => {
         axios.get("http://localhost:8080/api/categorias/listar"),
         axios.get("http://localhost:8080/api/marcas/listar"),
       ]);
-      if (prodRes.data.success) setProductos(prodRes.data.data);
-      else setError(prodRes.data.message);
+      
+      if (prodRes.data.success) {
+        setProductos(prodRes.data.data.map((p: any) => ({
+          ...p,
+          especificaciones: p.especificaciones || []
+        })));
+      } else {
+        setError(prodRes.data.message);
+      }
+      
       if (catRes.data.success) setCategorias(catRes.data.data);
       if (marRes.data.success) setMarcas(marRes.data.data);
     } catch (err) {
@@ -105,18 +122,14 @@ const ProductosAdmin = () => {
 
   const handleNewFiles = (files: FileList) => {
     const newFiles = Array.from(files);
-    const totalImagenes =
-      existingImages.length + imagenes.length + newFiles.length;
+    const totalImagenes = existingImages.length + imagenes.length + newFiles.length;
 
     if (totalImagenes > 6) {
       Swal.fire("Error", "Máximo 6 imágenes permitidas", "error");
       return;
     }
 
-    const allowedFiles = newFiles.slice(
-      0,
-      6 - (existingImages.length + imagenes.length)
-    );
+    const allowedFiles = newFiles.slice(0, 6 - (existingImages.length + imagenes.length));
 
     setImagenes((prev) => [...prev, ...allowedFiles]);
     setPreviewUrls((prev) => [
@@ -150,17 +163,11 @@ const ProductosAdmin = () => {
     setImagenes([]);
     setExistingImages([]);
     setPreviewUrls([]);
+    setEspecificaciones([]);
   };
 
   const handleSubmit = async () => {
-    if (
-      !nombre.trim() ||
-      !descripcion.trim() ||
-      !precio ||
-      !stock ||
-      !categoriaId ||
-      !marcaId
-    ) {
+    if (!nombre.trim() || !descripcion.trim() || !precio || !stock || !categoriaId || !marcaId) {
       return Swal.fire("Error", "Todos los campos son requeridos", "error");
     }
 
@@ -171,12 +178,26 @@ const ProductosAdmin = () => {
       stock: parseInt(stock),
       idcategoria: parseInt(categoriaId),
       idmarca: parseInt(marcaId),
-      especificaciones: [],
+      especificaciones: especificaciones.filter(spec => 
+        spec.unidadmedida.trim() || 
+        spec.valor.trim() || 
+        spec.descripcion.trim()
+      ),
     };
 
     const formData = new FormData();
     formData.append("producto", JSON.stringify(payload));
-    imagenes.forEach((img) => formData.append("imagenes", img));
+    
+    // Combinar imágenes existentes y nuevas
+    const allImages = [...imagenes];
+    if (idEdit) {
+      // Si es edición, adjuntar las imágenes existentes como archivos vacíos
+      existingImages.forEach(imgName => {
+        formData.append("keepImages", imgName);
+      });
+    }
+    
+    allImages.forEach((img) => formData.append("imagenes", img));
 
     try {
       const url = idEdit
@@ -218,9 +239,7 @@ const ProductosAdmin = () => {
 
     try {
       const resp = await axios.delete(
-        `http://localhost:8080/api/productos/imagenes/eliminar/${encodeURIComponent(
-          name
-        )}`
+        `http://localhost:8080/api/productos/imagenes/eliminar/${encodeURIComponent(name)}`
       );
 
       if (resp.data.success) {
@@ -245,6 +264,7 @@ const ProductosAdmin = () => {
     setImagenes([]);
     setPreviewUrls([]);
     setExistingImages(prod.imagenesNombres);
+    setEspecificaciones(prod.especificaciones || []);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -265,11 +285,7 @@ const ProductosAdmin = () => {
         );
 
         if (resp.data.success) {
-          await Swal.fire(
-            "Eliminado",
-            "Producto eliminado correctamente",
-            "success"
-          );
+          await Swal.fire("Eliminado", "Producto eliminado correctamente", "success");
           fetchData();
         } else {
           throw new Error(resp.data.message);
@@ -438,7 +454,79 @@ const ProductosAdmin = () => {
             </div>
           </div>
 
-          {/* Sección de imágenes en nueva fila */}
+          {/* Sección de Especificaciones */}
+          <div className="mt-4 space-y-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Especificaciones
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              (Unidad de medida, Valor, Descripción)
+            </p>
+            {especificaciones.map((spec, index) => (
+              <div key={index} className="flex gap-2 items-start">
+                <input
+                  type="text"
+                  placeholder="Unidad de medida"
+                  className="flex-1 px-3 py-2 border rounded-lg"
+                  value={spec.unidadmedida}
+                  onChange={(e) => {
+                    const newSpecs = [...especificaciones];
+                    newSpecs[index].unidadmedida = e.target.value;
+                    setEspecificaciones(newSpecs);
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Valor"
+                  className="flex-1 px-3 py-2 border rounded-lg"
+                  value={spec.valor}
+                  onChange={(e) => {
+                    const newSpecs = [...especificaciones];
+                    newSpecs[index].valor = e.target.value;
+                    setEspecificaciones(newSpecs);
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Descripción"
+                  className="flex-1 px-3 py-2 border rounded-lg"
+                  value={spec.descripcion}
+                  onChange={(e) => {
+                    const newSpecs = [...especificaciones];
+                    newSpecs[index].descripcion = e.target.value;
+                    setEspecificaciones(newSpecs);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSpecs = [...especificaciones];
+                    newSpecs.splice(index, 1);
+                    setEspecificaciones(newSpecs);
+                  }}
+                  className="px-2 py-1 text-red-500 hover:text-red-700"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setEspecificaciones([...especificaciones, { 
+                  unidadmedida: '', 
+                  valor: '', 
+                  descripcion: '' 
+                }]);
+              }}
+              className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+            >
+              <FaPlusCircle className="mr-2" />
+              Agregar Especificación
+            </button>
+          </div>
+
+          {/* Sección de imágenes */}
           <div className="mt-4 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -542,6 +630,7 @@ const ProductosAdmin = () => {
             )}
           </div>
 
+          {/* Botones del formulario */}
           <div className="mt-6 flex gap-3">
             <button
               onClick={handleSubmit}

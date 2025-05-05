@@ -222,35 +222,89 @@ public class ProductoService {
         }).toList();
     }
 
+    // — Eliminar un producto completo junto con sus imágenes —
+    @Transactional
+    public void eliminarProducto(Long idProducto) {
+        // 1) Borrar archivos físicos
+        List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProducto);
+        for (ProductoImg img : imagenes) {
+            File f = new File(uploadDir + img.getNombre());
+            if (f.exists()) {
+                f.delete();
+            }
+        }
+        // 2) Borrar el producto (orphanRemoval en la entidad eliminará los registros de
+        // producto_img)
+        productoRepository.deleteById(idProducto);
+    }
 
-
-// — Eliminar un producto completo junto con sus imágenes —
-@Transactional
-public void eliminarProducto(Long idProducto) {
-    // 1) Borrar archivos físicos
-    List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProducto);
-    for (ProductoImg img : imagenes) {
-        File f = new File(uploadDir + img.getNombre());
+    // — Eliminar una sola imagen del producto —
+    @Transactional
+    public void eliminarImagen(String nombreImagen) {
+        ProductoImg img = productoImgRepository.findByNombre(nombreImagen)
+                .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada: " + nombreImagen));
+        // Borrar archivo físico
+        File f = new File(uploadDir + nombreImagen);
         if (f.exists()) {
             f.delete();
         }
+        // Borrar registro en BD
+        productoImgRepository.delete(img);
     }
-    // 2) Borrar el producto (orphanRemoval en la entidad eliminará los registros de producto_img)
-    productoRepository.deleteById(idProducto);
-}
 
-// — Eliminar una sola imagen del producto —
-@Transactional
-public void eliminarImagen(String nombreImagen) {
-    ProductoImg img = productoImgRepository.findByNombre(nombreImagen)
-        .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada: " + nombreImagen));
-    // Borrar archivo físico
-    File f = new File(uploadDir + nombreImagen);
-    if (f.exists()) {
-        f.delete();
+    @Transactional
+    public ProductoDTO actualizarProducto(Long id, ProductoDTO req) throws IOException {
+        Producto prod = productoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+
+        Categoria cat = categoriaRepository.findById(req.getIdcategoria())
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
+
+        Marca mar = marcaRepository.findById(req.getIdmarca())
+                .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
+
+        // Actualizar datos básicos
+        prod.setNombre(req.getNombre());
+        prod.setDescripcion(req.getDescripcion());
+        prod.setPrecio(req.getPrecio());
+        prod.setStock(req.getStock());
+        prod.setCategoria(cat);
+        prod.setMarca(mar);
+        prod = productoRepository.save(prod);
+
+        File carpeta = new File(uploadDir);
+        if (!carpeta.exists()) {
+            carpeta.mkdirs();
+        }
+
+        // Eliminar y volver a crear imágenes
+        productoImgRepository.deleteByProducto_Idproducto(prod.getIdproducto());
+        if (req.getImagenes() != null) {
+            for (MultipartFile mf : req.getImagenes()) {
+                if (!mf.isEmpty()) {
+                    ProductoImg img = new ProductoImg();
+                    img.setProducto(prod);
+                    img.setNombre(UUID.randomUUID() + "_" + mf.getOriginalFilename());
+                    productoImgRepository.save(img);
+                    mf.transferTo(new File(uploadDir + img.getNombre()));
+                }
+            }
+        }
+
+        // Eliminar y volver a crear especificaciones
+        especificacionRepository.deleteByProducto_Idproducto(prod.getIdproducto());
+        if (req.getEspecificaciones() != null) {
+            for (EspecificacionDTO er : req.getEspecificaciones()) {
+                Especificacion e = new Especificacion();
+                e.setProducto(prod);
+                e.setUnidadMedida(er.getUnidadmedida());
+                e.setValor(er.getValor());
+                e.setDescripcion(er.getDescripcion());
+                especificacionRepository.save(e);
+            }
+        }
+
+        return obtenerProductoConRelaciones(prod.getIdproducto());
     }
-    // Borrar registro en BD
-    productoImgRepository.delete(img);
-}
 
 }

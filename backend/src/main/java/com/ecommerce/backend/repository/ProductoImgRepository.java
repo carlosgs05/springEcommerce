@@ -10,5 +10,9 @@ import java.util.Optional;
 public interface ProductoImgRepository extends JpaRepository<ProductoImg, Long> {
     // método derivado para cargar imágenes por separado
     List<ProductoImg> findByProducto_Idproducto(Long idproducto);
-    Optional<ProductoImg> findByNombre(String nombre);  // ← nuevo
+
+    Optional<ProductoImg> findByNombre(String nombre);
+
+    void deleteByProducto_Idproducto(Long idproducto);
+
 }

@@ -17,7 +17,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/productos")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // Permite todos los orígenes
 public class ProductoController {
     private final ProductoService productoService;
 
