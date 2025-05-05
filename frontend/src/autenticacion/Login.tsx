@@ -1,7 +1,8 @@
-import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, FormEvent, ChangeEvent, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
+import swal from "sweetalert2/dist/sweetalert2.all.js";
+import { useAuth } from "../context/AuthContext";
 
 interface LoginData {
   correo: string;
@@ -34,19 +35,43 @@ interface LoginResponse {
 }
 
 const Login: React.FC = () => {
-  const [formData, setFormData] = useState<LoginData>({ correo: '', password: '' });
+  const [formData, setFormData] = useState<LoginData>({
+    correo: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Actualiza formData al cambiar cualquiera de los inputs
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(
+    null
+  );
+
+  useEffect(() => {
+    const state = location.state as {
+      verificationSuccess?: string;
+      verificationError?: string;
+    };
+    if (state?.verificationSuccess) {
+      setVerificationMessage(state.verificationSuccess);
+      navigate(location.pathname, { replace: true, state: {} });
+      const timer = setTimeout(() => setVerificationMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+    if (state?.verificationError) {
+      swal.fire("Error", state.verificationError, "error");
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    if (type === 'checkbox') {
+    if (type === "checkbox") {
       setRememberMe(checked);
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -55,57 +80,54 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data, status } = await axios.post<LoginResponse>(
-        'http://localhost:8080/api/auth/login',
+      const { data } = await axios.post<LoginResponse>(
+        "http://localhost:8080/api/auth/login",
         {
           correo: formData.correo,
           password: formData.password,
         }
       );
 
-      if (status === 200) {
+      if (data.statusCode === 200) {
+        // ✅ LOGIN OK
         const { token, refreshToken, rol, usuario } = data;
-
         const userData = {
           iduser: usuario.iduser,
           nombre: usuario.nombre,
-          apellido: usuario.apellido || '',
+          apellido: usuario.apellido || "",
           correo: usuario.correo,
-          celular: usuario.celular || '',
-          dni: usuario.dni || '',
+          celular: usuario.celular || "",
+          dni: usuario.dni || "",
           rol: {
             idrol: rol.idrol,
             nombre: rol.nombre,
           },
         };
-
-        // Guardar en contexto
         login(userData, token);
 
-        // Persistir tokens
         const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem('authToken', token);
-        storage.setItem('refreshToken', refreshToken);
-        storage.setItem('userData', JSON.stringify(userData));
+        storage.setItem("authToken", token);
+        storage.setItem("refreshToken", refreshToken);
+        storage.setItem("userData", JSON.stringify(userData));
 
-        // Redirigir según rol
-        if (rol.idrol === 1) {
-          navigate('/admin', { replace: true });
-        } else {
-          navigate('/', { replace: true });
-        }
+        navigate(rol.idrol === 1 ? "/admin" : "/", { replace: true });
+      } else {
+        // 🚫 STATUSCODE != 200 → mostramos SweetAlert2
+        swal.fire({
+          icon: "error",
+          title: "Error al iniciar sesión",
+          text: data.message,
+          confirmButtonText: "Entendido",
+        });
       }
     } catch (err: any) {
-      console.error('Error en login:', err);
-      let msg = 'Error al iniciar sesión';
-      if (err.response?.status === 401) {
-        msg = 'Credenciales incorrectas';
-      } else if (err.response?.data?.message) {
-        msg = err.response.data.message;
-      } else if (err.message) {
-        msg = err.message;
-      }
-      alert(msg);
+      // 🚨 ERROR DE RED O SERVIDOR
+      const msg =
+        err.response?.data?.message ||
+        (err.response?.status === 401
+          ? "Contraseña incorrecta"
+          : "Error al conectar con el servidor");
+      swal.fire("Error", msg, "error");
     } finally {
       setLoading(false);
     }
@@ -120,13 +142,23 @@ const Login: React.FC = () => {
             src="https://img.icons8.com/fluent/344/year-of-tiger.png"
             alt="Logo"
           />
-          <h1 className="text-2xl text-center text-white font-bold mb-6">Iniciar Sesión</h1>
+          <h1 className="text-2xl text-center text-white font-bold mb-6">
+            Iniciar Sesión
+          </h1>
         </header>
 
+        {verificationMessage && (
+          <div className="mb-4 p-3 bg-green-800/30 border border-green-600 rounded text-green-200 text-sm animate-fade-in-out">
+            {verificationMessage}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} noValidate>
-          {/* Correo */}
           <div className="mb-6">
-            <label htmlFor="correo" className="block uppercase text-white text-xs font-bold mb-2">
+            <label
+              htmlFor="correo"
+              className="block uppercase text-white text-xs font-bold mb-2"
+            >
               Correo Electrónico
             </label>
             <input
@@ -142,9 +174,11 @@ const Login: React.FC = () => {
             />
           </div>
 
-          {/* Contraseña */}
           <div className="mb-6">
-            <label htmlFor="password" className="block uppercase text-white text-xs font-bold mb-2">
+            <label
+              htmlFor="password"
+              className="block uppercase text-white text-xs font-bold mb-2"
+            >
               Contraseña
             </label>
             <input
@@ -161,28 +195,19 @@ const Login: React.FC = () => {
             />
           </div>
 
-          {/* Recordar sesión y enlace olvidar */}
-          <div className="flex items-center justify-between mb-6">
-            <label className="inline-flex items-center">
-              <input
-                type="checkbox"
-                name="remember"
-                checked={rememberMe}
-                onChange={handleChange}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-              <span className="ml-2 text-sm text-gray-300">Recordar sesión</span>
-            </label>
-            <a href="/forgot-password" className="text-sm text-cyan-400 hover:text-cyan-300">
+          <div className="flex items-center justify-end mb-6">
+            <a
+              href="/forgot-password"
+              className="text-sm text-cyan-400 hover:text-cyan-300"
+            >
               ¿Olvidaste tu contraseña?
             </a>
           </div>
 
-          {/* Botón enviar */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 font-bold text-white rounded bg-gradient-to-r from-blue-950 to-blue-800 hover:from-cyan-900 hover:to-cyan-600 disabled:opacity-75 transition-all"
+            className="w-full py-3 font-bold text-white rounded bg-gradient-to-r from-blue-950 to-blue-800 hover:from-cyan-900 hover:to-cyan-600 disabled:opacity-75 transition-all cursor-pointer"
           >
             {loading ? (
               <svg
@@ -206,14 +231,16 @@ const Login: React.FC = () => {
                 />
               </svg>
             ) : (
-              'INGRESAR'
+              "INGRESAR"
             )}
           </button>
 
-          {/* Enlace para registrarse */}
           <p className="mt-6 text-center text-sm text-gray-400">
-            ¿No tienes una cuenta?{' '}
-            <a href="/register" className="font-medium text-cyan-400 hover:text-cyan-300">
+            ¿No tienes una cuenta?{" "}
+            <a
+              href="/register"
+              className="font-medium text-cyan-400 hover:text-cyan-300"
+            >
               Regístrate
             </a>
           </p>

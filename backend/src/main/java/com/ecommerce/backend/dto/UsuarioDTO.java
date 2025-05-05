@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ReqRes {
+public class UsuarioDTO {
     private int statusCode;
     private String error;
     private String message;
@@ -29,6 +29,7 @@ public class ReqRes {
     private String celular;
     private Integer idrol;
     private Rol rol;
+    private List<String> errors;
 
     // Campos para respuesta
     private Usuario usuario;
