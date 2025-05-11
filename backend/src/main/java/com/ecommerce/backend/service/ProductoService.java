@@ -1,4 +1,3 @@
-// src/main/java/com/ecommerce/backend/service/ProductoService.java
 package com.ecommerce.backend.service;
 
 import com.ecommerce.backend.dto.EspecificacionDTO;

@@ -1,4 +1,3 @@
-// src/main/java/com/ecommerce/backend/dto/ProductoRequest.java
 package com.ecommerce.backend.dto;
 
 import lombok.Data;

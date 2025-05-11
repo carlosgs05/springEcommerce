@@ -21,4 +21,7 @@ public class Marca {
 
     @Column(name = "nombre", length = 50)
     private String nombre;
+
+    @Column(name = "imagen", length = 255)
+    private String imagen;
 }

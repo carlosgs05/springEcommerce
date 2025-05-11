@@ -21,17 +21,17 @@ import com.ecommerce.backend.dto.UsuarioDTO;
 import com.ecommerce.backend.entity.Permiso;
 import com.ecommerce.backend.entity.Rol;
 import com.ecommerce.backend.entity.Usuario;
-import com.ecommerce.backend.repository.UsuarioRepo;
-import com.ecommerce.backend.repository.RolRepo;
+import com.ecommerce.backend.repository.UsuarioRepository;
+import com.ecommerce.backend.repository.RolRepository;
 
 @Service
 public class UsuarioService {
 
     @Autowired
-    private UsuarioRepo usersRepo;
+    private UsuarioRepository usersRepo;
 
     @Autowired
-    private RolRepo rolRepo;
+    private RolRepository rolRepo;
 
     @Autowired
     private JWTUtils jwtUtils;

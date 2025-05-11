@@ -203,7 +203,7 @@ const Nosotros = () => {
                             <div key={faq.id} className="border border-gray-200 rounded-lg overflow-hidden">
                                 <button
                                     onClick={() => toggleAccordion(index)}
-                                    className="flex justify-between items-center w-full p-5 text-left bg-white hover:bg-gray-50 transition-all duration-300"
+                                    className="flex justify-between items-center w-full p-5 text-left bg-white hover:bg-gray-50 transition-all duration-300 cursor-pointer"
                                 >
                                     <span className="text-lg font-semibold">{faq.question}</span>
                                     <FaChevronDown 

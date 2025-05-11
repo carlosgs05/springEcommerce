@@ -2,69 +2,106 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Header from "../Header";
 import Footer from "../Footer";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Tienda = () => {
   const [categorias, setCategorias] = useState<any[]>([]);
   const [marcas, setMarcas] = useState<any[]>([]);
   const [productos, setProductos] = useState<any[]>([]);
-  const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null);
+  const [selectedCategoria, setSelectedCategoria] = useState<number | null>(
+    null
+  );
   const [selectedMarca, setSelectedMarca] = useState<number | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const navigate = useNavigate();
 
   const [openSections, setOpenSections] = useState({
     categoria: true,
     smarca: true,
   });
 
-  const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleCategoriaChange = (idcategoria: number) => {
-    setSelectedCategoria(prev => prev === idcategoria ? null : idcategoria);
-  };
-
-  const handleMarcaChange = (idmarca: number) => {
-    setSelectedMarca(prev => prev === idmarca ? null : idmarca);
-  };
-
+  // 1) Cargo categorías y marcas
   useEffect(() => {
-    const fetchProductos = async () => {
-      try {
-        const params: any = {};
-        if (selectedCategoria !== null) params.categoria = selectedCategoria;
-        if (selectedMarca !== null) params.marca = selectedMarca;
-
-        const endpoint = Object.keys(params).length > 0
-          ? "http://localhost:8080/api/productos/filtrar"
-          : "http://localhost:8080/api/productos/listarAll";
-
-        const response = await axios.get(endpoint, { params });
-        setProductos(response.data.data);
-      } catch (error) {
-        console.error("Error al cargar productos:", error);
-      }
-    };
-    fetchProductos();
-  }, [selectedCategoria, selectedMarca]);
-
-  useEffect(() => {
-    const fetchInitialData = async () => {
+    const init = async () => {
       try {
         const [catRes, marRes] = await Promise.all([
           axios.get("http://localhost:8080/api/categorias/listar"),
-          axios.get("http://localhost:8080/api/marcas/listar")
+          axios.get("http://localhost:8080/api/marcas/listar"),
         ]);
         setCategorias(catRes.data.data);
         setMarcas(marRes.data.data);
-      } catch (error) {
-        console.error("Error al cargar datos iniciales:", error);
+      } catch (e) {
+        console.error(e);
       }
     };
-    fetchInitialData();
+    init();
   }, []);
+
+  // 2) Cada vez que cambia la URL (query) leo filtros y recargo productos
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const cat = params.get("categoria");
+    const mar = params.get("marca");
+    const catId = cat ? Number(cat) : null;
+    const marId = mar ? Number(mar) : null;
+
+    setSelectedCategoria(catId);
+    setSelectedMarca(marId);
+
+    const fetchProductos = async () => {
+      try {
+        const query: any = {};
+        if (catId !== null) query.categoria = catId;
+        if (marId !== null) query.marca = marId;
+        const endpoint =
+          Object.keys(query).length > 0
+            ? "http://localhost:8080/api/productos/filtrar"
+            : "http://localhost:8080/api/productos/listarAll";
+        const resp = await axios.get(endpoint, { params: query });
+        setProductos(resp.data.data);
+        // al recargar productos, volvemos arriba
+        window.scrollTo(0, 0);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchProductos();
+  }, [location.search]);
+
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // 3) Handlers que actualizan URL y hacen scroll al top
+  const handleCategoriaChange = (idcategoria: number) => {
+    const params = new URLSearchParams(location.search);
+    if (selectedCategoria === idcategoria) {
+      params.delete("categoria");
+    } else {
+      params.set("categoria", idcategoria.toString());
+    }
+    navigate(
+      { pathname: "/tienda", search: params.toString() },
+      { replace: true }
+    );
+    window.scrollTo(0, 0);
+  };
+
+  const handleMarcaChange = (idmarca: number) => {
+    const params = new URLSearchParams(location.search);
+    if (selectedMarca === idmarca) {
+      params.delete("marca");
+    } else {
+      params.set("marca", idmarca.toString());
+    }
+    navigate(
+      { pathname: "/tienda", search: params.toString() },
+      { replace: true }
+    );
+    window.scrollTo(0, 0);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -73,15 +110,22 @@ const Tienda = () => {
       <main className="flex-1">
         <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-14">
           <div className="relative z-10 flex items-baseline justify-between pt-6 pb-6 border-b border-gray-200">
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Tienda</h1>
+            <h1 className="text-3xl font-extrabold text-gray-900">Tienda</h1>
             <button
-              type="button"
-              className="lg:hidden ml-2 inline-flex items-center p-2 rounded-md text-gray-500 hover:text-gray-700"
+              className="lg:hidden p-2 text-gray-500 hover:text-gray-700 cursor-pointer"
               onClick={() => setShowMobileFilters(!showMobileFilters)}
             >
-              <span className="sr-only">Filtros</span>
-              <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"
+                />
               </svg>
             </button>
           </div>
@@ -92,82 +136,98 @@ const Tienda = () => {
               {showMobileFilters && (
                 <div className="lg:hidden">
                   <div className="fixed inset-0 bg-black/25 z-40" />
-                  <div className="relative z-50 bg-white border-r border-gray-200 p-4 h-full overflow-y-auto">
+                  <div className="relative z-50 bg-white p-4 h-full overflow-y-auto border-r border-gray-200">
                     <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-lg font-medium text-gray-900">Filtros</h2>
+                      <h2 className="text-lg font-medium text-gray-900">
+                        Filtros
+                      </h2>
                       <button
-                        type="button"
-                        className="-mr-2 w-10 h-10 p-2 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-500"
                         onClick={() => setShowMobileFilters(false)}
+                        className="text-gray-400 hover:text-gray-500 cursor-pointer"
                       >
-                        <span className="sr-only">Cerrar menú</span>
-                        <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="h-6 w-6"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
-
-                    <div className="space-y-6">
-                      <div className="border-b border-gray-200 py-6">
-                        <h3 className="-my-3 flow-root">
-                          <button
-                            type="button"
-                            className="flex w-full items-center justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
-                            onClick={() => toggleSection("categoria")}
-                          >
-                            <span className="font-medium text-gray-900">Categorías</span>
-                            <span className="ml-6 flex items-center">{openSections.categoria ? "-" : "+"}</span>
-                          </button>
-                        </h3>
-                        {openSections.categoria && (
-                          <div className="pt-6 space-y-4">
-                            {categorias.map(cat => (
-                              <div key={cat.idcategoria} className="flex items-center">
-                                <input
-                                  type="radio"
-                                  checked={selectedCategoria === cat.idcategoria}
-                                  onChange={() => handleCategoriaChange(cat.idcategoria)}
-                                  className="h-4 w-4 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
-                                />
-                                <label className="ml-3 text-sm text-gray-600">{cat.nombre}</label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="border-b border-gray-200 py-6">
-                        <h3 className="-my-3 flow-root">
-                          <button
-                            type="button"
-                            className="flex w-full items-center justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
-                            onClick={() => toggleSection("smarca")}
-                          >
-                            <span className="font-medium text-gray-900">Marcas</span>
-                            <span className="ml-6 flex items-center">{openSections.smarca ? "-" : "+"}</span>
-                          </button>
-                        </h3>
-                        {openSections.smarca && (
-                          <div className="pt-6 space-y-4">
-                            {marcas.map(mar => (
-                              <div key={mar.idmarca} className="flex items-center">
-                                <input
-                                  type="radio"
-                                  checked={selectedMarca === mar.idmarca}
-                                  onChange={() => handleMarcaChange(mar.idmarca)}
-                                  className="h-4 w-4 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
-                                />
-                                <label className="ml-3 text-sm text-gray-600">{mar.nombre}</label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                    {/* Categorías */}
+                    <div className="border-b border-gray-200 py-6">
+                      <button
+                        className="flex w-full justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
+                        onClick={() => toggleSection("categoria")}
+                      >
+                        <span className="font-medium text-gray-900">
+                          Categorías
+                        </span>
+                        <span>{openSections.categoria ? "-" : "+"}</span>
+                      </button>
+                      {openSections.categoria && (
+                        <div className="pt-6 space-y-4">
+                          {categorias.map((c) => (
+                            <label
+                              key={c.idcategoria}
+                              className="flex items-center"
+                            >
+                              <input
+                                type="radio"
+                                checked={selectedCategoria === c.idcategoria}
+                                onChange={() =>
+                                  handleCategoriaChange(c.idcategoria)
+                                }
+                                className="h-4 w-4 text-blue-600 cursor-pointer"
+                              />
+                              <span className="ml-3 text-sm text-gray-600">
+                                {c.nombre}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
-
+                    {/* Marcas */}
+                    <div className="border-b border-gray-200 py-6">
+                      <button
+                        className="flex w-full justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
+                        onClick={() => toggleSection("smarca")}
+                      >
+                        <span className="font-medium text-gray-900">
+                          Marcas
+                        </span>
+                        <span>{openSections.smarca ? "-" : "+"}</span>
+                      </button>
+                      {openSections.smarca && (
+                        <div className="pt-6 space-y-4">
+                          {marcas.map((m) => (
+                            <label
+                              key={m.idmarca}
+                              className="flex items-center"
+                            >
+                              <input
+                                type="radio"
+                                checked={selectedMarca === m.idmarca}
+                                onChange={() => handleMarcaChange(m.idmarca)}
+                                className="h-4 w-4 text-blue-600 cursor-pointer"
+                              />
+                              <span className="ml-3 text-sm text-gray-600">
+                                {m.nombre}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <button
-                      onClick={() => { setSelectedCategoria(null); setSelectedMarca(null); }}
-                      className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onClick={() => navigate("/tienda")}
+                      className="mt-6 w-full bg-blue-600 text-white py-2 rounded-md cursor-pointer"
                     >
                       Limpiar filtros
                     </button>
@@ -175,68 +235,74 @@ const Tienda = () => {
                 </div>
               )}
 
-              {/* Filtros de escritorio */}
+              {/* Filtros escritorio */}
               <form className="hidden lg:block space-y-10 divide-y divide-gray-200">
                 <div className="pt-4">
                   <div className="border-b border-gray-200 py-6">
-                    <h3 className="-my-3 flow-root">
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
-                        onClick={() => toggleSection("categoria")}
-                      >
-                        <span className="font-medium text-gray-900">Categorías</span>
-                        <span className="ml-6 flex items-center">{openSections.categoria ? "-" : "+"}</span>
-                      </button>
-                    </h3>
+                    <button
+                      className="flex w-full justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
+                      onClick={() => toggleSection("categoria")}
+                    >
+                      <span className="font-medium text-gray-900">
+                        Categorías
+                      </span>
+                      <span>{openSections.categoria ? "-" : "+"}</span>
+                    </button>
                     {openSections.categoria && (
                       <div className="pt-6 space-y-4">
-                        {categorias.map(cat => (
-                          <div key={cat.idcategoria} className="flex items-center">
+                        {categorias.map((c) => (
+                          <label
+                            key={c.idcategoria}
+                            className="flex items-center"
+                          >
                             <input
                               type="radio"
-                              checked={selectedCategoria === cat.idcategoria}
-                              onChange={() => handleCategoriaChange(cat.idcategoria)}
-                              className="h-4 w-4 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
+                              checked={selectedCategoria === c.idcategoria}
+                              onChange={() =>
+                                handleCategoriaChange(c.idcategoria)
+                              }
+                              className="h-4 w-4 text-blue-600 cursor-pointer"
                             />
-                            <label className="ml-3 text-sm text-gray-600">{cat.nombre}</label>
-                          </div>
+                            <span className="ml-3 text-sm text-gray-600">
+                              {c.nombre}
+                            </span>
+                          </label>
                         ))}
                       </div>
                     )}
                   </div>
-
                   <div className="border-b border-gray-200 py-6">
-                    <h3 className="-my-3 flow-root">
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
-                        onClick={() => toggleSection("smarca")}
-                      >
-                        <span className="font-medium text-gray-900">Marcas</span>
-                        <span className="ml-6 flex items-center">{openSections.smarca ? "-" : "+"}</span>
-                      </button>
-                    </h3>
+                    <button
+                      className="flex w-full justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
+                      onClick={() => toggleSection("smarca")}
+                    >
+                      <span className="font-medium text-gray-900">Marcas</span>
+                      <span>{openSections.smarca ? "-" : "+"}</span>
+                    </button>
                     {openSections.smarca && (
                       <div className="pt-6 space-y-4">
-                        {marcas.map(mar => (
-                          <div key={mar.idmarca} className="flex items-center">
+                        {marcas.map((m) => (
+                          <label key={m.idmarca} className="flex items-center">
                             <input
                               type="radio"
-                              checked={selectedMarca === mar.idmarca}
-                              onChange={() => handleMarcaChange(mar.idmarca)}
-                              className="h-4 w-4 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
+                              checked={selectedMarca === m.idmarca}
+                              onChange={() => handleMarcaChange(m.idmarca)}
+                              className="h-4 w-4 text-blue-600 cursor-pointer"
                             />
-                            <label className="ml-3 text-sm text-gray-600">{mar.nombre}</label>
-                          </div>
+                            <span className="ml-3 text-sm text-gray-600">
+                              {m.nombre}
+                            </span>
+                          </label>
                         ))}
                       </div>
                     )}
                   </div>
-
                   <button
-                    onClick={() => { setSelectedCategoria(null); setSelectedMarca(null); }}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/tienda");
+                    }}
+                    className="mt-6 w-full bg-blue-600 text-white py-2 rounded-md cursor-pointer"
                   >
                     Limpiar filtros
                   </button>
@@ -246,55 +312,79 @@ const Tienda = () => {
               {/* Productos */}
               <div className="lg:col-span-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                  {productos.length > 0 ? productos.map(producto => (
-                    <div
-                      key={producto.idproducto}
-                      className="group relative bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 aspect-square overflow-hidden"
-                    >
-                      {/* Mitad superior: imagen */}
-                      <div className="h-1/2 relative overflow-hidden">
-                        <img
-                          src={`http://localhost:8080/uploads/${producto.imagenesNombres[0]}`}
-                          alt={producto.nombre}
-                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-30" />
-                      </div>
-                      {/* Mitad inferior: contenido */}
-                      <div className="h-1/2 p-4 flex flex-col justify-between">
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {productos.length > 0 ? (
+                    productos.map((producto) => (
+                      <div
+                        key={producto.idproducto}
+                        className="group relative bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 aspect-square overflow-hidden"
+                      >
+                        <div className="h-1/2 relative overflow-hidden">
+                          <img
+                            src={`http://localhost:8080/uploads/${producto.imagenesNombres[0]}`}
+                            alt={producto.nombre}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-30" />
+                        </div>
+                        <div className="h-1/2 p-4 flex flex-col justify-between">
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/tienda/producto/${producto.idproducto}`,
+                                    { state: producto }
+                                  )
+                                }
+                                className="hover:text-blue-600 focus:outline-none text-left w-full cursor-pointer"
+                              >
+                                {producto.nombre}
+                              </button>
+                            </h3>
+                            <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                              {producto.descripcion}
+                            </p>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <p className="text-lg font-semibold text-gray-900">
+                              ${producto.precio.toFixed(2)}
+                            </p>
                             <button
-                              onClick={() => navigate(`/tienda/producto/${producto.idproducto}`, { state: producto })}
-                              className="hover:text-blue-600 focus:outline-none text-left w-full"
+                              onClick={() =>
+                                navigate(
+                                  `/tienda/producto/${producto.idproducto}`,
+                                  { state: producto }
+                                )
+                              }
+                              className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium cursor-pointer"
                             >
-                              {producto.nombre}
+                              Ver detalles
                             </button>
-                          </h3>
-                          <p className="text-sm text-gray-500 line-clamp-2 mb-3">
-                            {producto.descripcion || "Descripción no disponible"}
-                          </p>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <p className="text-lg font-semibold text-gray-900">
-                            ${producto.precio.toFixed(2)}
-                          </p>
-                          <button
-                            onClick={() => navigate(`/tienda/producto/${producto.idproducto}`, { state: producto })}
-                            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium"
-                          >
-                            Ver detalles
-                          </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )) : (
+                    ))
+                  ) : (
                     <div className="text-center py-12 col-span-full">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron productos</h3>
-                      <p className="mt-1 text-sm text-gray-500">Intenta con otros filtros de búsqueda</p>
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">
+                        No se encontraron productos
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Intenta con otros filtros de búsqueda
+                      </p>
                     </div>
                   )}
                 </div>
@@ -310,4 +400,3 @@ const Tienda = () => {
 };
 
 export default Tienda;
-
