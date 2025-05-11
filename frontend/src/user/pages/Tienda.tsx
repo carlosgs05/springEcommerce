@@ -345,16 +345,15 @@ const Tienda = () => {
                               {producto.descripcion}
                             </p>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <p className="text-lg font-semibold text-gray-900">
-                              ${producto.precio.toFixed(2)}
+                          <div className="flex justify-between items-center mt-1 mx-2">
+                            <p className="mt-1 font-bold text-blue-600 text-lg">
+                              S/ {producto.precio.toFixed(2)}
                             </p>
                             <button
                               onClick={() =>
-                                navigate(
-                                  `/tienda/producto/${producto.idproducto}`,
-                                  { state: producto }
-                                )
+                                navigate(`/tienda/producto/${producto.idproducto}`, {
+                                  state: producto,
+                                })
                               }
                               className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium cursor-pointer"
                             >
