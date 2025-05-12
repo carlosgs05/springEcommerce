@@ -75,9 +75,44 @@ public class ProductoController {
         return ResponseEntity.ok(Map.of("data", productos, "success", true));
     }
 
+    @PutMapping("/actualizar/{id}")
+    public ResponseEntity<?> actualizarProducto(
+            @PathVariable Long id,
+            @RequestParam("producto") String productoJson,
+            @RequestParam(value = "imagenes", required = false) MultipartFile[] imagenes) {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            // Parseamos el JSON y las imágenes (si vienen)
+            ProductoDTO req = productoService.parsearJson(
+                    productoJson,
+                    imagenes != null ? Arrays.asList(imagenes) : null);
+            ProductoDTO actualizado = productoService.actualizarProducto(id, req);
+
+            resp.put("success", true);
+            resp.put("message", "Producto actualizado correctamente");
+            resp.put("data", actualizado);
+            return ResponseEntity.ok(resp);
+
+        } catch (IllegalArgumentException e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
+
+        } catch (IOException e) {
+            resp.put("success", false);
+            resp.put("message", "Error al procesar imágenes: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error interno: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
     @DeleteMapping("/eliminar/{id}")
     public ResponseEntity<?> eliminarProducto(@PathVariable Long id) {
-        Map<String,Object> resp = new HashMap<>();
+        Map<String, Object> resp = new HashMap<>();
         try {
             productoService.eliminarProducto(id);
             resp.put("success", true);
@@ -92,7 +127,7 @@ public class ProductoController {
 
     @DeleteMapping("/imagenes/eliminar/{nombre}")
     public ResponseEntity<?> eliminarImagen(@PathVariable String nombre) {
-        Map<String,Object> resp = new HashMap<>();
+        Map<String, Object> resp = new HashMap<>();
         try {
             productoService.eliminarImagen(nombre);
             resp.put("success", true);
