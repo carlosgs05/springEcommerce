@@ -1,16 +1,9 @@
-<<<<<<< HEAD
-import React, { useState, FormEvent, ChangeEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import { FaEye, FaEyeSlash } from 'react-icons/fa'; // Nuevas importaciones
-=======
 import React, { useState, FormEvent, ChangeEvent, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import swal from "sweetalert2/dist/sweetalert2.all.js";
 import { useAuth } from "../context/AuthContext";
->>>>>>> origin/main
+
 
 interface LoginData {
   correo: string;
@@ -75,14 +68,6 @@ const Login: React.FC = () => {
     }
   }, [location.state, navigate, location.pathname]);
 
-<<<<<<< HEAD
-  // Toggle para mostrar/ocultar contraseña
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-=======
->>>>>>> origin/main
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     if (type === "checkbox") {
@@ -120,10 +105,6 @@ const Login: React.FC = () => {
             nombre: rol.nombre,
           },
         };
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/main
         login(userData, token);
 
         const storage = rememberMe ? localStorage : sessionStorage;
@@ -131,13 +112,6 @@ const Login: React.FC = () => {
         storage.setItem("refreshToken", refreshToken);
         storage.setItem("userData", JSON.stringify(userData));
 
-<<<<<<< HEAD
-        if (rol.idrol === 1) {
-          navigate('/admin', { replace: true });
-        } else {
-          navigate('/', { replace: true });
-        }
-=======
         navigate(rol.idrol === 1 ? "/admin" : "/", { replace: true });
       } else {
         // 🚫 STATUSCODE != 200 → mostramos SweetAlert2
@@ -147,7 +121,6 @@ const Login: React.FC = () => {
           text: data.message,
           confirmButtonText: "Entendido",
         });
->>>>>>> origin/main
       }
     } catch (err: any) {
       // 🚨 ERROR DE RED O SERVIDOR
