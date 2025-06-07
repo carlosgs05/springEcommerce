@@ -1,5 +1,6 @@
 package com.ecommerce.backend.controller;
 
+import com.ecommerce.backend.dto.CheckoutDTO;
 import com.ecommerce.backend.dto.VentaDTO;
 import com.ecommerce.backend.service.VentaService;
 import lombok.RequiredArgsConstructor;
@@ -21,4 +22,17 @@ public class VentaController {
         List<VentaDTO> ventas = ventaService.listarVentasPorUsuario(iduser);
         return ResponseEntity.ok(Map.of("success", true, "data", ventas));
     }
+
+    @PostMapping("/checkout")
+    public ResponseEntity<VentaDTO> procesarCheckout(@RequestBody CheckoutDTO checkoutDTO) {
+        VentaDTO ventaRealizada = ventaService.realizarVenta(checkoutDTO);
+        return ResponseEntity.ok(ventaRealizada);
+    }
+
+    @GetMapping("/boleta/{id}")
+    public ResponseEntity<VentaDTO> verBoleta(@PathVariable Long id) {
+        VentaDTO ventaDTO = ventaService.obtenerVentaPorId(id);
+        return ResponseEntity.ok(ventaDTO);
+    }
+
 }
