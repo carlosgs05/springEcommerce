@@ -47,15 +47,24 @@ public class Producto {
     @Column(name = "fechacreacion", columnDefinition = "TIMESTAMP")
     private LocalDateTime fechacreacion;
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Cambiado a EAGER
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Cambiado
+                                                                                                                // a
+                                                                                                                // EAGER
     @JsonManagedReference("producto-especificacion")
     private List<Especificacion> especificaciones = new ArrayList<>();
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Cambiado a EAGER
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Cambiado
+                                                                                                                // a
+                                                                                                                // EAGER
     @JsonManagedReference("producto-imagen")
     private List<ProductoImg> imagenes = new ArrayList<>();
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Cambiado a EAGER
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Cambiado
+                                                                                                                // a
+                                                                                                                // EAGER
     @JsonManagedReference("producto-comentario")
     private List<Comentario> comentarios = new ArrayList<>();
+
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<DetalleVenta> detalleVentas = new ArrayList<>();
 }

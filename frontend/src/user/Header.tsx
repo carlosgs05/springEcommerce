@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { FaSearch, FaShoppingCart, FaUser, FaSignOutAlt } from 'react-icons/fa';
-import { HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
-import { useAuth } from '../context/AuthContext';
-import { DropdownMenu, DropdownItem } from './Dropdown';
+import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { FaSearch, FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
+import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
+import { useAuth } from "../context/AuthContext";
+import { DropdownMenu, DropdownItem } from "./Dropdown";
 
 interface Tab {
   id: string;
@@ -13,10 +13,10 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { id: 'home', label: 'Home', href: '/' },
-  { id: 'nosotros', label: 'Nosotros', href: '/nosotros' },
-  { id: 'tienda', label: 'Tienda', href: '/tienda' },
-  { id: 'contacto', label: 'Contacto', href: '/contacto' },
+  { id: "home", label: "Home", href: "/" },
+  { id: "nosotros", label: "Nosotros", href: "/nosotros" },
+  { id: "tienda", label: "Tienda", href: "/tienda" },
+  { id: "contacto", label: "Contacto", href: "/contacto" },
 ];
 
 const Header: React.FC = () => {
@@ -26,12 +26,15 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, hasRole } = useAuth();
 
-  const isActive = (path: string) => location.pathname === path;
+  // Considerar '/tienda' y cualquiera de sus subrutas como activas
+  const isActive = (path: string) =>
+    path === "/tienda"
+      ? location.pathname.startsWith("/tienda")
+      : location.pathname === path;
 
-  const toggleMenu = () => setMenuOpen(prev => !prev);
+  const toggleMenu = () => setMenuOpen((prev) => !prev);
   const closeMenu = () => setMenuOpen(false);
-  const toggleUserDropdown = () => setUserDropdownOpen(prev => !prev);
-
+  const toggleUserDropdown = () => setUserDropdownOpen((prev) => !prev);
   const handleLogout = () => {
     logout();
     setUserDropdownOpen(false);
@@ -39,43 +42,40 @@ const Header: React.FC = () => {
   };
 
   const getLinkClasses = (path: string) => {
-    const baseClasses = "px-3 py-2 transition-all duration-200 cursor-pointer border-b-2";
-    const activeClasses = "text-cyan-400 border-cyan-400";
-    const inactiveClasses = "text-white border-transparent";
-    const hoverClasses = "hover:text-cyan-400 hover:border-cyan-400";
-
-    return `${baseClasses} ${isActive(path) ? activeClasses : inactiveClasses} ${hoverClasses}`;
+    const base =
+      "px-3 py-2 border-b-2 transition-all duration-200 cursor-pointer";
+    const active = isActive(path)
+      ? "text-cyan-400 border-cyan-400"
+      : "text-white border-transparent";
+    const hover = "hover:text-cyan-400 hover:border-cyan-400";
+    return `${base} ${active} ${hover}`;
   };
 
   const getMobileLinkClasses = (path: string) => {
-    const baseClasses = "block px-3 py-2 transition-all duration-200";
-    const activeClasses = "text-cyan-400 bg-gray-800";
-    const inactiveClasses = "text-white";
-    const hoverClasses = "hover:text-cyan-400 hover:bg-gray-800";
-
-    return `${baseClasses} ${isActive(path) ? activeClasses : inactiveClasses} ${hoverClasses}`;
+    const base = "block px-3 py-2 transition-all duration-200 cursor-pointer";
+    const active = isActive(path) ? "text-cyan-400 bg-gray-800" : "text-white";
+    const hover = "hover:text-cyan-400 hover:bg-gray-800";
+    return `${base} ${active} ${hover}`;
   };
 
-  const iconBtnClasses = "p-2 text-white transition-colors duration-200 hover:text-cyan-400";
-  const textBtnClasses = "px-3 py-2 text-white hover:text-cyan-400 transition-colors duration-200";
+  const iconBtn =
+    "p-2 text-white transition-colors duration-200 hover:text-cyan-400 cursor-pointer";
+  const textBtn =
+    "px-3 py-2 text-white hover:text-cyan-400 transition-colors duration-200 cursor-pointer";
 
-  const handleUserAction = () => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    } else {
-      toggleUserDropdown();
-    }
-  };
-
-  const filteredTabs = TABS.filter(tab =>
-    !tab.roles || (user && tab.roles.some(role => hasRole(role)))
+  const filteredTabs = TABS.filter(
+    (tab) => !tab.roles || (user && tab.roles.some((role) => hasRole(role)))
   );
 
   return (
     <header className="w-full bg-gradient-to-tr from-gray-900 to-stone-800 shadow-2xl sticky top-0 z-50">
       <nav className="max-w-8xl mx-auto px-11 py-5 lg:py-6 flex items-center justify-between relative">
         {/* Logo */}
-        <a href="/" onClick={closeMenu} className="flex items-center space-x-3">
+        <a
+          href="/"
+          onClick={closeMenu}
+          className="flex items-center space-x-3 cursor-pointer"
+        >
           <img
             src="https://img.icons8.com/fluent/344/year-of-tiger.png"
             alt="Logo TechShop"
@@ -93,7 +93,7 @@ const Header: React.FC = () => {
 
         {/* Desktop Navigation */}
         <ul className="hidden md:flex items-center space-x-6">
-          {filteredTabs.map(tab => (
+          {filteredTabs.map((tab) => (
             <li key={tab.id}>
               <a
                 href={tab.href}
@@ -108,10 +108,10 @@ const Header: React.FC = () => {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center space-x-4">
-          <button aria-label="Buscar" className={iconBtnClasses}>
+          <button aria-label="Buscar" className={iconBtn}>
             <FaSearch size={20} />
           </button>
-          <button aria-label="Carrito" className={iconBtnClasses}>
+          <button aria-label="Carrito" className={iconBtn}>
             <FaShoppingCart size={20} />
           </button>
 
@@ -119,8 +119,8 @@ const Header: React.FC = () => {
             <div className="relative">
               <button
                 aria-label="Usuario"
-                className={iconBtnClasses}
-                onClick={handleUserAction}
+                className={iconBtn}
+                onClick={toggleUserDropdown}
               >
                 <FaUser size={20} />
               </button>
@@ -130,7 +130,7 @@ const Header: React.FC = () => {
                   {user?.rol.idrol === 2 && (
                     <DropdownItem
                       onClick={() => {
-                        navigate('/perfil');
+                        navigate("/perfil");
                         setUserDropdownOpen(false);
                       }}
                       icon={<FaUser className="mr-2" />}
@@ -148,10 +148,7 @@ const Header: React.FC = () => {
               )}
             </div>
           ) : (
-            <button
-              onClick={() => navigate('/login')}
-              className={textBtnClasses}
-            >
+            <button onClick={() => navigate("/login")} className={textBtn}>
               Iniciar Sesión
             </button>
           )}
@@ -160,7 +157,7 @@ const Header: React.FC = () => {
         {/* Mobile Menu Button */}
         <button
           onClick={toggleMenu}
-          className="md:hidden p-2 text-white hover:text-cyan-400 focus:outline-none"
+          className="md:hidden p-2 text-white hover:text-cyan-400 cursor-pointer focus:outline-none"
           aria-label="Abrir menú"
         >
           {menuOpen ? <HiOutlineX size={28} /> : <HiOutlineMenu size={28} />}
@@ -171,7 +168,7 @@ const Header: React.FC = () => {
       {menuOpen && (
         <div className="md:hidden px-6 pb-5 border-t border-gray-700">
           <ul className="flex flex-col space-y-3">
-            {filteredTabs.map(tab => (
+            {filteredTabs.map((tab) => (
               <li key={tab.id}>
                 <a
                   href={tab.href}
@@ -184,18 +181,19 @@ const Header: React.FC = () => {
             ))}
           </ul>
           <div className="flex items-center space-x-4 mt-4 border-t border-gray-700 pt-4">
-            <button aria-label="Buscar" className={iconBtnClasses}>
+            <button aria-label="Buscar" className={iconBtn}>
               <FaSearch size={20} />
             </button>
-            <button aria-label="Carrito" className={iconBtnClasses}>
+            <button aria-label="Carrito" className={iconBtn}>
               <FaShoppingCart size={20} />
             </button>
+
             {isAuthenticated ? (
               <div className="relative">
                 <button
                   aria-label="Usuario"
-                  className={iconBtnClasses}
-                  onClick={handleUserAction}
+                  className={iconBtn}
+                  onClick={toggleUserDropdown}
                 >
                   <FaUser size={20} />
                 </button>
@@ -205,7 +203,7 @@ const Header: React.FC = () => {
                     {user?.rol.idrol === 2 && (
                       <DropdownItem
                         onClick={() => {
-                          navigate('/perfil');
+                          navigate("/perfil");
                           setUserDropdownOpen(false);
                           closeMenu();
                         }}
@@ -228,11 +226,11 @@ const Header: React.FC = () => {
               </div>
             ) : (
               <button
-                className={textBtnClasses}
                 onClick={() => {
-                  navigate('/login');
+                  navigate("/login");
                   closeMenu();
                 }}
+                className={textBtn}
               >
                 Iniciar Sesión
               </button>

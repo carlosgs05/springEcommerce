@@ -27,4 +27,33 @@ public class CategoriaService {
         
         return categoriaRepository.save(categoria);
     }
+
+    // Método para obtener una categoría por su ID
+    public Categoria obtenerCategoriaPorId(Long id) {
+        return categoriaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
+    }
+
+    // Método para actualizar una categoría existente
+    public Categoria actualizarCategoria(Long id, Categoria datos) {
+        Categoria categoria = obtenerCategoriaPorId(id);
+        String nuevoNombre = datos.getNombre();
+        if (nuevoNombre == null || nuevoNombre.trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre de la categoría no puede estar vacío");
+        }
+        if (!categoria.getNombre().equalsIgnoreCase(nuevoNombre.trim())
+                && categoriaRepository.existsByNombre(nuevoNombre.trim())) {
+            throw new IllegalArgumentException("Ya existe otra categoría con ese nombre");
+        }
+        categoria.setNombre(nuevoNombre.trim());
+        return categoriaRepository.save(categoria);
+    }
+
+    // Método para eliminar una categoría
+    public void eliminarCategoria(Long id) {
+        if (!categoriaRepository.existsById(id)) {
+            throw new IllegalArgumentException("Categoría no encontrada");
+        }
+        categoriaRepository.deleteById(id);
+    }
 }

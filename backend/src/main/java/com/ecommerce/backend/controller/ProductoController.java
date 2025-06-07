@@ -1,6 +1,6 @@
 package com.ecommerce.backend.controller;
 
-import com.ecommerce.backend.dto.ProductoRequest;
+import com.ecommerce.backend.dto.ProductoDTO;
 import com.ecommerce.backend.service.ProductoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,8 +26,8 @@ public class ProductoController {
             @RequestParam("imagenes") MultipartFile[] imagenes) {
         Map<String, Object> resp = new HashMap<>();
         try {
-            ProductoRequest req = productoService.parsearJson(productoJson, Arrays.asList(imagenes));
-            ProductoRequest creado = productoService.crearProducto(req);
+            ProductoDTO req = productoService.parsearJson(productoJson, Arrays.asList(imagenes));
+            ProductoDTO creado = productoService.crearProducto(req);
 
             resp.put("success", true);
             resp.put("message", "Producto creado correctamente");
@@ -55,11 +55,11 @@ public class ProductoController {
     public ResponseEntity<?> listarTodosLosProductos() {
         Map<String, Object> resp = new HashMap<>();
         try {
-            List<ProductoRequest> lista = productoService.listarTodosLosProductos();
+            List<ProductoDTO> lista = productoService.listarTodosLosProductos();
             resp.put("success", true);
             resp.put("data", lista);
             return ResponseEntity.ok(resp);
-    
+
         } catch (Exception e) {
             resp.put("success", false);
             resp.put("message", "Error interno: " + e.getMessage());
@@ -67,4 +67,76 @@ public class ProductoController {
         }
     }
 
+    @GetMapping("/filtrar")
+    public ResponseEntity<?> filtrarProductos(
+            @RequestParam(required = false) Long categoria,
+            @RequestParam(required = false) Long marca) {
+        List<ProductoDTO> productos = productoService.filtrarProductos(categoria, marca);
+        return ResponseEntity.ok(Map.of("data", productos, "success", true));
+    }
+
+    @PutMapping("/actualizar/{id}")
+    public ResponseEntity<?> actualizarProducto(
+            @PathVariable Long id,
+            @RequestParam("producto") String productoJson,
+            @RequestParam(value = "imagenes", required = false) MultipartFile[] imagenes) {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            // Parseamos el JSON y las imágenes (si vienen)
+            ProductoDTO req = productoService.parsearJson(
+                    productoJson,
+                    imagenes != null ? Arrays.asList(imagenes) : null);
+            ProductoDTO actualizado = productoService.actualizarProducto(id, req);
+
+            resp.put("success", true);
+            resp.put("message", "Producto actualizado correctamente");
+            resp.put("data", actualizado);
+            return ResponseEntity.ok(resp);
+
+        } catch (IllegalArgumentException e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
+
+        } catch (IOException e) {
+            resp.put("success", false);
+            resp.put("message", "Error al procesar imágenes: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error interno: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
+    @DeleteMapping("/eliminar/{id}")
+    public ResponseEntity<?> eliminarProducto(@PathVariable Long id) {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            productoService.eliminarProducto(id);
+            resp.put("success", true);
+            resp.put("message", "Producto y sus imágenes eliminados correctamente");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al eliminar producto: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(resp);
+        }
+    }
+
+    @DeleteMapping("/imagenes/eliminar/{nombre}")
+    public ResponseEntity<?> eliminarImagen(@PathVariable String nombre) {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            productoService.eliminarImagen(nombre);
+            resp.put("success", true);
+            resp.put("message", "Imagen eliminada correctamente");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al eliminar imagen: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(resp);
+        }
+    }
 }

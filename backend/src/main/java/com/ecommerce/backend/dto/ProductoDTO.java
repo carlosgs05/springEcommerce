@@ -1,4 +1,3 @@
-// src/main/java/com/ecommerce/backend/dto/ProductoRequest.java
 package com.ecommerce.backend.dto;
 
 import lombok.Data;
@@ -11,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-public class ProductoRequest {
+public class ProductoDTO {
     // — Campos de respuesta —
     private Long idproducto;
     private String nombre;
@@ -24,7 +23,7 @@ public class ProductoRequest {
     private String nombreMarca;
     private LocalDateTime fechacreacion;
     private List<String> imagenesNombres;
-    private List<EspecificacionRequest> especificaciones;
+    private List<EspecificacionDTO> especificaciones;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<Comentario> comentariosAprobados;

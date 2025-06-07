@@ -7,13 +7,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.ecommerce.backend.repository.UsuarioRepo;
+import com.ecommerce.backend.repository.UsuarioRepository;
 
 @Service
 public class UsuarioDetailsService implements UserDetailsService {
 
     @Autowired
-    private UsuarioRepo usersRepo;
+    private UsuarioRepository usersRepo;
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return usersRepo.findByCorreo(username).orElseThrow();

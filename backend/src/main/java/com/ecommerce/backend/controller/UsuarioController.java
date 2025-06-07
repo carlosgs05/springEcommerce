@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.ecommerce.backend.dto.ReqRes;
+import com.ecommerce.backend.dto.UsuarioDTO;
 import com.ecommerce.backend.service.UsuarioService;
 
 @RestController
@@ -14,33 +14,40 @@ public class UsuarioController {
     private UsuarioService usuarioService;
 
     @PostMapping("/register")
-    public ResponseEntity<ReqRes> regeister(@RequestBody ReqRes reg) {
+    public ResponseEntity<UsuarioDTO> regeister(@RequestBody UsuarioDTO reg) {
         return ResponseEntity.ok(usuarioService.register(reg));
     }
 
+    @GetMapping("/verify-email")
+    public ResponseEntity<UsuarioDTO> verifyEmail(@RequestParam String token) {
+        UsuarioDTO response = usuarioService.verifyEmail(token);
+        
+        return ResponseEntity.status(response.getStatusCode()).body(response);
+    }
+
     @PostMapping("/login")
-    public ResponseEntity<ReqRes> login(@RequestBody ReqRes req) {
-        ReqRes res = usuarioService.login(req);
+    public ResponseEntity<UsuarioDTO> login(@RequestBody UsuarioDTO req) {
+        UsuarioDTO res = usuarioService.login(req);
         return ResponseEntity.status(res.getStatusCode()).body(res);
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<ReqRes> forgotPassword(@RequestBody ReqRes req) {
+    public ResponseEntity<UsuarioDTO> forgotPassword(@RequestBody UsuarioDTO req) {
         return ResponseEntity.ok(usuarioService.forgotPassword(req));
     }
 
     @PostMapping("/verify-reset-code")
-    public ResponseEntity<ReqRes> verifyResetCode(@RequestBody ReqRes req) {
+    public ResponseEntity<UsuarioDTO> verifyResetCode(@RequestBody UsuarioDTO req) {
         return ResponseEntity.ok(usuarioService.verifyResetCode(req));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<ReqRes> resetPassword(@RequestBody ReqRes req) {
+    public ResponseEntity<UsuarioDTO> resetPassword(@RequestBody UsuarioDTO req) {
         return ResponseEntity.ok(usuarioService.resetPassword(req));
     }
 
     @PostMapping("/correo")
-    public ResponseEntity<ReqRes> getUserByCorreo(@RequestBody ReqRes req) {
+    public ResponseEntity<UsuarioDTO> getUserByCorreo(@RequestBody UsuarioDTO req) {
         return ResponseEntity.ok(usuarioService.getUserByCorreo(req.getCorreo()));
     }
 

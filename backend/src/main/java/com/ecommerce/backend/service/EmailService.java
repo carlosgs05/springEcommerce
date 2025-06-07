@@ -18,6 +18,80 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    public void sendVerificationEmail(String toEmail, String userName, String verificationToken)
+            throws MessagingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+        // URL modificada para apuntar a verificación
+        String verificationUrl = "http://localhost:5173/verify-account?token=" + verificationToken;
+
+        // Resto del método mantiene exactamente el mismo código original
+        helper.setFrom(fromEmail);
+        helper.setTo(toEmail);
+        helper.setSubject("Verifica tu cuenta - TechShop");
+
+        String htmlContent = "<div style='"
+                + "background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);"
+                + "color: #ffffff;"
+                + "font-family: Arial, sans-serif;"
+                + "padding: 40px 20px;"
+                + "min-height: 100vh;'>"
+
+                + "<div style='"
+                + "max-width: 600px;"
+                + "margin: 0 auto;"
+                + "background: rgba(0, 0, 0, 0.7);"
+                + "border-radius: 10px;"
+                + "padding: 30px;"
+                + "box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);'>"
+
+                + "<div style='text-align: center; margin-bottom: 30px;'>"
+                + "<img src='https://img.icons8.com/fluent/344/year-of-tiger.png' "
+                + "alt='TechShop Logo' style='width: 80px; height: 80px; margin-bottom: 20px;'>"
+                + "<h1 style='color: #00ffff; margin: 0; font-size: 28px;'>Bienvenido a TechShop</h1>"
+                + "</div>"
+
+                + "<div style='margin-bottom: 25px;'>"
+                + "<p style='font-size: 16px; margin: 10px 0;'>Hola <strong>" + userName + "</strong>,</p>"
+                + "<p style='font-size: 16px; margin: 10px 0;'>¡Gracias por registrarte en TechShop!</p>"
+                + "<p style='font-size: 16px; margin: 10px 0;'>Para completar tu registro y activar tu cuenta, haz clic en el siguiente botón:</p>"
+                + "</div>"
+
+                + "<div style='text-align: center; margin: 30px 0;'>"
+                + "<a href='" + verificationUrl + "' style='"
+                + "background-color: #00ffff;"
+                + "color: #1a1a1a;"
+                + "padding: 12px 30px;"
+                + "border-radius: 5px;"
+                + "text-decoration: none;"
+                + "font-weight: bold;"
+                + "display: inline-block;"
+                + "transition: all 0.3s ease;"
+                + "'>Confirmar Cuenta</a>"
+                + "</div>"
+
+                + "<div style='color: #a0aec0; margin-top: 25px; font-size: 14px;'>"
+                + "<p style='margin: 10px 0;'>⚠️ Importante:</p>"
+                + "<ul style='margin: 10px 0 15px 20px;'>"
+                + "<li>Este enlace expirará en 24 horas</li>"
+                + "<li>Si no verificas tu cuenta en ese tiempo, deberás registrarte nuevamente</li>"
+                + "<li>Si no solicitaste este registro, ignora este mensaje</li>"
+                + "</ul>"
+                + "</div>"
+
+                + "<div style='border-top: 1px solid #2d3748; margin-top: 25px; padding-top: 20px; text-align: center;'>"
+                + "<p style='margin: 5px 0; font-size: 12px; color: #718096;'>TechShop - Tu tienda de tecnología favorita</p>"
+                + "<p style='margin: 5px 0; font-size: 12px; color: #718096;'>Soporte 24/7: soporte@gmail.com</p>"
+                + "</div>"
+
+                + "</div>"
+                + "</div>";
+
+        helper.setText(htmlContent, true);
+        mailSender.send(message);
+    }
+
     public void sendPasswordResetEmail(String toEmail, String userName, Integer resetCode) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
