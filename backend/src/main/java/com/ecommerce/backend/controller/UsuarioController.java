@@ -53,7 +53,7 @@ public class UsuarioController {
 
     // Nuevo endpoint para actualizar datos de usuario
     @PutMapping("/update-user")
-    public ResponseEntity<ReqRes> updateUser(@RequestBody ReqRes updateRequest) {
+    public ResponseEntity<UsuarioDTO> updateUser(@RequestBody UsuarioDTO updateRequest) {
         return ResponseEntity.ok(usuarioService.updateUser(updateRequest));
     }
 

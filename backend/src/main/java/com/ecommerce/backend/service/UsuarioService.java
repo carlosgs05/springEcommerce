@@ -362,8 +362,8 @@ public class UsuarioService {
     }
 
     // Nuevo método para actualizar datos de usuario
-    public ReqRes updateUser(ReqRes updateRequest) {
-        ReqRes response = new ReqRes();
+    public UsuarioDTO updateUser(UsuarioDTO updateRequest) {
+        UsuarioDTO response = new UsuarioDTO();
         try {
             Usuario user = usersRepo.findByCorreo(updateRequest.getCorreo())
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
