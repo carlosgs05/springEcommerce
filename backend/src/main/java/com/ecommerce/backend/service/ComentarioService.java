@@ -5,7 +5,7 @@ import com.ecommerce.backend.entity.Producto;
 import com.ecommerce.backend.entity.Usuario;
 import com.ecommerce.backend.repository.ComentarioRepository;
 import com.ecommerce.backend.repository.ProductoRepository;
-import com.ecommerce.backend.repository.UsuarioRepo;
+import com.ecommerce.backend.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +20,7 @@ public class ComentarioService {
 
     private final ComentarioRepository comentarioRepository;
     private final ProductoRepository productoRepository;
-    private final UsuarioRepo usuarioRepo;
+    private final UsuarioRepository usuarioRepo;
 
     public Comentario createComentario(Comentario comentario) {
         Long productoId = comentario.getProducto().getIdproducto();

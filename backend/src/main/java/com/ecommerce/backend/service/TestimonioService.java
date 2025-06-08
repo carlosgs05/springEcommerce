@@ -3,7 +3,7 @@ package com.ecommerce.backend.service;
 import com.ecommerce.backend.entity.Testimonio;
 import com.ecommerce.backend.entity.Usuario;
 import com.ecommerce.backend.repository.TestimonioRepository;
-import com.ecommerce.backend.repository.UsuarioRepo;
+import com.ecommerce.backend.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,7 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TestimonioService {
     private final TestimonioRepository testimonioRepository;
-    private final UsuarioRepo usuarioRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public List<Testimonio> listarTestimonios() {
         return testimonioRepository.findAll();

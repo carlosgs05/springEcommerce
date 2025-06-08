@@ -1,8 +1,7 @@
-// src/main/java/com/ecommerce/backend/service/ProductoService.java
 package com.ecommerce.backend.service;
 
-import com.ecommerce.backend.dto.EspecificacionRequest;
-import com.ecommerce.backend.dto.ProductoRequest;
+import com.ecommerce.backend.dto.EspecificacionDTO;
+import com.ecommerce.backend.dto.ProductoDTO;
 import com.ecommerce.backend.entity.*;
 import com.ecommerce.backend.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,15 +40,15 @@ public class ProductoService {
             .toAbsolutePath()
             .toString() + File.separator;
 
-    public ProductoRequest parsearJson(String json, List<MultipartFile> imgs) throws IOException {
+    public ProductoDTO parsearJson(String json, List<MultipartFile> imgs) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        ProductoRequest req = mapper.readValue(json, ProductoRequest.class);
+        ProductoDTO req = mapper.readValue(json, ProductoDTO.class);
         req.setImagenes(imgs);
         return req;
     }
 
     @Transactional
-    public ProductoRequest crearProducto(ProductoRequest req) throws IOException {
+    public ProductoDTO crearProducto(ProductoDTO req) throws IOException {
         Categoria cat = categoriaRepository.findById(req.getIdcategoria())
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
         Marca mar = marcaRepository.findById(req.getIdmarca())
@@ -82,7 +81,7 @@ public class ProductoService {
         }
 
         if (req.getEspecificaciones() != null) {
-            for (EspecificacionRequest er : req.getEspecificaciones()) {
+            for (EspecificacionDTO er : req.getEspecificaciones()) {
                 Especificacion e = new Especificacion();
                 e.setProducto(prod);
                 e.setUnidadMedida(er.getUnidadmedida());
@@ -97,7 +96,7 @@ public class ProductoService {
 
     // obtener un producto con relaciones
     @Transactional
-    public ProductoRequest obtenerProductoConRelaciones(Long idProd) {
+    public ProductoDTO obtenerProductoConRelaciones(Long idProd) {
         // fetch specifications only
         Producto prod = productoRepository.findByIdWithRelations(idProd)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
@@ -108,7 +107,7 @@ public class ProductoService {
         List<Comentario> comentarios = comentarioRepository
                 .findByProductoIdAndEstado(idProd, 1);
 
-        ProductoRequest dto = new ProductoRequest();
+        ProductoDTO dto = new ProductoDTO();
         dto.setIdproducto(prod.getIdproducto());
         dto.setNombre(prod.getNombre());
         dto.setDescripcion(prod.getDescripcion());
@@ -129,7 +128,7 @@ public class ProductoService {
                 prod.getEspecificaciones()
                         .stream()
                         .map(e -> {
-                            EspecificacionRequest er = new EspecificacionRequest();
+                            EspecificacionDTO er = new EspecificacionDTO();
                             er.setUnidadmedida(e.getUnidadMedida());
                             er.setValor(e.getValor());
                             er.setDescripcion(e.getDescripcion());
@@ -143,7 +142,7 @@ public class ProductoService {
 
     // obtener todos los productos con relaciones
     @Transactional // <- AÑADE ESTA ANOTACIÓN
-    public List<ProductoRequest> listarTodosLosProductos() {
+    public List<ProductoDTO> listarTodosLosProductos() {
         List<Producto> productos = productoRepository.findAllWithEspecificaciones();
 
         return productos.stream().map(prod -> {
@@ -151,7 +150,7 @@ public class ProductoService {
             List<Comentario> comentariosAprobados = comentarioRepository
                     .findByProductoIdAndEstadoWithUsuario(prod.getIdproducto(), 1);
 
-            ProductoRequest dto = new ProductoRequest();
+            ProductoDTO dto = new ProductoDTO();
             dto.setIdproducto(prod.getIdproducto());
             dto.setNombre(prod.getNombre());
             dto.setDescripcion(prod.getDescripcion());
@@ -168,7 +167,7 @@ public class ProductoService {
 
             dto.setEspecificaciones(
                     prod.getEspecificaciones().stream().map(e -> {
-                        EspecificacionRequest er = new EspecificacionRequest();
+                        EspecificacionDTO er = new EspecificacionDTO();
                         er.setUnidadmedida(e.getUnidadMedida());
                         er.setValor(e.getValor());
                         er.setDescripcion(e.getDescripcion());
@@ -182,7 +181,7 @@ public class ProductoService {
     }
 
     @Transactional
-    public List<ProductoRequest> filtrarProductos(Long categoria, Long marca) {
+    public List<ProductoDTO> filtrarProductos(Long categoria, Long marca) {
         System.out.println("FILTRANDO -> categoria: " + categoria + ", marca: " + marca);
 
         List<Producto> productos = productoRepository.findByCategoriaAndMarca(categoria, marca);
@@ -195,7 +194,7 @@ public class ProductoService {
             List<Comentario> comentariosAprobados = comentarioRepository
                     .findByProductoIdAndEstadoWithUsuario(prod.getIdproducto(), 1);
 
-            ProductoRequest dto = new ProductoRequest();
+            ProductoDTO dto = new ProductoDTO();
             dto.setIdproducto(prod.getIdproducto());
             dto.setNombre(prod.getNombre());
             dto.setDescripcion(prod.getDescripcion());
@@ -210,7 +209,7 @@ public class ProductoService {
             dto.setImagenesNombres(imagenes.stream().map(ProductoImg::getNombre).toList());
 
             dto.setEspecificaciones(prod.getEspecificaciones().stream().map(e -> {
-                EspecificacionRequest er = new EspecificacionRequest();
+                EspecificacionDTO er = new EspecificacionDTO();
                 er.setUnidadmedida(e.getUnidadMedida());
                 er.setValor(e.getValor());
                 er.setDescripcion(e.getDescripcion());
@@ -222,35 +221,89 @@ public class ProductoService {
         }).toList();
     }
 
+    // — Eliminar un producto completo junto con sus imágenes —
+    @Transactional
+    public void eliminarProducto(Long idProducto) {
+        // 1) Borrar archivos físicos
+        List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProducto);
+        for (ProductoImg img : imagenes) {
+            File f = new File(uploadDir + img.getNombre());
+            if (f.exists()) {
+                f.delete();
+            }
+        }
+        // 2) Borrar el producto (orphanRemoval en la entidad eliminará los registros de
+        // producto_img)
+        productoRepository.deleteById(idProducto);
+    }
 
-
-// — Eliminar un producto completo junto con sus imágenes —
-@Transactional
-public void eliminarProducto(Long idProducto) {
-    // 1) Borrar archivos físicos
-    List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProducto);
-    for (ProductoImg img : imagenes) {
-        File f = new File(uploadDir + img.getNombre());
+    // — Eliminar una sola imagen del producto —
+    @Transactional
+    public void eliminarImagen(String nombreImagen) {
+        ProductoImg img = productoImgRepository.findByNombre(nombreImagen)
+                .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada: " + nombreImagen));
+        // Borrar archivo físico
+        File f = new File(uploadDir + nombreImagen);
         if (f.exists()) {
             f.delete();
         }
+        // Borrar registro en BD
+        productoImgRepository.delete(img);
     }
-    // 2) Borrar el producto (orphanRemoval en la entidad eliminará los registros de producto_img)
-    productoRepository.deleteById(idProducto);
-}
 
-// — Eliminar una sola imagen del producto —
-@Transactional
-public void eliminarImagen(String nombreImagen) {
-    ProductoImg img = productoImgRepository.findByNombre(nombreImagen)
-        .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada: " + nombreImagen));
-    // Borrar archivo físico
-    File f = new File(uploadDir + nombreImagen);
-    if (f.exists()) {
-        f.delete();
+    @Transactional
+    public ProductoDTO actualizarProducto(Long id, ProductoDTO req) throws IOException {
+        Producto prod = productoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+
+        Categoria cat = categoriaRepository.findById(req.getIdcategoria())
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
+
+        Marca mar = marcaRepository.findById(req.getIdmarca())
+                .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
+
+        // Actualizar datos básicos
+        prod.setNombre(req.getNombre());
+        prod.setDescripcion(req.getDescripcion());
+        prod.setPrecio(req.getPrecio());
+        prod.setStock(req.getStock());
+        prod.setCategoria(cat);
+        prod.setMarca(mar);
+        prod = productoRepository.save(prod);
+
+        File carpeta = new File(uploadDir);
+        if (!carpeta.exists()) {
+            carpeta.mkdirs();
+        }
+
+        // Eliminar y volver a crear imágenes
+        productoImgRepository.deleteByProducto_Idproducto(prod.getIdproducto());
+        if (req.getImagenes() != null) {
+            for (MultipartFile mf : req.getImagenes()) {
+                if (!mf.isEmpty()) {
+                    ProductoImg img = new ProductoImg();
+                    img.setProducto(prod);
+                    img.setNombre(UUID.randomUUID() + "_" + mf.getOriginalFilename());
+                    productoImgRepository.save(img);
+                    mf.transferTo(new File(uploadDir + img.getNombre()));
+                }
+            }
+        }
+
+        // Eliminar y volver a crear especificaciones
+        especificacionRepository.deleteByProducto_Idproducto(prod.getIdproducto());
+        if (req.getEspecificaciones() != null) {
+            for (EspecificacionDTO er : req.getEspecificaciones()) {
+                Especificacion e = new Especificacion();
+                e.setProducto(prod);
+                e.setUnidadMedida(er.getUnidadmedida());
+                e.setValor(er.getValor());
+                e.setDescripcion(er.getDescripcion());
+                especificacionRepository.save(e);
+            }
+        }
+
+        return obtenerProductoConRelaciones(prod.getIdproducto());
     }
-    // Borrar registro en BD
-    productoImgRepository.delete(img);
-}
 
 }

@@ -1,8 +1,14 @@
-// src/admin/pages/ProductosAdmin.tsx
-import { useState, useEffect, ChangeEvent } from 'react';
-import { FaSpinner, FaEdit, FaTrash, FaPlusCircle, FaEye } from 'react-icons/fa';
-import axios from 'axios';
-import Swal from 'sweetalert2/dist/sweetalert2.all.js';
+import { useState, useEffect, ChangeEvent } from "react";
+import {
+  FaSpinner,
+  FaEdit,
+  FaTrash,
+  FaPlusCircle,
+  FaEye,
+  FaTimes,
+} from "react-icons/fa";
+import axios from "axios";
+import Swal from "sweetalert2/dist/sweetalert2.all.js";
 
 interface Producto {
   idproducto: number;
@@ -16,9 +22,24 @@ interface Producto {
   nombreMarca: string;
   fechacreacion: string;
   imagenesNombres: string[];
+  especificaciones: EspecificacionDTO[];
 }
-interface Categoria { idcategoria: number; nombre: string; }
-interface Marca     { idmarca: number;   nombre: string; }
+
+interface Categoria {
+  idcategoria: number;
+  nombre: string;
+}
+
+interface Marca {
+  idmarca: number;
+  nombre: string;
+}
+
+interface EspecificacionDTO {
+  unidadmedida: string;
+  valor: string;
+  descripcion: string;
+}
 
 const ProductosAdmin = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -27,119 +48,251 @@ const ProductosAdmin = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
+  const [dragActive, setDragActive] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [especificaciones, setEspecificaciones] = useState<EspecificacionDTO[]>([]);
 
   // Form state
   const [idEdit, setIdEdit] = useState<number | null>(null);
-  const [nombre, setNombre] = useState<string>('');
-  const [descripcion, setDescripcion] = useState<string>('');
-  const [precio, setPrecio] = useState<string>('');
-  const [stock, setStock] = useState<string>('');
-  const [categoriaId, setCategoriaId] = useState<string>('');
-  const [marcaId, setMarcaId] = useState<string>('');
+  const [nombre, setNombre] = useState<string>("");
+  const [descripcion, setDescripcion] = useState<string>("");
+  const [precio, setPrecio] = useState<string>("");
+  const [stock, setStock] = useState<string>("");
+  const [categoriaId, setCategoriaId] = useState<string>("");
+  const [marcaId, setMarcaId] = useState<string>("");
   const [imagenes, setImagenes] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [prodRes, catRes, marRes] = await Promise.all([
-        axios.get('http://localhost:8080/api/productos/listarAll'),
-        axios.get('http://localhost:8080/api/categorias/listar'),
-        axios.get('http://localhost:8080/api/marcas/listar')
+        axios.get("http://localhost:8080/api/productos/listarAll"),
+        axios.get("http://localhost:8080/api/categorias/listar"),
+        axios.get("http://localhost:8080/api/marcas/listar"),
       ]);
-      if (prodRes.data.success) setProductos(prodRes.data.data);
-      else setError(prodRes.data.message);
+      
+      if (prodRes.data.success) {
+        setProductos(prodRes.data.data.map((p: any) => ({
+          ...p,
+          especificaciones: p.especificaciones || []
+        })));
+      } else {
+        setError(prodRes.data.message);
+      }
+      
       if (catRes.data.success) setCategorias(catRes.data.data);
       if (marRes.data.success) setMarcas(marRes.data.data);
     } catch (err) {
-      setError('Error al cargar datos'); console.error(err);
-    } finally { setLoading(false); }
+      setError("Error al cargar datos");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleNewFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleNewFiles = (files: FileList) => {
+    const newFiles = Array.from(files);
+    const totalImagenes = existingImages.length + imagenes.length + newFiles.length;
+
+    if (totalImagenes > 6) {
+      Swal.fire("Error", "Máximo 6 imágenes permitidas", "error");
+      return;
+    }
+
+    const allowedFiles = newFiles.slice(0, 6 - (existingImages.length + imagenes.length));
+
+    setImagenes((prev) => [...prev, ...allowedFiles]);
+    setPreviewUrls((prev) => [
+      ...prev,
+      ...allowedFiles.map((file) => URL.createObjectURL(file)),
+    ]);
+  };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setImagenes(Array.from(e.target.files));
+    if (e.target.files) handleNewFiles(e.target.files);
+  };
+
+  const removeImage = (index: number) => {
+    const newImagenes = [...imagenes];
+    const newPreviewUrls = [...previewUrls];
+    newImagenes.splice(index, 1);
+    URL.revokeObjectURL(newPreviewUrls[index]);
+    newPreviewUrls.splice(index, 1);
+    setImagenes(newImagenes);
+    setPreviewUrls(newPreviewUrls);
   };
 
   const resetForm = () => {
     setIdEdit(null);
-    setNombre(''); setDescripcion(''); setPrecio(''); setStock('');
-    setCategoriaId(''); setMarcaId(''); setImagenes([]); setExistingImages([]);
+    setNombre("");
+    setDescripcion("");
+    setPrecio("");
+    setStock("");
+    setCategoriaId("");
+    setMarcaId("");
+    setImagenes([]);
+    setExistingImages([]);
+    setPreviewUrls([]);
+    setEspecificaciones([]);
   };
 
   const handleSubmit = async () => {
     if (!nombre.trim() || !descripcion.trim() || !precio || !stock || !categoriaId || !marcaId) {
-      return Swal.fire('Error', 'Todos los campos son requeridos', 'error');
+      return Swal.fire("Error", "Todos los campos son requeridos", "error");
     }
+
     const payload = {
-      nombre: nombre.trim(), descripcion: descripcion.trim(),
-      precio: parseFloat(precio), stock: parseInt(stock),
-      idcategoria: parseInt(categoriaId), idmarca: parseInt(marcaId),
-      especificaciones: []
+      nombre: nombre.trim(),
+      descripcion: descripcion.trim(),
+      precio: parseFloat(precio),
+      stock: parseInt(stock),
+      idcategoria: parseInt(categoriaId),
+      idmarca: parseInt(marcaId),
+      especificaciones: especificaciones.filter(spec => 
+        spec.unidadmedida.trim() || 
+        spec.valor.trim() || 
+        spec.descripcion.trim()
+      ),
     };
+
     const formData = new FormData();
-    formData.append('producto', JSON.stringify(payload));
-    imagenes.forEach(img => formData.append('imagenes', img));
+    formData.append("producto", JSON.stringify(payload));
+    
+    // Combinar imágenes existentes y nuevas
+    const allImages = [...imagenes];
+    if (idEdit) {
+      // Si es edición, adjuntar las imágenes existentes como archivos vacíos
+      existingImages.forEach(imgName => {
+        formData.append("keepImages", imgName);
+      });
+    }
+    
+    allImages.forEach((img) => formData.append("imagenes", img));
 
     try {
-      if (idEdit === null) {
-        const resp = await axios.post('http://localhost:8080/api/productos/crear', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        if (resp.data.success) await Swal.fire('¡Éxito!', 'Producto creado correctamente', 'success');
-        else throw new Error(resp.data.message);
+      const url = idEdit
+        ? `http://localhost:8080/api/productos/actualizar/${idEdit}`
+        : "http://localhost:8080/api/productos/crear";
+
+      const method = idEdit ? "put" : "post";
+
+      const resp = await axios[method](url, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (resp.data.success) {
+        await Swal.fire(
+          idEdit ? "¡Actualizado!" : "¡Éxito!",
+          `Producto ${idEdit ? "actualizado" : "creado"} correctamente`,
+          "success"
+        );
+        resetForm();
+        fetchData();
       } else {
-        const resp = await axios.put(`http://localhost:8080/api/productos/actualizar/${idEdit}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        if (resp.data.success) await Swal.fire('¡Actualizado!', 'Producto actualizado correctamente', 'success');
-        else throw new Error(resp.data.message);
+        throw new Error(resp.data.message);
       }
-      resetForm(); fetchData();
     } catch (err: any) {
-      Swal.fire('Error', err.response?.data?.message || err.message, 'error'); console.error(err);
+      Swal.fire("Error", err.response?.data?.message || err.message, "error");
+      console.error(err);
     }
   };
 
   const handleImageDelete = async (name: string) => {
     const { isConfirmed } = await Swal.fire({
-      title: 'Eliminar imagen?',
-      text: name, icon:'warning',
-      showCancelButton:true
+      title: "¿Eliminar imagen?",
+      text: name,
+      icon: "warning",
+      showCancelButton: true,
     });
-    if (!isConfirmed || idEdit===null) return;
+
+    if (!isConfirmed || idEdit === null) return;
+
     try {
-      const resp = await axios.delete(`http://localhost:8080/api/productos/imagenes/eliminar/${encodeURIComponent(name)}`);
+      const resp = await axios.delete(
+        `http://localhost:8080/api/productos/imagenes/eliminar/${encodeURIComponent(name)}`
+      );
+
       if (resp.data.success) {
-        Swal.fire('¡Eliminada!','Imagen eliminada','success');
-        setExistingImages(imgs => imgs.filter(i=>i!==name));
-      } else throw new Error(resp.data.message);
-    } catch (e:any) {
-      Swal.fire('Error', e.response?.data?.message||e.message,'error');
+        Swal.fire("¡Eliminada!", "Imagen eliminada", "success");
+        setExistingImages((imgs) => imgs.filter((i) => i !== name));
+      } else {
+        throw new Error(resp.data.message);
+      }
+    } catch (e: any) {
+      Swal.fire("Error", e.response?.data?.message || e.message, "error");
     }
   };
 
   const handleEditClick = (prod: Producto) => {
     setIdEdit(prod.idproducto);
-    setNombre(prod.nombre); setDescripcion(prod.descripcion);
-    setPrecio(prod.precio.toString()); setStock(prod.stock.toString());
-    setCategoriaId(prod.idcategoria.toString()); setMarcaId(prod.idmarca.toString());
-    setImagenes([]); setExistingImages(prod.imagenesNombres);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setNombre(prod.nombre);
+    setDescripcion(prod.descripcion);
+    setPrecio(prod.precio.toString());
+    setStock(prod.stock.toString());
+    setCategoriaId(prod.idcategoria.toString());
+    setMarcaId(prod.idmarca.toString());
+    setImagenes([]);
+    setPreviewUrls([]);
+    setExistingImages(prod.imagenesNombres);
+    setEspecificaciones(prod.especificaciones || []);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleEliminar = async (prod: Producto) => {
-    const res = await Swal.fire({ title: '¿Eliminar producto?', text: prod.nombre, icon: 'warning', showCancelButton: true, confirmButtonText: 'Eliminar' });
+    const res = await Swal.fire({
+      title: "¿Eliminar producto?",
+      text: prod.nombre,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Eliminar",
+      cancelButtonText: "Cancelar",
+    });
+
     if (res.isConfirmed) {
       try {
-        const resp = await axios.delete(`http://localhost:8080/api/productos/eliminar/${prod.idproducto}`);
+        const resp = await axios.delete(
+          `http://localhost:8080/api/productos/eliminar/${prod.idproducto}`
+        );
+
         if (resp.data.success) {
-          await Swal.fire('Eliminado', 'Producto eliminado correctamente', 'success'); fetchData();
-        } else throw new Error(resp.data.message);
+          await Swal.fire("Eliminado", "Producto eliminado correctamente", "success");
+          fetchData();
+        } else {
+          throw new Error(resp.data.message);
+        }
       } catch (err: any) {
-        Swal.fire('Error', err.response?.data?.message || err.message, 'error'); console.error(err);
+        Swal.fire("Error", err.response?.data?.message || err.message, "error");
+        console.error(err);
       }
     }
   };
@@ -156,7 +309,9 @@ const ProductosAdmin = () => {
                     overflow-y: auto;
                     width: 100%;
                     align-items: center;">
-          ${prod.imagenesNombres.map(name => `
+          ${prod.imagenesNombres
+            .map(
+              (name) => `
             <div style="position: relative;
                         border: 1px solid #eee;
                         border-radius: 8px;
@@ -180,141 +335,465 @@ const ProductosAdmin = () => {
                           font-size: 0.7rem;
                           padding: 2px 4px;
                           border-radius: 3px;">
-                ${name.length > 15 ? name.substring(0, 12) + '...' : name}
+                ${name.length > 15 ? name.substring(0, 12) + "..." : name}
               </div>
             </div>
-          `).join('')}
+          `
+            )
+            .join("")}
         </div>
       `,
-      width: '60%',
-      maxWidth: '800px',
-      backdrop: 'rgba(0,0,0,0.4)',
-      confirmButtonText: 'Cerrar',
+      width: "60%",
+      maxWidth: "800px",
+      backdrop: "rgba(0,0,0,0.4)",
+      confirmButtonText: "Cerrar",
       showCloseButton: true,
       showConfirmButton: false,
-      customClass: {
-        popup: 'swal-custom-popup',
-        title: 'swal-custom-title'
-      }
     });
   };
 
   return (
-    <div className="p-4 sm:p-6"><div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold">Gestión de Productos</h1>
-        <p className="mt-1 text-gray-600">CRUD productos e imágenes</p></div>
-      {/* Formulario */}
-      <div className="bg-white shadow rounded-lg p-4 mb-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {/* inputs con label */}
-        { /* Nombre, Descripcion, Precio, Stock, Categoria, Marca, Nuevas imagenes */ }
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-          <input className="border rounded w-full px-2 py-1" value={nombre} onChange={e=>setNombre(e.target.value)}/></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-          <textarea className="border rounded w-full px-2 py-1" value={descripcion} onChange={e=>setDescripcion(e.target.value)}/></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
-          <input type="number" className="border rounded w-full px-2 py-1" value={precio} onChange={e=>setPrecio(e.target.value)}/></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
-          <input type="number" className="border rounded w-full px-2 py-1" value={stock} onChange={e=>setStock(e.target.value)}/></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-          <select className="border rounded w-full px-2 py-1" value={categoriaId} onChange={e=>setCategoriaId(e.target.value)}>
-            <option value="">Seleccionar categoría</option>
-            {categorias.map(c=><option key={c.idcategoria} value={c.idcategoria}>{c.nombre}</option>)}
-          </select></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
-          <select className="border rounded w-full px-2 py-1" value={marcaId} onChange={e=>setMarcaId(e.target.value)}>
-            <option value="">Seleccionar marca</option>
-            {marcas.map(m=><option key={m.idmarca} value={m.idmarca}>{m.nombre}</option>)}
-          </select></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Imágenes (nuevas)</label>
-          <input type="file" multiple className="border rounded w-full px-2 py-1" onChange={handleFileChange}/></div>
-        {/* existing images */}
-        {idEdit && existingImages.length>0 && (
-          <div className="lg:col-span-3 sm:col-span-2 col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Imágenes actuales</label>
-            <div className="flex gap-2 overflow-x-auto">
-              {existingImages.map(name=> (
-                <div key={name} className="relative">
-                  <img src={`http://localhost:8080/uploads/${name}`} className="h-16 w-16 object-cover rounded" alt={name}/>
-                  <button onClick={()=>handleImageDelete(name)} className="absolute top-0 right-0 bg-white p-1 text-red-600 rounded-full">
-                    <FaTrash />
-                  </button>
-                </div>
-              ))}
+    <div className="p-4 sm:p-6 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-800 mb-3">
+            Gestión de Productos
+          </h1>
+          <p className="text-gray-500">Administra los productos de tu tienda</p>
+        </header>
+
+        {/* Formulario */}
+        <div className="bg-white p-6 rounded-lg shadow-sm mb-6 border border-gray-100">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+            {/* Columna Izquierda */}
+            <div className="h-full flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre
+                </label>
+                <input
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                />
+              </div>
+
+              <div className="flex-grow flex flex-col">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  className="w-full h-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Columna Derecha */}
+            <div className="h-full flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Precio
+                </label>
+                <input
+                  type="number"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  value={precio}
+                  onChange={(e) => setPrecio(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Stock
+                </label>
+                <input
+                  type="number"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Categoría
+                </label>
+                <select
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  value={categoriaId}
+                  onChange={(e) => setCategoriaId(e.target.value)}
+                >
+                  <option value="">Seleccionar categoría</option>
+                  {categorias.map((c) => (
+                    <option key={c.idcategoria} value={c.idcategoria}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Marca
+                </label>
+                <select
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  value={marcaId}
+                  onChange={(e) => setMarcaId(e.target.value)}
+                >
+                  <option value="">Seleccionar marca</option>
+                  {marcas.map((m) => (
+                    <option key={m.idmarca} value={m.idmarca}>
+                      {m.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
-        )}
-        {/* botones */}
-        <div className="lg:col-span-3 sm:col-span-2 col-span-1 flex gap-2 mt-2">
-          <button onClick={handleSubmit} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            <FaPlusCircle className="mr-2"/> {idEdit? 'Actualizar Producto':'Crear Producto'}
-          </button>
-          {idEdit && <button onClick={resetForm} className="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Cancelar</button>}
+
+          {/* Sección de Especificaciones */}
+          <div className="mt-4 space-y-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Especificaciones
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              (Unidad de medida, Valor, Descripción)
+            </p>
+            {especificaciones.map((spec, index) => (
+              <div key={index} className="flex gap-2 items-start">
+                <input
+                  type="text"
+                  placeholder="Unidad de medida"
+                  className="flex-1 px-3 py-2 border rounded-lg"
+                  value={spec.unidadmedida}
+                  onChange={(e) => {
+                    const newSpecs = [...especificaciones];
+                    newSpecs[index].unidadmedida = e.target.value;
+                    setEspecificaciones(newSpecs);
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Valor"
+                  className="flex-1 px-3 py-2 border rounded-lg"
+                  value={spec.valor}
+                  onChange={(e) => {
+                    const newSpecs = [...especificaciones];
+                    newSpecs[index].valor = e.target.value;
+                    setEspecificaciones(newSpecs);
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Descripción"
+                  className="flex-1 px-3 py-2 border rounded-lg"
+                  value={spec.descripcion}
+                  onChange={(e) => {
+                    const newSpecs = [...especificaciones];
+                    newSpecs[index].descripcion = e.target.value;
+                    setEspecificaciones(newSpecs);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSpecs = [...especificaciones];
+                    newSpecs.splice(index, 1);
+                    setEspecificaciones(newSpecs);
+                  }}
+                  className="px-2 py-1 text-red-500 hover:text-red-700"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setEspecificaciones([...especificaciones, { 
+                  unidadmedida: '', 
+                  valor: '', 
+                  descripcion: '' 
+                }]);
+              }}
+              className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+            >
+              <FaPlusCircle className="mr-2" />
+              Agregar Especificación
+            </button>
+          </div>
+
+          {/* Sección de imágenes */}
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {idEdit ? "Agregar imágenes" : "Imágenes"}
+                <span className="text-gray-500 ml-1">(Máximo 6)</span>
+              </label>
+
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors
+                  ${
+                    dragActive
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-300 hover:border-blue-400"
+                  }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={handleFileChange}
+                  id="file-upload"
+                />
+                <div className="flex flex-col items-center justify-center space-y-2">
+                  <svg
+                    className="w-12 h-12 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <p className="text-sm text-gray-600">
+                    Arrastra y suelta imágenes aquí o haz clic para seleccionar
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Formatos: JPG, PNG, GIF (Máx. 6 imágenes)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {(previewUrls.length > 0 || existingImages.length > 0) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Vista previa de imágenes
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                  {existingImages.map((name, index) => (
+                    <div
+                      key={`existing-${index}`}
+                      className="relative group aspect-square"
+                    >
+                      <img
+                        src={`http://localhost:8080/uploads/${name}`}
+                        className="w-full h-full object-cover rounded-lg border border-gray-200"
+                        alt={`Imagen ${index + 1}`}
+                      />
+                      <button
+                        onClick={() => handleImageDelete(name)}
+                        className="absolute top-1 right-1 bg-white p-1 text-red-600 hover:text-red-700 rounded-full shadow-sm hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                      >
+                        <FaTimes size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {previewUrls.map((url, index) => (
+                    <div
+                      key={`preview-${index}`}
+                      className="relative group aspect-square"
+                    >
+                      <img
+                        src={url}
+                        className="w-full h-full object-cover rounded-lg border border-gray-200"
+                        alt={`Previsualización ${index + 1}`}
+                      />
+                      <button
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-white p-1 text-red-600 hover:text-red-700 rounded-full shadow-sm hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                      >
+                        <FaTimes size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  {existingImages.length + previewUrls.length} de 6 imágenes
+                  seleccionadas
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Botones del formulario */}
+          <div className="mt-6 flex gap-3">
+            <button
+              onClick={handleSubmit}
+              className="inline-flex items-center px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 cursor-pointer"
+            >
+              <FaPlusCircle className="mr-2" />
+              {idEdit ? "Actualizar Producto" : "Crear Producto"}
+            </button>
+            {idEdit && (
+              <button
+                onClick={resetForm}
+                className="inline-flex items-center px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200 cursor-pointer"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-      {/* Tabla/Lista */}
-      <div className="bg-white shadow overflow-hidden rounded-lg">
-        {loading? (
-          <div className="flex justify-center p-8"><FaSpinner className="animate-spin text-4xl text-blue-500"/></div>
-        ) : error? (
-          <div className="p-4 text-red-500">{error}</div>
-        ) : productos.length===0? (
-          <div className="p-4 text-center text-gray-500">No hay productos</div>
-        ) : isMobile? (
-          <div className="space-y-4 p-4">
-            {productos.map(prod=>(
-              <div key={prod.idproducto} className="p-4 border rounded-lg">
-                <h3 className="font-semibold text-lg">{prod.nombre}</h3>
-                <p className="text-sm text-gray-600 line-clamp-2 mb-2">{prod.descripcion}</p>
-                <div className="text-sm text-gray-800">Precio: S/ {prod.precio}</div>
-                <div className="text-sm text-gray-800">Stock: {prod.stock}</div>
-                <div className="text-sm text-gray-600">Categoría: {prod.nombreCategoria}</div>
-                <div className="text-sm text-gray-600 mb-2">Marca: {prod.nombreMarca}</div>
-                <div className="flex gap-3 mt-2">
-                  <button onClick={()=>handlePreview(prod)} className="text-gray-600"><FaEye /></button>
-                  <button onClick={()=>handleEditClick(prod)} className="text-blue-600"><FaEdit /></button>
-                  <button onClick={()=>handleEliminar(prod)} className="text-red-600"><FaTrash /></button>
+
+        {/* Lista de productos */}
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <FaSpinner className="animate-spin text-3xl text-blue-500" />
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 p-4 rounded-lg text-red-600">{error}</div>
+        ) : productos.length === 0 ? (
+          <div className="bg-white p-6 rounded-lg shadow-sm text-center text-gray-500">
+            No hay productos registrados
+          </div>
+        ) : isMobile ? (
+          <div className="space-y-3">
+            {productos.map((prod) => (
+              <div
+                key={prod.idproducto}
+                className="bg-white p-4 shadow-sm rounded-lg border border-gray-100"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-800">
+                      {prod.nombre}
+                    </h3>
+                    <p className="text-sm text-gray-500 line-clamp-2">
+                      {prod.descripcion}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePreview(prod)}
+                      className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+                    >
+                      <FaEye size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleEditClick(prod)}
+                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+                    >
+                      <FaEdit size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleEliminar(prod)}
+                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                    >
+                      <FaTrash size={18} />
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">Precio:</span>
+                    <span className="ml-1 text-gray-800">S/ {prod.precio}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Stock:</span>
+                    <span className="ml-1 text-gray-800">{prod.stock}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Categoría:</span>
+                    <span className="ml-1 text-gray-800">
+                      {prod.nombreCategoria}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Marca:</span>
+                    <span className="ml-1 text-gray-800">
+                      {prod.nombreMarca}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Marca</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vista Previa</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {productos.map(prod=>(
-                <tr key={prod.idproducto} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{prod.idproducto}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 truncate max-w-xs">{prod.nombre}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">S/ {prod.precio}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{prod.stock}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{prod.nombreCategoria}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{prod.nombreMarca}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                    <button onClick={()=>handlePreview(prod)} className="text-gray-600"><FaEye /></button>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium flex gap-4">
-                    <button onClick={()=>handleEditClick(prod)}><FaEdit className="text-blue-600" /></button>
-                    <button onClick={()=>handleEliminar(prod)}><FaTrash className="text-red-600" /></button>
-                  </td>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Precio
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Stock
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Categoría
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Marca
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {productos.map((prod) => (
+                  <tr key={prod.idproducto} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-800 max-w-xs truncate">
+                      {prod.nombre}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-800">
+                      S/ {prod.precio}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-800">
+                      {prod.stock}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {prod.nombreCategoria}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {prod.nombreMarca}
+                    </td>
+                    <td className="px-6 py-4 text-sm space-x-3">
+                      <button
+                        onClick={() => handlePreview(prod)}
+                        className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+                      >
+                        <FaEye size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleEditClick(prod)}
+                        className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+                      >
+                        <FaEdit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleEliminar(prod)}
+                        className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                      >
+                        <FaTrash size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-    </div></div>
+    </div>
   );
 };
 

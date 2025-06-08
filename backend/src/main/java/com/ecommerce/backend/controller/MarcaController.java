@@ -1,11 +1,19 @@
 package com.ecommerce.backend.controller;
 
+import com.ecommerce.backend.dto.MarcaDTO;
 import com.ecommerce.backend.entity.Marca;
 import com.ecommerce.backend.service.MarcaService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MarcaController {
     private final MarcaService marcaService;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/listar")
     public ResponseEntity<?> listarMarcas() {
@@ -49,36 +58,84 @@ public class MarcaController {
     }
 
     @PostMapping("/crear")
-    public ResponseEntity<?> crearMarca(@RequestBody Marca marca) {
+    public ResponseEntity<?> crearMarca(
+            @RequestParam("marca") String marcaJson,
+            @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
+
         Map<String, Object> response = new HashMap<>();
+
         try {
-            Marca nuevaMarca = marcaService.crearMarca(marca);
+            // Parsear JSON
+            MarcaDTO req = objectMapper.readValue(marcaJson, MarcaDTO.class);
+            req.setImagen(imagen);
+
+            // Crear marca
+            Marca nuevaMarca = marcaService.crearMarca(req);
+
             response.put("success", true);
             response.put("message", "Marca creada correctamente");
             response.put("data", nuevaMarca);
             return ResponseEntity.ok(response);
+
+        } catch (JsonProcessingException e) {
+            response.put("success", false);
+            response.put("message", "Error en formato JSON");
+            return ResponseEntity.badRequest().body(response);
+
+        } catch (IllegalArgumentException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+
+        } catch (IOException e) {
+            response.put("success", false);
+            response.put("message", "Error al procesar imagen: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+
         } catch (Exception e) {
             response.put("success", false);
-            response.put("message", "Error al crear marca: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            response.put("message", "Error interno: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
     @PutMapping("/actualizar/{id}")
     public ResponseEntity<?> actualizarMarca(
             @PathVariable Long id,
-            @RequestBody Marca marca) {
+            @RequestParam("marca") String marcaJson,
+            @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
+
         Map<String, Object> response = new HashMap<>();
+
         try {
-            Marca actualizada = marcaService.actualizarMarca(id, marca);
+            // Parsear JSON
+            MarcaDTO req = objectMapper.readValue(marcaJson, MarcaDTO.class);
+            req.setImagen(imagen);
+
+            // Actualizar marca
+            Marca actualizada = marcaService.actualizarMarca(id, req);
+
             response.put("success", true);
             response.put("message", "Marca actualizada correctamente");
             response.put("data", actualizada);
             return ResponseEntity.ok(response);
+
+        } catch (JsonProcessingException e) {
+            response.put("success", false);
+            response.put("message", "Error en formato JSON");
+            return ResponseEntity.badRequest().body(response);
+        } catch (IllegalArgumentException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (IOException e) {
+            response.put("success", false);
+            response.put("message", "Error al procesar imagen: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         } catch (Exception e) {
             response.put("success", false);
-            response.put("message", "Error al actualizar marca: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            response.put("message", "Error interno: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
