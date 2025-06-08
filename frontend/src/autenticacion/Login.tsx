@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import swal from "sweetalert2/dist/sweetalert2.all.js";
 import { useAuth } from "../context/AuthContext";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 
 interface LoginData {
@@ -41,8 +42,9 @@ const Login: React.FC = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // Nuevo estado para mostrar contraseña
+  const [rememberMe, setRememberMe] = useState(false); // Estado para "Recordarme"
+  const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
