@@ -1,6 +1,8 @@
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { EyeIcon, EyeSlashIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../../context/AuthContext';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 
 interface UserData {
   nombre: string;
@@ -13,7 +15,7 @@ interface UserData {
 }
 
 const PerfilAdmin: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [userData, setUserData] = useState<UserData>({
     nombre: '',
     apellido: '',
@@ -24,10 +26,7 @@ const PerfilAdmin: React.FC = () => {
     confirmPassword: '',
   });
 
-  const [showPassword, setShowPassword] = useState({
-    new: false,
-    confirm: false,
-  });
+  const [showPassword, setShowPassword] = useState({ new: false, confirm: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSection, setActiveSection] = useState<'personal' | 'security'>('personal');
 
@@ -50,12 +49,48 @@ const PerfilAdmin: React.FC = () => {
     setUserData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
+
+    try {
+      if (activeSection === 'security') {
+        if (userData.newPassword !== userData.confirmPassword) {
+          Swal.fire('Error', 'Las contraseñas no coinciden', 'error');
+          return;
+        }
+
+        const response = await axios.post('http://localhost:8080/api/auth/reset-password', {
+          correo: user?.correo,
+          newPassword: userData.newPassword,
+          confirmPassword: userData.confirmPassword
+        });
+
+        if (response.data.statusCode === 200) {
+          Swal.fire('Éxito', 'Contraseña actualizada correctamente', 'success');
+          setUserData(prev => ({ ...prev, newPassword: '', confirmPassword: '' }));
+        }
+      } else {
+        const response = await axios.put('http://localhost:8080/api/auth/update-user', {
+          nombre: userData.nombre,
+          apellido: userData.apellido,
+          celular: userData.celular,
+          correo: user?.correo
+        });
+
+        if (response.data.statusCode === 200) {
+          updateUser(response.data.usuario);
+          Swal.fire('Éxito', 'Datos actualizados correctamente', 'success');
+        }
+      }
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error) && error.response?.data?.message 
+        ? error.response.data.message 
+        : 'Error en la operación';
+      Swal.fire('Error', errorMessage, 'error');
+    } finally {
       setIsSubmitting(false);
-    }, 500);
+    }
   };
 
   const togglePasswordVisibility = (field: keyof typeof showPassword) => {
@@ -67,9 +102,8 @@ const PerfilAdmin: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[590px] py-8"> {/* Cambiado a min-h y agregado py-8 */}
+    <div className="flex items-center justify-center min-h-[590px] py-8">
       <div className="w-full max-w-5xl mx-auto bg-white rounded-xl shadow-lg relative">
-        {/* Avatar position */}
         <div className="absolute -top-10 left-1/2 transform -translate-x-1/2">
           <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center border-4 border-white shadow-md">
             <UserCircleIcon className="w-16 h-16 text-blue-600" />
@@ -79,7 +113,7 @@ const PerfilAdmin: React.FC = () => {
           </span>
         </div>
 
-        <div className="pt-16 px-6 pb-6"> {/* Añadido pb-6 para padding bottom */}
+        <div className="pt-16 px-6 pb-6">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800">Configuración de Perfil</h1>
             <p className="text-gray-500 mt-1">Administra tu información personal y de seguridad</p>
@@ -88,19 +122,21 @@ const PerfilAdmin: React.FC = () => {
           <div className="flex space-x-4 mb-8 border-b border-gray-200 justify-center">
             <button
               onClick={() => handleTabChange('personal')}
-              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out ${activeSection === 'personal'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out ${
+                activeSection === 'personal'
+                  ? 'border-b-2 border-blue-500 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
             >
               Información Personal
             </button>
             <button
               onClick={() => handleTabChange('security')}
-              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out ${activeSection === 'security'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out ${
+                activeSection === 'security'
+                  ? 'border-b-2 border-blue-500 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
             >
               Seguridad
             </button>
@@ -151,8 +187,8 @@ const PerfilAdmin: React.FC = () => {
                     <input
                       name="dni"
                       value={userData.dni}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      disabled
+                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
                       placeholder="Ingrese su DNI"
                     />
                   </div>
@@ -161,7 +197,7 @@ const PerfilAdmin: React.FC = () => {
             )}
 
             {activeSection === 'security' && (
-              <div className="space-y-6 transition-all duration-300 ease-in-out pb-4"> {/* Añadido pb-4 */}
+              <div className="space-y-6 transition-all duration-300 ease-in-out pb-4">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="flex flex-col">
                     <label className="block w-full text-base font-medium text-gray-700 mb-2">Correo electrónico</label>

@@ -24,6 +24,8 @@ import ForgotPassword from './autenticacion/ForgotPassword';
 import VerificationAccount from './autenticacion/VerificationAccount';
 import VerifyResetCode from './autenticacion/VerifyResetCode';
 import ResetPassword from './autenticacion/ResetPassword';
+import CheckoutPage from './user/pages/CheckoutPage';
+import BoletaPage from './user/pages/BoletaPage';
 
 function App() {
   return (
@@ -48,6 +50,8 @@ function App() {
           <Route path="/tienda" element={<Tienda />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/tienda/producto/:id" element={<ProductoDetails />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/boleta/:idVenta" element={<BoletaPage />} />
         </Route>
 
         {/* Rutas para admin (rol 1) */}

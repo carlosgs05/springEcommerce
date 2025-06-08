@@ -360,4 +360,28 @@ public class UsuarioService {
         }
         return response;
     }
+
+    // Nuevo método para actualizar datos de usuario
+    public UsuarioDTO updateUser(UsuarioDTO updateRequest) {
+        UsuarioDTO response = new UsuarioDTO();
+        try {
+            Usuario user = usersRepo.findByCorreo(updateRequest.getCorreo())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            user.setNombre(updateRequest.getNombre());
+            user.setApellido(updateRequest.getApellido());
+            user.setCelular(updateRequest.getCelular());
+            
+            Usuario updatedUser = usersRepo.save(user);
+            
+            response.setStatusCode(200);
+            response.setUsuario(updatedUser);
+            response.setMessage("Usuario actualizado exitosamente");
+        } catch (Exception e) {
+            response.setStatusCode(500);
+            response.setMessage("Error actualizando usuario: " + e.getMessage());
+        }
+        return response;
+    }
+
 }

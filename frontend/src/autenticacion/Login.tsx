@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import swal from "sweetalert2/dist/sweetalert2.all.js";
 import { useAuth } from "../context/AuthContext";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+
 
 interface LoginData {
   correo: string;
@@ -40,7 +42,9 @@ const Login: React.FC = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Nuevo estado para mostrar contraseña
+  const [rememberMe, setRememberMe] = useState(false); // Estado para "Recordarme"
+  const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -181,18 +185,31 @@ const Login: React.FC = () => {
             >
               Contraseña
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="Ingresa tu contraseña"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength={6}
-              autoComplete="current-password"
-              className="w-full px-4 py-3 bg-gray-800 text-cyan-600 border border-gray-700 rounded focus:outline-none focus:bg-zinc-900"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"} // Cambio dinámico del tipo
+                placeholder="Ingresa tu contraseña"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+                autoComplete="current-password"
+                className="w-full px-4 py-3 bg-gray-800 text-cyan-600 border border-gray-700 rounded focus:outline-none focus:bg-zinc-900 pr-12"
+              />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-cyan-600"
+              >
+                {showPassword ? (
+                  <FaEyeSlash className="h-5 w-5" />
+                ) : (
+                  <FaEye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-end mb-6">

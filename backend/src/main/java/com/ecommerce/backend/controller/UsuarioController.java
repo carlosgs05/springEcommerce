@@ -14,7 +14,7 @@ public class UsuarioController {
     private UsuarioService usuarioService;
 
     @PostMapping("/register")
-    public ResponseEntity<UsuarioDTO> regeister(@RequestBody UsuarioDTO reg) {
+    public ResponseEntity<UsuarioDTO> register(@RequestBody UsuarioDTO reg) {
         return ResponseEntity.ok(usuarioService.register(reg));
     }
 
@@ -50,4 +50,11 @@ public class UsuarioController {
     public ResponseEntity<UsuarioDTO> getUserByCorreo(@RequestBody UsuarioDTO req) {
         return ResponseEntity.ok(usuarioService.getUserByCorreo(req.getCorreo()));
     }
+
+    // Nuevo endpoint para actualizar datos de usuario
+    @PutMapping("/update-user")
+    public ResponseEntity<UsuarioDTO> updateUser(@RequestBody UsuarioDTO updateRequest) {
+        return ResponseEntity.ok(usuarioService.updateUser(updateRequest));
+    }
+
 }
