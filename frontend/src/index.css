@@ -10,3 +10,16 @@
   .animate-fade-in-out {
     animation: fadeInOut 5s forwards;
   }
+
+  @media print {
+  header, footer, .no-print {
+    display: none !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+}

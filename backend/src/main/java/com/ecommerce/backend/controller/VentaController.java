@@ -29,9 +29,9 @@ public class VentaController {
         return ResponseEntity.ok(ventaRealizada);
     }
 
-    @GetMapping("/boleta/{id}")
-    public ResponseEntity<VentaDTO> verBoleta(@PathVariable Long id) {
-        VentaDTO ventaDTO = ventaService.obtenerVentaPorId(id);
+    @GetMapping("/boleta/{idventa}")
+    public ResponseEntity<VentaDTO> verBoleta(@PathVariable Long idventa) {
+        VentaDTO ventaDTO = ventaService.obtenerVentaPorId(idventa);
         return ResponseEntity.ok(ventaDTO);
     }
 

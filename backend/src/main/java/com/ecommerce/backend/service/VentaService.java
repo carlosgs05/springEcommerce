@@ -110,9 +110,9 @@ public class VentaService {
     }
 
     @Transactional(readOnly = true)
-    public VentaDTO obtenerVentaPorId(Long id) {
-        Venta venta = ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+    public VentaDTO obtenerVentaPorId(Long idventa) {
+        Venta venta = ventaRepository.findById(idventa)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + idventa));
 
         VentaDTO dto = new VentaDTO();
         dto.setIdVenta(venta.getIdventa());
