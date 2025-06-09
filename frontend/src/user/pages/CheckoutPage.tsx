@@ -20,7 +20,7 @@ export default function CheckoutPage() {
     {
       idProducto: 1,
       nombre: 'Mouse Logitech',
-      precio: 49.90,
+      precio: 699.90,
       cantidad: 1,
       imagenUrl: 'https://via.placeholder.com/100x100?text=Mouse',
       especificaciones: 'Inalámbrico, 1600 DPI',
@@ -28,7 +28,7 @@ export default function CheckoutPage() {
     {
       idProducto: 2,
       nombre: 'Teclado Redragon',
-      precio: 79.90,
+      precio: 1599.99,
       cantidad: 1,
       imagenUrl: 'https://via.placeholder.com/100x100?text=Teclado',
       especificaciones: 'RGB, Mecánico Blue Switch',
