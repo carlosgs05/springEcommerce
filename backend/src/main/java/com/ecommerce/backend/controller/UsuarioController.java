@@ -1,6 +1,7 @@
 package com.ecommerce.backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,9 +26,20 @@ public class UsuarioController {
         return ResponseEntity.status(response.getStatusCode()).body(response);
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<UsuarioDTO> login(@RequestBody UsuarioDTO req) {
+    // @PostMapping("/login")
+    // public ResponseEntity<UsuarioDTO> login(@RequestBody UsuarioDTO req) {
+    //     UsuarioDTO res = usuarioService.login(req);
+    //     return ResponseEntity.status(res.getStatusCode()).body(res);
+    // }
+
+
+        @PostMapping("/login")
+    public ResponseEntity<UsuarioDTO> login(@RequestBody UsuarioDTO req, HttpSession session) {
         UsuarioDTO res = usuarioService.login(req);
+        if (res.getStatusCode() == 200) {
+            // Solo si el login fue exitoso (statusCode == 200) guardamos el id en la sesión
+            session.setAttribute("userId", res.getUsuario().getIduser());
+        }
         return ResponseEntity.status(res.getStatusCode()).body(res);
     }
 
