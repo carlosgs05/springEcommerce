@@ -3,6 +3,7 @@ import { useEffect } from "react";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaSearch, FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
+import { FcAcceptDatabase } from "react-icons/fc";
 import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
 import { useAuth } from "../context/AuthContext";
 import { DropdownMenu, DropdownItem } from "./Dropdown";
@@ -167,6 +168,19 @@ const abrirSidebar = () => {
                       Mi Perfil
                     </DropdownItem>
                   )}
+                  {user?.rol.idrol === 2 && (
+                  <DropdownItem
+                    onClick={() => {
+                      navigate("/historialCompras");
+                      setUserDropdownOpen(false);
+                      closeMenu();
+                    }}
+                    icon={<FcAcceptDatabase className="mr-2" />}
+                  >
+                    Historial de Compras
+                  </DropdownItem>
+                  
+                )}
                   <DropdownItem
                     onClick={handleLogout}
                     icon={<FaSignOutAlt className="mr-2" />}
