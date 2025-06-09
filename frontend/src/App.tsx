@@ -24,6 +24,7 @@ import ForgotPassword from './autenticacion/ForgotPassword';
 import VerificationAccount from './autenticacion/VerificationAccount';
 import VerifyResetCode from './autenticacion/VerifyResetCode';
 import ResetPassword from './autenticacion/ResetPassword';
+import HistorialCompras from './user/pages/HistorialCompras';
 
 function App() {
   return (
@@ -75,6 +76,18 @@ function App() {
           }
         >
           <Route index element={<PerfilUser />} />
+        </Route>
+        <Route
+          path="/historialCompras"
+          element={
+            <ProtectedRoute
+              roles={[2]}
+              redirectTo="/"
+              specialRedirectPath="/" // Redirige a '/' cuando no autenticado
+            />
+          }
+        >
+          <Route index element={<HistorialCompras />} />
         </Route>
       </Routes>
     </AuthProvider>
