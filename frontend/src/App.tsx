@@ -24,6 +24,8 @@ import ForgotPassword from './autenticacion/ForgotPassword';
 import VerificationAccount from './autenticacion/VerificationAccount';
 import VerifyResetCode from './autenticacion/VerifyResetCode';
 import ResetPassword from './autenticacion/ResetPassword';
+import MetodosEnvioAdmin from './admin/pages/MetodosEnvioAdmin';
+import MetodosPagoAdmin from './admin/pages/MetodosPagoAdmin';
 
 function App() {
   return (
@@ -58,6 +60,8 @@ function App() {
             <Route path="categorias" element={<CategoriasAdmin />} />
             <Route path="marcas" element={<MarcasAdmin />} />
             <Route path="productos" element={<ProductosAdmin />} />
+            <Route path="metodos-envio" element={<MetodosEnvioAdmin />} />
+            <Route path="metodos-pago" element={<MetodosPagoAdmin />} />
             <Route path="reviews_productos" element={<ReviewsProductosAdmin />} />
             <Route path="testimonios" element={<TestimoniosAdmin />} />
           </Route>

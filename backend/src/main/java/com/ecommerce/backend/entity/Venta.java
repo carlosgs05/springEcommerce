@@ -31,6 +31,14 @@ public class Venta {
     @Column(name = "fechaventa", columnDefinition = "TIMESTAMP")
     private LocalDateTime fechaVenta;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idmetodo_pago", referencedColumnName = "idmetodo_pago")
+    private MetodoPago metodoPago;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idmetodo_envio", referencedColumnName = "idmetodo_envio")
+    private MetodoEnvio metodoEnvio;
+
     @JsonIgnore
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DetalleVenta> detalleVentas = new ArrayList<>();

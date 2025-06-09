@@ -182,9 +182,9 @@ const MarcasAdmin = () => {
 
   return (
     <div className="p-4 sm:p-6 min-h-screen">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <header className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800 mb-3">
+          <h1 className="text-2xl font-bold text-gray-800 mb-3 uppercase">
             Gestión de Marcas
           </h1>
           <p className="text-gray-500">

@@ -3,9 +3,10 @@ package com.ecommerce.backend.service;
 import com.ecommerce.backend.dto.MarcaDTO;
 import com.ecommerce.backend.entity.Marca;
 import com.ecommerce.backend.repository.MarcaRepository;
-
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -23,17 +24,26 @@ public class MarcaService {
             .toAbsolutePath()
             .toString() + File.separator;
 
+    /**
+     * Devuelve la lista completa de marcas.
+     * La primera llamada consulta la BD; las siguientes, el caché "marcas".
+     */
+    @Cacheable(value = "marcas", sync = true)
     public List<Marca> listarMarcas() {
         return marcaRepository.findAll();
     }
 
+    /**
+     * Crea una nueva marca y limpia la caché "marcas"
+     * para que el listado se recargue con datos actualizados.
+     */
     @Transactional
+    @CacheEvict(value = "marcas", allEntries = true)
     public Marca crearMarca(MarcaDTO req) throws IOException {
         // Validaciones
         if (req.getNombre() == null || req.getNombre().trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre de la marca no puede estar vacío");
         }
-
         if (marcaRepository.existsByNombre(req.getNombre())) {
             throw new IllegalArgumentException("Ya existe una marca con ese nombre");
         }
@@ -47,14 +57,12 @@ public class MarcaService {
         if (req.getImagen() != null && !req.getImagen().isEmpty()) {
             String nombreImagen = UUID.randomUUID() + "_" + req.getImagen().getOriginalFilename();
 
-            // Guardar en sistema de archivos
             File carpeta = new File(uploadDir);
             if (!carpeta.exists())
                 carpeta.mkdirs();
 
             req.getImagen().transferTo(new File(uploadDir + nombreImagen));
 
-            // Actualizar entidad
             marca.setImagen(nombreImagen);
             marca = marcaRepository.save(marca);
         }
@@ -62,13 +70,22 @@ public class MarcaService {
         return marca;
     }
 
-    // Método para obtener una marca por su ID
+    /**
+     * Obtiene una marca por su ID.
+     * Cachea bajo clave igual a ID y no almacena resultados nulos.
+     */
+    @Cacheable(value = "marcas", key = "#id", unless = "#result == null")
     public Marca obtenerMarcaPorId(Long id) {
         return marcaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
     }
 
+    /**
+     * Actualiza una marca existente y limpia la caché "marcas"
+     * para que las próximas lecturas reflejen los cambios.
+     */
     @Transactional
+    @CacheEvict(value = "marcas", allEntries = true)
     public Marca actualizarMarca(Long id, MarcaDTO req) throws IOException {
         Marca marca = obtenerMarcaPorId(id);
         String nuevoNombre = req.getNombre();
@@ -77,25 +94,20 @@ public class MarcaService {
         if (nuevoNombre == null || nuevoNombre.trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre de la marca no puede estar vacío");
         }
-
-        if (!marca.getNombre().equalsIgnoreCase(nuevoNombre.trim())) {
-            if (marcaRepository.existsByNombre(nuevoNombre.trim())) {
-                throw new IllegalArgumentException("Ya existe otra marca con ese nombre");
-            }
-            marca.setNombre(nuevoNombre.trim());
+        if (!marca.getNombre().equalsIgnoreCase(nuevoNombre.trim())
+                && marcaRepository.existsByNombre(nuevoNombre.trim())) {
+            throw new IllegalArgumentException("Ya existe otra marca con ese nombre");
         }
+        marca.setNombre(nuevoNombre.trim());
 
         // Manejo de imagen
         if (req.getImagen() != null && !req.getImagen().isEmpty()) {
-            // Eliminar imagen anterior si existe
             if (marca.getImagen() != null && !marca.getImagen().isEmpty()) {
                 File oldImage = new File(uploadDir + marca.getImagen());
                 if (oldImage.exists()) {
                     oldImage.delete();
                 }
             }
-
-            // Guardar nueva imagen
             String nombreImagen = UUID.randomUUID() + "_" + req.getImagen().getOriginalFilename();
             File carpeta = new File(uploadDir);
             if (!carpeta.exists())
@@ -108,7 +120,11 @@ public class MarcaService {
         return marcaRepository.save(marca);
     }
 
-    // Método para eliminar una marca
+    /**
+     * Elimina una marca y limpia la caché "marcas"
+     * para que el listado no incluya la entrada eliminada.
+     */
+    @CacheEvict(value = "marcas", allEntries = true)
     public void eliminarMarca(Long id) {
         if (!marcaRepository.existsById(id)) {
             throw new IllegalArgumentException("Marca no encontrada");

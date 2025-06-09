@@ -5,9 +5,12 @@ import com.ecommerce.backend.dto.ProductoDTO;
 import com.ecommerce.backend.entity.*;
 import com.ecommerce.backend.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,9 +21,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +47,12 @@ public class ProductoService {
         return req;
     }
 
+    /**
+     * Crea un nuevo producto, imágenes y especificaciones, y limpia las cachés
+     * para que las siguientes lecturas reflejen los datos actualizados.
+     */
     @Transactional
+    @CacheEvict(value = { "productos", "producto", "productosFiltro" }, allEntries = true)
     public ProductoDTO crearProducto(ProductoDTO req) throws IOException {
         Categoria cat = categoriaRepository.findById(req.getIdcategoria())
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
@@ -94,16 +99,18 @@ public class ProductoService {
         return obtenerProductoConRelaciones(prod.getIdproducto());
     }
 
-    // obtener un producto con relaciones
+    /**
+     * Obtiene un producto con sus relaciones (imágenes, especificaciones,
+     * comentarios).
+     * Cachea bajo clave igual al ID del producto y no almacena resultados nulos.
+     */
     @Transactional
+    @Cacheable(value = "producto", key = "#idProd", unless = "#result == null")
     public ProductoDTO obtenerProductoConRelaciones(Long idProd) {
-        // fetch specifications only
         Producto prod = productoRepository.findByIdWithRelations(idProd)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
 
-        // luego cargo imágenes en una consulta separada
         List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProd);
-
         List<Comentario> comentarios = comentarioRepository
                 .findByProductoIdAndEstado(idProd, 1);
 
@@ -140,8 +147,12 @@ public class ProductoService {
         return dto;
     }
 
-    // obtener todos los productos con relaciones
-    @Transactional // <- AÑADE ESTA ANOTACIÓN
+    /**
+     * Lista todos los productos con relaciones.
+     * La primera llamada consulta la BD; las siguientes, la caché "productos".
+     */
+    @Transactional
+    @Cacheable(value = "productos", sync = true)
     public List<ProductoDTO> listarTodosLosProductos() {
         List<Producto> productos = productoRepository.findAllWithEspecificaciones();
 
@@ -180,14 +191,15 @@ public class ProductoService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * Filtra productos por categoría y marca.
+     * Cachea los resultados bajo clave "categoria-marca" y no almacena listas
+     * vacías.
+     */
     @Transactional
+    @Cacheable(value = "productosFiltro", key = "#categoria + '-' + #marca", unless = "#result.isEmpty()")
     public List<ProductoDTO> filtrarProductos(Long categoria, Long marca) {
-        System.out.println("FILTRANDO -> categoria: " + categoria + ", marca: " + marca);
-
         List<Producto> productos = productoRepository.findByCategoriaAndMarca(categoria, marca);
-
-        System.out.println("Productos encontrados: " + productos.size());
-        productos.forEach(p -> System.out.println(" - " + p.getNombre()));
 
         return productos.stream().map(prod -> {
             List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(prod.getIdproducto());
@@ -221,10 +233,12 @@ public class ProductoService {
         }).toList();
     }
 
-    // — Eliminar un producto completo junto con sus imágenes —
+    /**
+     * Elimina un producto junto con sus imágenes y limpia las cachés necesarias.
+     */
     @Transactional
+    @CacheEvict(value = { "productos", "producto", "productosFiltro" }, allEntries = true)
     public void eliminarProducto(Long idProducto) {
-        // 1) Borrar archivos físicos
         List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProducto);
         for (ProductoImg img : imagenes) {
             File f = new File(uploadDir + img.getNombre());
@@ -232,26 +246,29 @@ public class ProductoService {
                 f.delete();
             }
         }
-        // 2) Borrar el producto (orphanRemoval en la entidad eliminará los registros de
-        // producto_img)
         productoRepository.deleteById(idProducto);
     }
 
-    // — Eliminar una sola imagen del producto —
+    /**
+     * Elimina una sola imagen de producto y limpia la caché del producto afectado.
+     */
     @Transactional
+    @CacheEvict(value = { "producto" }, key = "#nombreImagen")
     public void eliminarImagen(String nombreImagen) {
         ProductoImg img = productoImgRepository.findByNombre(nombreImagen)
                 .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada: " + nombreImagen));
-        // Borrar archivo físico
         File f = new File(uploadDir + nombreImagen);
         if (f.exists()) {
             f.delete();
         }
-        // Borrar registro en BD
         productoImgRepository.delete(img);
     }
 
+    /**
+     * Actualiza un producto completo y limpia las cachés para forzar recarga.
+     */
     @Transactional
+    @CacheEvict(value = { "productos", "producto", "productosFiltro" }, allEntries = true)
     public ProductoDTO actualizarProducto(Long id, ProductoDTO req) throws IOException {
         Producto prod = productoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
@@ -262,7 +279,6 @@ public class ProductoService {
         Marca mar = marcaRepository.findById(req.getIdmarca())
                 .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
 
-        // Actualizar datos básicos
         prod.setNombre(req.getNombre());
         prod.setDescripcion(req.getDescripcion());
         prod.setPrecio(req.getPrecio());
@@ -272,11 +288,9 @@ public class ProductoService {
         prod = productoRepository.save(prod);
 
         File carpeta = new File(uploadDir);
-        if (!carpeta.exists()) {
+        if (!carpeta.exists())
             carpeta.mkdirs();
-        }
 
-        // Eliminar y volver a crear imágenes
         productoImgRepository.deleteByProducto_Idproducto(prod.getIdproducto());
         if (req.getImagenes() != null) {
             for (MultipartFile mf : req.getImagenes()) {
@@ -290,7 +304,6 @@ public class ProductoService {
             }
         }
 
-        // Eliminar y volver a crear especificaciones
         especificacionRepository.deleteByProducto_Idproducto(prod.getIdproducto());
         if (req.getEspecificaciones() != null) {
             for (EspecificacionDTO er : req.getEspecificaciones()) {
@@ -305,5 +318,4 @@ public class ProductoService {
 
         return obtenerProductoConRelaciones(prod.getIdproducto());
     }
-
 }
