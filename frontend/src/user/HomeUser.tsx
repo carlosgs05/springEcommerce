@@ -96,6 +96,50 @@ const HomeUser = () => {
     Accesorios: <FaHeadphones />,
   };
 
+  const [cantidades, setCantidades] = useState<Record<number, number>>({});
+const [carrito, setCarrito] = useState<(Producto & { cantidad: number })[]>(() => {
+  const saved = localStorage.getItem("carritoCompleto");
+  return saved ? JSON.parse(saved) : [];
+});
+
+const [mostrarSidebar, setMostrarSidebar] = useState(false);
+
+const agregarProducto = (producto: Producto, cantidad: number) => {
+  setCarrito((prev) => {
+    const existe = prev.find((p) => p.idproducto === producto.idproducto);
+    if (existe) {
+      return prev.map((p) =>
+        p.idproducto === producto.idproducto
+          ? { ...p, cantidad: p.cantidad + cantidad }
+          : p
+      );
+    } else {
+      return [...prev, { ...producto, cantidad }];
+    }
+  });
+  setMostrarSidebar(true);
+};
+
+const cantidadTotal = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+
+useEffect(() => {
+  localStorage.setItem("cantidadTotalCarrito", cantidadTotal.toString());
+  window.dispatchEvent(new Event("carritoActualizado"));
+}, [carrito]);
+
+useEffect(() => {
+  const abrir = () => setMostrarSidebar(true);
+  window.addEventListener("abrirSidebarCarrito", abrir);
+  return () => window.removeEventListener("abrirSidebarCarrito", abrir);
+}, []);
+
+useEffect(() => {
+  localStorage.setItem("carritoCompleto", JSON.stringify(carrito));
+  localStorage.setItem("cantidadTotalCarrito", carrito.reduce((sum, item) => sum + item.cantidad, 0).toString());
+  window.dispatchEvent(new Event("carritoActualizado"));
+}, [carrito]);
+
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -340,66 +384,105 @@ const HomeUser = () => {
         </div>
       </section>
 
-      {/* NUESTROS PRODUCTOS */}
-      <section className="mx-auto max-w-8xl px-12 py-8 pb-16 bg-gray-50">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-gray-800 text-xl sm:text-2xl font-bold flex items-center pb-4">
-            <FaBoxOpen className="mr-2 text-blue-600" />
-            Nuestros Productos
-          </h2>
-          <div
-            onClick={() => navigate("/tienda")}
-            className="text-blue-600 cursor-pointer flex items-center"
-          >
-            Ver catálogo completo <FaAngleRight className="ml-1" />
+     {/* NUESTROS PRODUCTOS */}
+<section className="mx-auto max-w-8xl px-12 py-8 pb-16 bg-gray-50">
+  <div className="flex justify-between items-center mb-4">
+    <h2 className="text-gray-800 text-xl sm:text-2xl font-bold flex items-center pb-4">
+      <FaBoxOpen className="mr-2 text-blue-600" />
+      Nuestros Productos
+    </h2>
+    <div
+      onClick={() => navigate("/tienda")}
+      className="text-blue-600 cursor-pointer flex items-center"
+    >
+      Ver catálogo completo <FaAngleRight className="ml-1" />
+    </div>
+  </div>
+
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    {productos.slice(0, 8).map((p) => (
+      <div
+        key={p.idproducto}
+        className="bg-white rounded-lg shadow-sm hover:shadow-md aspect-square flex flex-col"
+      >
+        <div
+          className="h-1/2 bg-gray-50 overflow-hidden cursor-pointer"
+          onClick={() =>
+            navigate(`/tienda/producto/${p.idproducto}`, { state: p })
+          }
+        >
+          <img
+            src={`http://localhost:8080/uploads/${p.imagenesNombres[0] || ""}`}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+
+        <div className="p-2 flex-1 flex flex-col justify-between my-2">
+          <h3 className="text-gray-800 text-lg font-medium truncate">
+            {p.nombre}
+          </h3>
+          <div className="mt-1 text-gray-500 text-base line-clamp-2">
+            {p.descripcion}
+          </div>
+
+          <div className="flex justify-between items-center mt-2 mx-2">
+            <p className="font-bold text-blue-600 text-lg">
+              S/ {p.precio.toFixed(2)}
+            </p>
+            <button
+              onClick={() =>
+                navigate(`/tienda/producto/${p.idproducto}`, {
+                  state: p,
+                })
+              }
+              className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium cursor-pointer"
+            >
+              Ver detalles
+            </button>
+          </div>
+
+          <div className="mt-2 mx-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 border px-2 py-1 rounded">
+              <button
+                className="text-blue-600"
+                onClick={() =>
+                  setCantidades((prev) => ({
+                    ...prev,
+                    [p.idproducto]: Math.max(1, (prev[p.idproducto] || 1) - 1),
+                  }))
+                }
+              >
+                -
+              </button>
+              <span>{cantidades[p.idproducto] || 1}</span>
+              <button
+                className="text-blue-600"
+                onClick={() =>
+                  setCantidades((prev) => ({
+                    ...prev,
+                    [p.idproducto]: (prev[p.idproducto] || 1) + 1,
+                  }))
+                }
+              >
+                +
+              </button>
+            </div>
+            <button
+              onClick={() => agregarProducto(p, cantidades[p.idproducto] || 1)}
+              className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
+            >
+              Agregar a Carrito
+            </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {productos.slice(0, 8).map((p) => (
-            <div
-              key={p.idproducto}
-              onClick={() =>
-                navigate(`/tienda/producto/${p.idproducto}`, { state: p })
-              }
-              className="bg-white rounded-lg shadow-sm hover:shadow-md cursor-pointer aspect-square flex flex-col"
-            >
-              <div className="h-1/2 bg-gray-50 overflow-hidden">
-                <img
-                  src={`http://localhost:8080/uploads/${
-                    p.imagenesNombres[0] || ""
-                  }`}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div className="p-2 flex-1 flex flex-col justify-between my-2">
-                <h3 className="text-gray-800 text-lg font-medium truncate">
-                  {p.nombre}
-                </h3>
-                <div className="mt-1 text-gray-500 text-base line-clamp-2">
-                  {p.descripcion}
-                </div>
-                <div className="flex justify-between items-center mt-1 mx-2">
-                  <p className="mt-1 font-bold text-blue-600 text-lg">
-                    S/ {p.precio.toFixed(2)}
-                  </p>
-                  <button
-                    onClick={() =>
-                      navigate(`/tienda/producto/${p.idproducto}`, {
-                        state: p,
-                      })
-                    }
-                    className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium cursor-pointer"
-                  >
-                    Ver detalles
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      </div>
+    ))}
+  </div>
+</section>
+
+
 
       {/* TESTIMONIOS */}
       <section className="mx-auto max-w-8xl px-4 sm:px-8 lg:px-16 py-16 bg-gradient-to-b from-gray-900 to-stone-800 font-samsung-one">
@@ -568,6 +651,71 @@ const HomeUser = () => {
           </div>
         </div>
       </section>
+
+{mostrarSidebar && (
+  <div className="fixed top-0 right-0 w-96 h-full bg-white shadow-2xl z-50 p-6 overflow-y-auto flex flex-col">
+    <div className="flex items-center justify-between mb-6 border-b pb-4">
+      <h2 className="text-2xl font-bold text-gray-800">🛒 Tu Carrito</h2>
+      <button
+        onClick={() => setMostrarSidebar(false)}
+        className="text-red-600 hover:text-red-800 font-semibold text-sm"
+      >
+        Cerrar ✕
+      </button>
+    </div>
+
+    {carrito.length === 0 ? (
+      <p className="text-gray-500 text-center mt-12">No hay productos en el carrito.</p>
+    ) : (
+      <div className="flex-1">
+        {carrito.map((item) => (
+          <div
+            key={item.idproducto}
+            className="flex items-start gap-4 border-b pb-4 mb-4"
+          >
+            <img
+              src={`http://localhost:8080/uploads/${item.imagenesNombres[0]}`}
+              alt={item.nombre}
+              className="w-20 h-20 object-cover rounded-lg"
+            />
+            <div className="flex-1">
+              <p className="text-gray-800 font-medium truncate">{item.nombre}</p>
+              <p className="text-sm text-gray-500">Cantidad: {item.cantidad}</p>
+              <p className="text-sm text-gray-700 font-semibold">
+                Total: S/ {(item.precio * item.cantidad).toFixed(2)}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {carrito.length > 0 && (
+      <div className="border-t pt-4 mt-4">
+        <p className="text-gray-800 font-semibold text-lg mb-2">
+          Total General:{" "}
+          <span className="text-green-600">
+            S/{" "}
+            {carrito
+              .reduce((acc, item) => acc + item.precio * item.cantidad, 0)
+              .toFixed(2)}
+          </span>
+        </p>
+        <button
+          onClick={() => {
+            setMostrarSidebar(false);
+            navigate("/checkout");
+          }}
+          className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
+        >
+          Ir al Pago
+        </button>
+      </div>
+    )}
+  </div>
+)}
+
+
 
       <Footer />
     </div>

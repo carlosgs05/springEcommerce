@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useEffect } from "react";
+
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaSearch, FaShoppingCart, FaUser, FaSignOutAlt } from "react-icons/fa";
 import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
@@ -67,6 +69,27 @@ const Header: React.FC = () => {
     (tab) => !tab.roles || (user && tab.roles.some((role) => hasRole(role)))
   );
 
+
+
+const [cantidadTotal, setCantidadTotal] = useState(
+  parseInt(localStorage.getItem("cantidadTotalCarrito") || "0")
+);
+
+useEffect(() => {
+  const actualizarCantidad = () => {
+    const nuevaCantidad = parseInt(localStorage.getItem("cantidadTotalCarrito") || "0");
+    setCantidadTotal(nuevaCantidad);
+  };
+  window.addEventListener("carritoActualizado", actualizarCantidad);
+  return () => window.removeEventListener("carritoActualizado", actualizarCantidad);
+}, []);
+
+const abrirSidebar = () => {
+  window.dispatchEvent(new Event("abrirSidebarCarrito"));
+};
+
+
+
   return (
     <header className="w-full bg-gradient-to-tr from-gray-900 to-stone-800 shadow-2xl sticky top-0 z-50">
       <nav className="max-w-8xl mx-auto px-11 py-5 lg:py-6 flex items-center justify-between relative">
@@ -111,9 +134,15 @@ const Header: React.FC = () => {
           <button aria-label="Buscar" className={iconBtn}>
             <FaSearch size={20} />
           </button>
-          <button aria-label="Carrito" className={iconBtn}>
-            <FaShoppingCart size={20} />
-          </button>
+          <div className="relative cursor-pointer" onClick={abrirSidebar}>
+  <FaShoppingCart size={20} />
+  {cantidadTotal > 0 && (
+    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2">
+      {cantidadTotal}
+    </span>
+  )}
+</div>
+
 
           {isAuthenticated ? (
             <div className="relative">
@@ -184,9 +213,15 @@ const Header: React.FC = () => {
             <button aria-label="Buscar" className={iconBtn}>
               <FaSearch size={20} />
             </button>
-            <button aria-label="Carrito" className={iconBtn}>
-              <FaShoppingCart size={20} />
-            </button>
+            <div className="relative cursor-pointer" onClick={abrirSidebar}>
+  <FaShoppingCart size={20} />
+  {cantidadTotal > 0 && (
+    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2">
+      {cantidadTotal}
+    </span>
+  )}
+</div>
+
 
             {isAuthenticated ? (
               <div className="relative">

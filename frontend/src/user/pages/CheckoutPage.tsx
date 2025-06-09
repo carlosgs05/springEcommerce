@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Header from "../Header";
 import Footer from "../Footer";
 import axios from 'axios';
-import { useAuth } from '../../context/AuthContext'; // Asegúrate que este hook esté bien implementado
+import { useAuth } from '../../context/AuthContext';
 
 interface ProductoCheckout {
   idProducto: number;
@@ -14,26 +14,25 @@ interface ProductoCheckout {
 }
 
 export default function CheckoutPage() {
-  const { user } = useAuth(); // <-- obtiene el usuario autenticado
+  const { user } = useAuth();
 
-  const [productos] = useState<ProductoCheckout[]>([
-    {
-      idProducto: 1,
-      nombre: 'Mouse Logitech',
-      precio: 699.90,
-      cantidad: 1,
-      imagenUrl: 'https://via.placeholder.com/100x100?text=Mouse',
-      especificaciones: 'Inalámbrico, 1600 DPI',
-    },
-    {
-      idProducto: 2,
-      nombre: 'Teclado Redragon',
-      precio: 1599.99,
-      cantidad: 1,
-      imagenUrl: 'https://via.placeholder.com/100x100?text=Teclado',
-      especificaciones: 'RGB, Mecánico Blue Switch',
-    },
-  ]);
+  const [productos, setProductos] = useState<ProductoCheckout[]>(() => {
+    try {
+      const data = localStorage.getItem("carritoCompleto");
+      if (!data) return [];
+      const items = JSON.parse(data);
+      return items.map((item: any) => ({
+        idProducto: item.idproducto,
+        nombre: item.nombre,
+        precio: item.precio,
+        cantidad: item.cantidad,
+        imagenUrl: `http://localhost:8080/uploads/${item.imagenesNombres[0] || ""}`,
+        especificaciones: item.especificaciones?.[0]?.detalle || "Sin detalles",
+      }));
+    } catch {
+      return [];
+    }
+  });
 
   const [idVenta, setIdVenta] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,11 +53,13 @@ export default function CheckoutPage() {
       }));
 
       const response = await axios.post('http://localhost:8080/api/ventas/checkout', {
-        iduser: user.iduser, // <-- este es el ID real del usuario autenticado
+        iduser: user.iduser,
         items,
       });
 
       setIdVenta(response.data.idVenta);
+      localStorage.removeItem("carritoCompleto");
+      localStorage.removeItem("cantidadTotalCarrito");
     } catch (error) {
       console.error(error);
       alert('Ocurrió un error al realizar la compra');
