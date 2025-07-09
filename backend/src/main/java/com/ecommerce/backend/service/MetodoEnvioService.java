@@ -54,12 +54,47 @@ public class MetodoEnvioService {
             dto.setIconoImg(m.getIconoImg());
             dto.setCosto(m.getCosto());
             dto.setTiempoEstimado(m.getTiempoEstimado());
+            dto.setPuntosRecojo(m.getPuntosRecojo());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = "metodosEnvioActivos")
+    public List<MetodoEnvioDTO> obtenerMetodosEnvioActivos() {
+        List<MetodoEnvio> lista = metodoEnvioRepository.findByEstado(true);
+        return lista.stream().map(m -> {
+            MetodoEnvioDTO dto = new MetodoEnvioDTO();
+            dto.setIdMetodoEnvio(m.getIdMetodoEnvio());
+            dto.setNombre(m.getNombre());
+            dto.setDescripcion(m.getDescripcion());
+            dto.setEstado(m.getEstado());
+            dto.setIconoImg(m.getIconoImg());
+            dto.setCosto(m.getCosto());
+            dto.setTiempoEstimado(m.getTiempoEstimado());
+            dto.setPuntosRecojo(m.getPuntosRecojo());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<MetodoEnvioDTO> obtenerPrimerosCuatroMetodosEnvio() {
+        return metodoEnvioRepository.findTop4ByOrderByIdMetodoEnvioAsc().stream().map(m -> {
+            MetodoEnvioDTO dto = new MetodoEnvioDTO();
+            dto.setIdMetodoEnvio(m.getIdMetodoEnvio());
+            dto.setNombre(m.getNombre());
+            dto.setDescripcion(m.getDescripcion());
+            dto.setEstado(m.getEstado());
+            dto.setIconoImg(m.getIconoImg());
+            dto.setCosto(m.getCosto());
+            dto.setTiempoEstimado(m.getTiempoEstimado());
+            dto.setPuntosRecojo(m.getPuntosRecojo());
             return dto;
         }).collect(Collectors.toList());
     }
 
     @Transactional
-    @CacheEvict(value = { "metodosEnvio", "metodoEnvio" }, allEntries = true)
+    @CacheEvict(value = { "metodosEnvio", "metodoEnvio", "metodosEnvioActivos" }, allEntries = true)
     public MetodoEnvioDTO crearMetodoEnvio(MetodoEnvioDTO req) throws IOException {
         MetodoEnvio m = new MetodoEnvio();
         m.setNombre(req.getNombre());
@@ -68,6 +103,7 @@ public class MetodoEnvioService {
         m.setIconoImg(req.getIconoImg());
         m.setCosto(req.getCosto());
         m.setTiempoEstimado(req.getTiempoEstimado());
+        m.setPuntosRecojo(req.getPuntosRecojo());
         m = metodoEnvioRepository.save(m);
 
         if (req.getIconoMultipart() != null) {
@@ -85,11 +121,12 @@ public class MetodoEnvioService {
         out.setIconoImg(m.getIconoImg());
         out.setCosto(m.getCosto());
         out.setTiempoEstimado(m.getTiempoEstimado());
+        out.setPuntosRecojo(m.getPuntosRecojo());
         return out;
     }
 
     @Transactional
-    @CacheEvict(value = { "metodosEnvio", "metodoEnvio" }, allEntries = true)
+    @CacheEvict(value = { "metodosEnvio", "metodoEnvio", "metodosEnvioActivos" }, allEntries = true)
     public MetodoEnvioDTO actualizarMetodoEnvio(Long id, MetodoEnvioDTO req) throws IOException {
         MetodoEnvio m = metodoEnvioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Método de envío no encontrado"));
@@ -98,6 +135,7 @@ public class MetodoEnvioService {
         m.setEstado(req.getEstado());
         m.setCosto(req.getCosto());
         m.setTiempoEstimado(req.getTiempoEstimado());
+        m.setPuntosRecojo(req.getPuntosRecojo());
 
         MultipartFile icono = req.getIconoMultipart();
         if (icono != null && !icono.isEmpty()) {
@@ -119,11 +157,12 @@ public class MetodoEnvioService {
         out.setIconoImg(m.getIconoImg());
         out.setCosto(m.getCosto());
         out.setTiempoEstimado(m.getTiempoEstimado());
+        out.setPuntosRecojo(m.getPuntosRecojo());
         return out;
     }
 
     @Transactional
-    @CacheEvict(value = { "metodosEnvio", "metodoEnvio" }, allEntries = true)
+    @CacheEvict(value = { "metodosEnvio", "metodoEnvio", "metodosEnvioActivos" }, allEntries = true)
     public void eliminarMetodoEnvio(Long id) {
         if (!metodoEnvioRepository.existsById(id)) {
             throw new IllegalArgumentException("Método de envío no encontrado");
@@ -132,7 +171,7 @@ public class MetodoEnvioService {
     }
 
     @Transactional
-    @CacheEvict(value = { "metodosEnvio", "metodoEnvio" }, allEntries = true)
+    @CacheEvict(value = { "metodosEnvio", "metodoEnvio", "metodosEnvioActivos" }, allEntries = true)
     public MetodoEnvioDTO cambiarEstadoMetodoEnvio(Long id, boolean estado) {
         MetodoEnvio m = metodoEnvioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Método de envío no encontrado"));
@@ -147,6 +186,7 @@ public class MetodoEnvioService {
         dto.setIconoImg(m.getIconoImg());
         dto.setCosto(m.getCosto());
         dto.setTiempoEstimado(m.getTiempoEstimado());
+        dto.setPuntosRecojo(m.getPuntosRecojo());
         return dto;
     }
 }

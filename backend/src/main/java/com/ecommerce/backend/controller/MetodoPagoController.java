@@ -35,11 +35,40 @@ public class MetodoPagoController {
         }
     }
 
+    @GetMapping("/listar-activos")
+    public ResponseEntity<?> listarMetodosPagoActivos() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            List<MetodoPagoDTO> lista = metodoPagoService.obtenerMetodosPagoActivos();
+            resp.put("success", true);
+            resp.put("data", lista);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al recuperar métodos activos: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
+    @GetMapping("/primeros")
+    public ResponseEntity<?> listarPrimerosCuatroMetodosPago() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            List<MetodoPagoDTO> lista = metodoPagoService.obtenerPrimerosCuatroMetodosPago();
+            resp.put("success", true);
+            resp.put("data", lista);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al recuperar los primeros métodos de pago: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
     @PostMapping("/crear")
     public ResponseEntity<?> crearMetodoPago(
             @RequestParam("metodoPago") String metodoPagoJson,
-            @RequestParam(value = "icono", required = false) MultipartFile icono
-    ) {
+            @RequestParam(value = "icono", required = false) MultipartFile icono) {
         Map<String, Object> resp = new HashMap<>();
         try {
             MetodoPagoDTO req = metodoPagoService.parsearJson(metodoPagoJson, icono);
@@ -67,8 +96,7 @@ public class MetodoPagoController {
     public ResponseEntity<?> actualizarMetodoPago(
             @PathVariable Long id,
             @RequestParam("metodoPago") String metodoPagoJson,
-            @RequestParam(value = "icono", required = false) MultipartFile icono
-    ) {
+            @RequestParam(value = "icono", required = false) MultipartFile icono) {
         Map<String, Object> resp = new HashMap<>();
         try {
             MetodoPagoDTO req = metodoPagoService.parsearJson(metodoPagoJson, icono);
@@ -114,8 +142,7 @@ public class MetodoPagoController {
     @PutMapping("/cambiar-estado/{id}")
     public ResponseEntity<?> cambiarEstado(
             @PathVariable Long id,
-            @RequestParam("activo") boolean activo
-    ) {
+            @RequestParam("activo") boolean activo) {
         Map<String, Object> resp = new HashMap<>();
         try {
             MetodoPagoDTO actualizado = metodoPagoService.cambiarEstadoMetodoPago(id, activo);

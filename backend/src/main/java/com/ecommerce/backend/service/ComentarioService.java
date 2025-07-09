@@ -21,6 +21,7 @@ public class ComentarioService {
     private final ComentarioRepository comentarioRepository;
     private final ProductoRepository productoRepository;
     private final UsuarioRepository usuarioRepo;
+    private final NotificacionService notificacionService;
 
     public Comentario createComentario(Comentario comentario) {
         Long productoId = comentario.getProducto().getIdproducto();
@@ -35,12 +36,23 @@ public class ComentarioService {
         comentario.setUsuario(usuario);
         comentario.setFechacomentario(LocalDateTime.now());
 
-        return comentarioRepository.save(comentario);
+        Comentario comentarioGuardado = comentarioRepository.save(comentario);
+
+        // Crear notificación para admins
+        String titulo = "Nuevo comentario recibido";
+        String mensaje = "Se ha registrado un nuevo comentario para el producto: " + producto.getNombre();
+        String tipo = "comentario";
+        String url = "admin/reviews_productos";
+
+        notificacionService.crearNotificacionParaAdmins(titulo, mensaje, tipo, url);
+
+        return comentarioGuardado;
     }
 
     public Comentario updateEstado(Long idProducto, Long idComentario, Integer estado) {
         Comentario comentario = comentarioRepository.findByProductoIdAndComentarioId(idProducto, idComentario)
-                .orElseThrow(() -> new RuntimeException("Comentario not found with id " + idComentario + " for producto id " + idProducto));
+                .orElseThrow(() -> new RuntimeException(
+                        "Comentario not found with id " + idComentario + " for producto id " + idProducto));
         comentario.setEstado(estado);
         return comentarioRepository.save(comentario);
     }
@@ -48,6 +60,12 @@ public class ComentarioService {
     @Transactional(readOnly = true)
     public List<Comentario> getComentariosByEstado(Integer estado) {
         return comentarioRepository.findByEstadoWithProducto(estado);
+    }
+
+    // Agrega este método en ComentarioService
+    @Transactional(readOnly = true)
+    public long contarComentariosPendientes() {
+        return getComentariosByEstado(-1).size();
     }
 
 }

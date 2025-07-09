@@ -22,18 +22,11 @@ public class UsuarioController {
     @GetMapping("/verify-email")
     public ResponseEntity<UsuarioDTO> verifyEmail(@RequestParam String token) {
         UsuarioDTO response = usuarioService.verifyEmail(token);
-        
+
         return ResponseEntity.status(response.getStatusCode()).body(response);
     }
 
-    // @PostMapping("/login")
-    // public ResponseEntity<UsuarioDTO> login(@RequestBody UsuarioDTO req) {
-    //     UsuarioDTO res = usuarioService.login(req);
-    //     return ResponseEntity.status(res.getStatusCode()).body(res);
-    // }
-
-
-        @PostMapping("/login")
+    @PostMapping("/login")
     public ResponseEntity<UsuarioDTO> login(@RequestBody UsuarioDTO req, HttpSession session) {
         UsuarioDTO res = usuarioService.login(req);
         if (res.getStatusCode() == 200) {

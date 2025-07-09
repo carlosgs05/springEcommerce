@@ -358,10 +358,7 @@ const HomeUser = () => {
           {productos.slice(0, 8).map((p) => (
             <div
               key={p.idproducto}
-              onClick={() =>
-                navigate(`/tienda/producto/${p.idproducto}`, { state: p })
-              }
-              className="bg-white rounded-lg shadow-sm hover:shadow-md cursor-pointer aspect-square flex flex-col"
+              className="bg-white rounded-lg shadow-sm hover:shadow-md aspect-square flex flex-col"
             >
               <div className="h-1/2 bg-gray-50 overflow-hidden">
                 <img
@@ -385,11 +382,12 @@ const HomeUser = () => {
                     S/ {p.precio.toFixed(2)}
                   </p>
                   <button
-                    onClick={() =>
+                    onClick={() => {
                       navigate(`/tienda/producto/${p.idproducto}`, {
                         state: p,
-                      })
-                    }
+                      });
+                      window.scrollTo(0, 0); // Forzar al navegador a hacer scroll hacia arriba
+                    }}
                     className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium cursor-pointer"
                   >
                     Ver detalles
@@ -427,7 +425,7 @@ const HomeUser = () => {
                 (prev) => (prev - 1 + testimonios.length) % testimonios.length
               )
             }
-            className="absolute -left-12 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-700 hover:bg-indigo-600 transition-transform hover:scale-110 z-10"
+            className="absolute -left-12 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-700 hover:bg-indigo-600 transition-transform hover:scale-110 z-10 cursor-pointer"
           >
             <FaAngleRight className="rotate-180 text-xl text-white" />
           </button>
@@ -436,7 +434,7 @@ const HomeUser = () => {
             onClick={() =>
               setActiveTestimonio((prev) => (prev + 1) % testimonios.length)
             }
-            className="absolute -right-12 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-700 hover:bg-indigo-600 transition-transform hover:scale-110 z-10"
+            className="absolute -right-12 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-700 hover:bg-indigo-600 transition-transform hover:scale-110 z-10 cursor-pointer"
           >
             <FaAngleRight className="text-xl text-white" />
           </button>
@@ -512,12 +510,6 @@ const HomeUser = () => {
             <FaTag className="text-blue-600 text-2xl mr-2" />
             Marcas Destacadas
           </h2>
-          <div
-            onClick={() => navigate("/tienda")}
-            className="text-blue-600 cursor-pointer flex items-center"
-          >
-            Ver todas <FaAngleRight className="ml-1" />
-          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-20">
           {marcas.map((marca) => (

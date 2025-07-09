@@ -20,6 +20,23 @@ import java.util.Map;
 public class ProductoController {
     private final ProductoService productoService;
 
+    @GetMapping("/estadisticas-stock")
+    public ResponseEntity<?> obtenerEstadisticasStock() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            Map<String, Long> stats = productoService.obtenerEstadisticasStock();
+
+            resp.put("success", true);
+            resp.put("data", stats);
+            return ResponseEntity.ok(resp);
+
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al obtener estadísticas de stock: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
     @PostMapping("/crear")
     public ResponseEntity<?> crearProducto(
             @RequestParam("producto") String productoJson,

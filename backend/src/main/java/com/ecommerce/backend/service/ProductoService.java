@@ -7,7 +7,7 @@ import com.ecommerce.backend.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,9 +18,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -47,12 +49,28 @@ public class ProductoService {
         return req;
     }
 
+    // Agrega este método en la clase ProductoService
+    @Transactional(readOnly = true)
+    @Cacheable(value = "productosStock")
+    public Map<String, Long> obtenerEstadisticasStock() {
+        long total = productoRepository.count();
+        long suficiente = productoRepository.countByStockSuficiente();
+        long bajo = productoRepository.countByStockBajo();
+
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("total", total);
+        stats.put("suficiente", suficiente);
+        stats.put("bajo", bajo);
+
+        return stats;
+    }
+
     /**
      * Crea un nuevo producto, imágenes y especificaciones, y limpia las cachés
      * para que las siguientes lecturas reflejen los datos actualizados.
      */
     @Transactional
-    @CacheEvict(value = { "productos", "producto", "productosFiltro" }, allEntries = true)
+    @CacheEvict(value = { "productos", "producto", "productosFiltro", "productosStock" }, allEntries = true)
     public ProductoDTO crearProducto(ProductoDTO req) throws IOException {
         Categoria cat = categoriaRepository.findById(req.getIdcategoria())
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
@@ -237,7 +255,7 @@ public class ProductoService {
      * Elimina un producto junto con sus imágenes y limpia las cachés necesarias.
      */
     @Transactional
-    @CacheEvict(value = { "productos", "producto", "productosFiltro" }, allEntries = true)
+    @CacheEvict(value = { "productos", "producto", "productosFiltro", "productosStock" }, allEntries = true)
     public void eliminarProducto(Long idProducto) {
         List<ProductoImg> imagenes = productoImgRepository.findByProducto_Idproducto(idProducto);
         for (ProductoImg img : imagenes) {
@@ -268,7 +286,7 @@ public class ProductoService {
      * Actualiza un producto completo y limpia las cachés para forzar recarga.
      */
     @Transactional
-    @CacheEvict(value = { "productos", "producto", "productosFiltro" }, allEntries = true)
+    @CacheEvict(value = { "productos", "producto", "productosFiltro", "productosStock" }, allEntries = true)
     public ProductoDTO actualizarProducto(Long id, ProductoDTO req) throws IOException {
         Producto prod = productoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
@@ -318,4 +336,5 @@ public class ProductoService {
 
         return obtenerProductoConRelaciones(prod.getIdproducto());
     }
+
 }

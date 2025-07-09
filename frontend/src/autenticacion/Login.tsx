@@ -53,6 +53,7 @@ const Login: React.FC = () => {
     const state = location.state as {
       verificationSuccess?: string;
       verificationError?: string;
+      from?: string;
     };
     if (state?.verificationSuccess) {
       setVerificationMessage(state.verificationSuccess);
@@ -89,7 +90,6 @@ const Login: React.FC = () => {
       );
 
       if (data.statusCode === 200) {
-        // ✅ LOGIN OK
         const { token, refreshToken, rol, usuario } = data;
         const userData = {
           iduser: usuario.iduser,
@@ -110,9 +110,22 @@ const Login: React.FC = () => {
         storage.setItem("refreshToken", refreshToken);
         storage.setItem("userData", JSON.stringify(userData));
 
-        navigate(rol.idrol === 1 ? "/admin" : "/", { replace: true });
+        // CORRECCIÓN: Manejo mejorado de redirección
+        const state = location.state as { from?: string };
+
+        // Si venía del carrito y es cliente, ir al carrito
+        if (state?.from === "carrito" && rol.idrol === 2) {
+          navigate("/carrito", { replace: true });
+        }
+        // Si es admin, ir al dashboard
+        else if (rol.idrol === 1) {
+          navigate("/admin", { replace: true });
+        }
+        // Si no, ir al inicio
+        else {
+          navigate("/", { replace: true });
+        }
       } else {
-        // 🚫 STATUSCODE != 200 → mostramos SweetAlert2
         swal.fire({
           icon: "error",
           title: "Error al iniciar sesión",
@@ -121,7 +134,6 @@ const Login: React.FC = () => {
         });
       }
     } catch (err: any) {
-      // 🚨 ERROR DE RED O SERVIDOR
       const msg =
         err.response?.data?.message ||
         (err.response?.status === 401

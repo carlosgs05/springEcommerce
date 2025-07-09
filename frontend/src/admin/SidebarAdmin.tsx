@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
-import { 
-  FaTachometerAlt, 
-  FaUser, 
-  FaTools, 
-  FaThList, 
-  FaTags, 
-  FaStar, 
-  FaHome, 
-  FaChevronDown, 
-  FaChevronRight 
+import {
+  FaTachometerAlt,
+  FaUser,
+  FaTools,
+  FaThList,
+  FaTags,
+  FaStar,
+  FaHome,
+  FaChevronDown,
+  FaChevronRight,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { MdOutlineReviews, MdRateReview } from "react-icons/md";
@@ -80,8 +80,19 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({ isOpen, toggle }) => {
           onClick={toggle}
           aria-label="Cerrar sidebar"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-3.5 w-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -144,7 +155,7 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({ isOpen, toggle }) => {
               </div>
               <span className="ml-3">Categorías</span>
             </button>
-            
+
             <button
               onClick={() => navigate("/admin/marcas")}
               className="w-full flex items-center px-3 py-2.5 rounded-xl hover:bg-gray-700 hover:bg-opacity-50 transition-all text-left text-sm cursor-pointer group"
@@ -154,7 +165,7 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({ isOpen, toggle }) => {
               </div>
               <span className="ml-3">Marcas</span>
             </button>
-            
+
             <button
               onClick={() => navigate("/admin/productos")}
               className="w-full flex items-center px-3 py-2.5 rounded-xl hover:bg-gray-700 hover:bg-opacity-50 transition-all text-left text-sm cursor-pointer group"
@@ -170,8 +181,19 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({ isOpen, toggle }) => {
               className="w-full flex items-center px-3 py-2.5 rounded-xl hover:bg-gray-700 hover:bg-opacity-50 transition-all text-left text-sm cursor-pointer group"
             >
               <div className="bg-gray-700 group-hover:bg-cyan-500 rounded-lg p-1.5 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-gray-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-3.5 h-3.5 text-gray-300 group-hover:text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
               </div>
               <span className="ml-3">Métodos de Envío</span>
@@ -182,11 +204,45 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({ isOpen, toggle }) => {
               className="w-full flex items-center px-3 py-2.5 rounded-xl hover:bg-gray-700 hover:bg-opacity-50 transition-all text-left text-sm cursor-pointer group"
             >
               <div className="bg-gray-700 group-hover:bg-cyan-500 rounded-lg p-1.5 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-gray-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-3.5 h-3.5 text-gray-300 group-hover:text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                  />
                 </svg>
               </div>
               <span className="ml-3">Métodos de Pago</span>
+            </button>
+
+            <button
+              onClick={() => navigate("/admin/pedidos")}
+              className="w-full flex items-center px-3 py-2.5 rounded-xl hover:bg-gray-700 hover:bg-opacity-50 transition-all text-left text-sm cursor-pointer group"
+            >
+              <div className="bg-gray-700 group-hover:bg-cyan-500 rounded-lg p-1.5 transition-colors">
+                <svg
+                 className="w-3.5 h-3.5 text-gray-300 group-hover:text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2L22 7v10l-10 5-10-5V7z" />
+                  <path d="M22 7L12 12m0 0L2 7m10 5v10" />
+                  <path d="M7 4.5l10 5" />
+                </svg>
+              </div>
+              <span className="ml-3">Pedidos</span>
             </button>
 
             {/* Dropdown de Reseñas */}

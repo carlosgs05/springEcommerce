@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "metodo_envio")
@@ -26,12 +29,20 @@ public class MetodoEnvio {
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
+    @Column(name = "tiempo_estimado", length = 100)
+    private String tiempoEstimado;
+
     @Column(name = "costo", precision = 10, scale = 2, nullable = false)
     private BigDecimal costo;
 
     @Column(name = "estado", nullable = false)
     private Boolean estado;
 
-    @Column(name = "tiempo_estimado", length = 100)
-    private String tiempoEstimado;
+    @Column(name = "puntos_recojo", columnDefinition = "TEXT")
+    private String puntosRecojo;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "metodoEnvio", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Pedido> pedidos;
+
 }

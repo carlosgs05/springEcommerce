@@ -1,6 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FaUser, FaSignOutAlt, FaBars, FaBell } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+interface Notificacion {
+  idnotificacion: number;
+  titulo: string;
+  mensaje: string;
+  tipo: string;
+  url: string | null;
+  leido: boolean;
+  fecha: string;
+}
 
 interface HeaderAdminProps {
   toggleSidebar: () => void;
@@ -8,17 +20,86 @@ interface HeaderAdminProps {
 
 const HeaderAdmin: React.FC<HeaderAdminProps> = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "Nuevo pedido recibido", read: false },
-    { id: 2, title: "Revisión pendiente de producto", read: false },
-    { id: 3, title: "Actualización del sistema disponible", read: true },
-  ]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notificacion[]>([]);
+  const [now, setNow] = useState<Date>(new Date());
 
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const notificationsDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar dropdowns al hacer clic fuera
+  useEffect(() => {
+    const fetchNotifications = () => {
+      if (user?.iduser) {
+        axios
+          .get(
+            `http://localhost:8080/api/notificaciones/pendientes/${user.iduser}`
+          )
+          .then((res) => {
+            if (res.data.success) {
+              setNotifications(res.data.data);
+            }
+          })
+          .catch((err) => {
+            console.error("Error al obtener notificaciones:", err);
+          });
+      }
+    };
+
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [user?.iduser]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getTiempoRelativo = (fechaISO: string) => {
+    const fecha = new Date(fechaISO);
+    const diffMs = now.getTime() - fecha.getTime();
+    const diffMin = Math.floor(diffMs / (1000 * 60));
+    const diffHrs = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHrs / 24);
+
+    if (diffMin < 1) return "Hace unos segundos";
+    if (diffMin === 1) return "Hace 1 minuto";
+    if (diffMin < 60) return `Hace ${diffMin} minutos`;
+    if (diffHrs === 1) return "Hace 1 hora";
+    if (diffHrs < 24) return `Hace ${diffHrs} horas`;
+    if (diffDays === 1) return "Ayer";
+    return `Hace ${diffDays} días`;
+  };
+
+  const handleNotificationClick = (id: number, url: string | null) => {
+    axios
+      .put(`http://localhost:8080/api/notificaciones/marcar-leido/${id}`)
+      .then(() => {
+        setNotifications((prev) =>
+          prev.map((n) => (n.idnotificacion === id ? { ...n, leido: true } : n))
+        );
+        setIsNotificationsOpen(false);
+        if (url) {
+          const cleanUrl = url.startsWith("/") ? url : "/" + url;
+          navigate(cleanUrl);
+        }
+      })
+      .catch((err) => {
+        console.error("Error al marcar como leída:", err);
+      });
+  };
+
+  const markAllAsRead = () => {
+    notifications.forEach((n) => {
+      if (!n.leido) handleNotificationClick(n.idnotificacion, null);
+    });
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -41,16 +122,7 @@ const HeaderAdmin: React.FC<HeaderAdminProps> = ({ toggleSidebar }) => {
     };
   }, []);
 
-  // Calcular notificaciones no leídas
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  // Estado para el dropdown de notificaciones
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-
-  // Marcar todas como leídas
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
-  };
+  const unreadCount = notifications.filter((n) => !n.leido).length;
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4 shadow-xl backdrop-blur-sm border-b border-gray-700">
@@ -65,7 +137,6 @@ const HeaderAdmin: React.FC<HeaderAdminProps> = ({ toggleSidebar }) => {
       </div>
 
       <div className="flex items-center space-x-6">
-        {/* Dropdown de notificaciones */}
         <div className="relative" ref={notificationsDropdownRef}>
           <button
             className="relative p-2 rounded-full hover:bg-gray-700 transition-all duration-300 cursor-pointer"
@@ -74,7 +145,7 @@ const HeaderAdmin: React.FC<HeaderAdminProps> = ({ toggleSidebar }) => {
           >
             <FaBell className="w-5 h-5 text-gray-300" />
             {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center animate-pulse">
+              <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center">
                 {unreadCount}
               </span>
             )}
@@ -96,15 +167,26 @@ const HeaderAdmin: React.FC<HeaderAdminProps> = ({ toggleSidebar }) => {
                 {notifications.length > 0 ? (
                   notifications.map((notification) => (
                     <div
-                      key={notification.id}
+                      key={notification.idnotificacion}
+                      onClick={() =>
+                        handleNotificationClick(
+                          notification.idnotificacion,
+                          notification.url
+                        )
+                      }
                       className={`px-4 py-3 text-sm border-b border-gray-700 hover:bg-gray-700 transition-colors duration-200 cursor-pointer ${
-                        notification.read
+                        notification.leido
                           ? "text-gray-400"
                           : "text-gray-100 bg-gray-800"
                       }`}
                     >
-                      <div className="font-medium">{notification.title}</div>
-                      <div className="text-xs mt-1">Hace 2 horas</div>
+                      <div className="font-medium">{notification.titulo}</div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {notification.mensaje}
+                      </div>
+                      <div className="text-xs mt-1">
+                        {getTiempoRelativo(notification.fecha)}
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -117,7 +199,6 @@ const HeaderAdmin: React.FC<HeaderAdminProps> = ({ toggleSidebar }) => {
           )}
         </div>
 
-        {/* Dropdown de usuario */}
         <div className="relative group" ref={userDropdownRef}>
           <button
             className="flex items-center space-x-3 p-1.5 rounded-xl hover:bg-gray-700 transition-all duration-300 cursor-pointer"

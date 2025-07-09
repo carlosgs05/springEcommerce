@@ -1,5 +1,9 @@
 package com.ecommerce.backend.entity;
 
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,6 +32,10 @@ public class MetodoPago {
     private Boolean activo;
 
     @Column(name = "config_adicional", columnDefinition = "TEXT")
-    private String configAdicional; // Puede contener JSON o datos dinámicos
-}
+    private String configAdicional;
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "metodoPago", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Pedido> pedidos;
+
+}

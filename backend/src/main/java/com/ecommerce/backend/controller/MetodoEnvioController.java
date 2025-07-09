@@ -2,9 +2,7 @@ package com.ecommerce.backend.controller;
 
 import com.ecommerce.backend.dto.MetodoEnvioDTO;
 import com.ecommerce.backend.service.MetodoEnvioService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +31,36 @@ public class MetodoEnvioController {
         } catch (Exception e) {
             resp.put("success", false);
             resp.put("message", "Error al recuperar métodos de envío: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
+    @GetMapping("/listar-activos")
+    public ResponseEntity<?> listarMetodosEnvioActivos() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            List<MetodoEnvioDTO> lista = metodoEnvioService.obtenerMetodosEnvioActivos();
+            resp.put("success", true);
+            resp.put("data", lista);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al recuperar métodos activos: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
+    @GetMapping("/primeros")
+    public ResponseEntity<?> listarPrimerosCuatroMetodosEnvio() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            List<MetodoEnvioDTO> lista = metodoEnvioService.obtenerPrimerosCuatroMetodosEnvio();
+            resp.put("success", true);
+            resp.put("data", lista);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al recuperar los primeros métodos de envío: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
         }
     }
