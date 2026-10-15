@@ -27,19 +27,19 @@ const HomeAdmin: React.FC = () => {
     const fetchData = async () => {
       try {
         const [
-          stockRes, 
-          reviewsRes, 
-          testimonialsRes, 
-          pagosRes, 
+          stockRes,
+          reviewsRes,
+          testimonialsRes,
+          pagosRes,
           enviosRes,
-          pedidosPendientesRes
+          pedidosPendientesRes,
         ] = await Promise.all([
           axios.get("http://localhost:8080/api/productos/estadisticas-stock"),
           axios.get("http://localhost:8080/api/comentarios/pendientes/count"),
           axios.get("http://localhost:8080/api/testimonios/pendientes/count"),
           axios.get("http://localhost:8080/api/metodopago/primeros"),
           axios.get("http://localhost:8080/api/metodoenvio/primeros"),
-          axios.get("http://localhost:8080/api/pedidos/por-estado?estado=0")
+          axios.get("http://localhost:8080/api/pedidos/por-estado?estado=0"),
         ]);
 
         setStats({
@@ -189,7 +189,10 @@ const HomeAdmin: React.FC = () => {
                   Opciones de pago disponibles
                 </p>
               </div>
-              <button className="text-xs font-medium bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-600 hover:text-blue-800 cursor-pointer px-3 py-1.5 rounded-xl transition">
+              <button
+                onClick={() => navigate("/admin/metodos-pago")}
+                className="text-xs font-medium bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-600 hover:text-blue-800 cursor-pointer px-3 py-1.5 rounded-xl transition"
+              >
                 Gestionar métodos
               </button>
             </div>
@@ -232,7 +235,10 @@ const HomeAdmin: React.FC = () => {
                   Opciones de entrega disponibles
                 </p>
               </div>
-              <button className="text-xs font-medium bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-600 hover:text-blue-800 cursor-pointer px-3 py-1.5 rounded-xl transition">
+              <button
+                onClick={() => navigate("/admin/metodos-envio")}
+                className="text-xs font-medium bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-600 hover:text-blue-800 cursor-pointer px-3 py-1.5 rounded-xl transition"
+              >
                 Gestionar métodos
               </button>
             </div>
