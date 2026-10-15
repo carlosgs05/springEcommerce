@@ -1,6 +1,7 @@
 package com.ecommerce.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -65,6 +66,8 @@ public class Producto {
     @JsonManagedReference("producto-comentario")
     private List<Comentario> comentarios = new ArrayList<>();
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<DetalleVenta> detalleVentas = new ArrayList<>();
+    @JsonIgnore
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<DetallePedido> detallesPedido;
+
 }

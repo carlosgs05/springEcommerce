@@ -5,6 +5,8 @@ import com.ecommerce.backend.entity.Producto;
 import com.ecommerce.backend.entity.Usuario;
 import com.ecommerce.backend.service.ComentarioService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,11 +27,13 @@ public class ComentarioController {
         Map<String, Object> response = new HashMap<>();
         try {
             String descripcion = (String) payload.get("descripcion");
+            Integer calificacion = (Integer) payload.get("calificacion");
             Long idProducto = Long.valueOf(payload.get("idproducto").toString());
             Integer idUser = (Integer) payload.get("iduser");
 
             Comentario comentario = new Comentario();
             comentario.setDescripcion(descripcion);
+            comentario.setCalificacion(calificacion);
             Usuario usuario = new Usuario();
             usuario.setIduser(idUser);
             comentario.setUsuario(usuario);
@@ -43,6 +47,7 @@ public class ComentarioController {
             Map<String, Object> data = new HashMap<>();
             data.put("idcomentario", creado.getIdcomentario());
             data.put("descripcion", creado.getDescripcion());
+            data.put("calificacion", creado.getCalificacion());
             data.put("fechacomentario", creado.getFechacomentario());
             data.put("estado", creado.getEstado());
             Map<String, Object> productoMap = new HashMap<>();
@@ -66,20 +71,21 @@ public class ComentarioController {
         Map<String, Object> response = new HashMap<>();
         try {
             List<Comentario> comentarios = comentarioService.getComentariosByEstado(estado);
-    
+
             List<Map<String, Object>> data = comentarios.stream().map(c -> {
                 Map<String, Object> m = new HashMap<>();
                 m.put("idcomentario", c.getIdcomentario());
                 m.put("descripcion", c.getDescripcion());
                 m.put("fechacomentario", c.getFechacomentario());
+                m.put("calificacion", c.getCalificacion());
                 m.put("estado", c.getEstado());
-    
+
                 // Producto asociado
                 Map<String, Object> prod = new HashMap<>();
                 prod.put("idproducto", c.getProducto().getIdproducto());
                 prod.put("nombre", c.getProducto().getNombre());
                 m.put("producto", prod);
-    
+
                 // Usuario asociado
                 Map<String, Object> user = new HashMap<>();
                 user.put("iduser", c.getUsuario().getIduser());
@@ -87,10 +93,10 @@ public class ComentarioController {
                 user.put("apellido", c.getUsuario().getApellido());
                 user.put("correo", c.getUsuario().getCorreo());
                 m.put("usuario", user);
-    
+
                 return m;
             }).collect(Collectors.toList());
-    
+
             response.put("success", true);
             response.put("message", "Comentarios listados correctamente por estado");
             response.put("data", data);
@@ -101,7 +107,6 @@ public class ComentarioController {
             return ResponseEntity.internalServerError().body(response);
         }
     }
-    
 
     @PutMapping("/estado_update/{idProducto}/{idComentario}")
     public ResponseEntity<?> updateEstado(@PathVariable("idProducto") Long idProducto,
@@ -142,6 +147,23 @@ public class ComentarioController {
             response.put("success", false);
             response.put("message", "Error al actualizar estado del comentario: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @GetMapping("/pendientes/count")
+    public ResponseEntity<?> contarComentariosPendientes() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            long cantidad = comentarioService.contarComentariosPendientes();
+
+            resp.put("success", true);
+            resp.put("count", cantidad);
+            return ResponseEntity.ok(resp);
+
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al contar comentarios pendientes: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
         }
     }
 

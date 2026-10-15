@@ -32,4 +32,10 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
                         @Param("categoria") Long categoria,
                         @Param("marca") Long marca);
 
+        @Query("SELECT COUNT(p) FROM Producto p WHERE p.stock >= 20")
+        long countByStockSuficiente();
+
+        @Query("SELECT COUNT(p) FROM Producto p WHERE p.stock < 20")
+        long countByStockBajo();
+
 }

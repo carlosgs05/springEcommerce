@@ -9,6 +9,7 @@ class ComentarioDTO {
     private Long idcomentario;
     private String descripcion;
     private LocalDateTime fechacomentario;
+    private Integer calificacion;
     private UsuarioDTO usuario;
 
     @Data

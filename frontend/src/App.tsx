@@ -1,34 +1,37 @@
-import { Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import GuestRoute from './components/GuestRoute';
-import ProtectedRoute from './components/ProtectedRoute';
-import HomeRoute from './components/HomeRoute';
-import PublicRoute from './components/PublicRoute';
+import { Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import GuestRoute from "./components/GuestRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
+import HomeRoute from "./components/HomeRoute";
+import PublicRoute from "./components/PublicRoute";
 
-import Login from './autenticacion/Login';
-import RegisterUser from './autenticacion/RegisterUser';
-import Nosotros from './user/pages/Nosotros';
-import Tienda from './user/pages/Tienda';
-import Contacto from './user/pages/Contacto';
-import Layout from './admin/Layout';
-import HomeAdmin from './admin/pages/HomeAdmin';
-import PerfilAdmin from './admin/pages/PerfilAdmin';
-import ProductosAdmin from './admin/pages/ProductosAdmin';
-import PerfilUser from './user/pages/PerfilUser';
-import CategoriasAdmin from './admin/pages/CategoriasAdmin';
-import MarcasAdmin from './admin/pages/MarcasAdmin';
-import TestimoniosAdmin from './admin/pages/TestimoniosAdmin';
-import ReviewsProductosAdmin from './admin/pages/ReviewsProductosAdmin';
-import ProductoDetails from './user/pages/ProductoDetails';
-import ForgotPassword from './autenticacion/ForgotPassword';
-import VerificationAccount from './autenticacion/VerificationAccount';
-import VerifyResetCode from './autenticacion/VerifyResetCode';
-import ResetPassword from './autenticacion/ResetPassword';
-import MetodosEnvioAdmin from './admin/pages/MetodosEnvioAdmin';
-import MetodosPagoAdmin from './admin/pages/MetodosPagoAdmin';
-import CheckoutPage from './user/pages/CheckoutPage';
-import BoletaPage from './user/pages/BoletaPage';
-import HistorialCompras from './user/pages/HistorialCompras';
+import Login from "./autenticacion/Login";
+import RegisterUser from "./autenticacion/RegisterUser";
+import Nosotros from "./user/pages/Nosotros";
+import Tienda from "./user/pages/Tienda";
+import Contacto from "./user/pages/Contacto";
+import Layout from "./admin/Layout";
+import HomeAdmin from "./admin/pages/HomeAdmin";
+import PerfilAdmin from "./admin/pages/PerfilAdmin";
+import ProductosAdmin from "./admin/pages/ProductosAdmin";
+import PerfilUser from "./user/pages/PerfilUser";
+import CategoriasAdmin from "./admin/pages/CategoriasAdmin";
+import MarcasAdmin from "./admin/pages/MarcasAdmin";
+import TestimoniosAdmin from "./admin/pages/TestimoniosAdmin";
+import ReviewsProductosAdmin from "./admin/pages/ReviewsProductosAdmin";
+import ProductoDetails from "./user/pages/ProductoDetails";
+import ForgotPassword from "./autenticacion/ForgotPassword";
+import VerificationAccount from "./autenticacion/VerificationAccount";
+import VerifyResetCode from "./autenticacion/VerifyResetCode";
+import ResetPassword from "./autenticacion/ResetPassword";
+import MetodosEnvioAdmin from "./admin/pages/MetodosEnvioAdmin";
+import MetodosPagoAdmin from "./admin/pages/MetodosPagoAdmin";
+import CarritoDetalle from "./user/pages/CarritoDetalle";
+import CheckoutPago from "./user/pages/CheckoutPago";
+import MisPedidos from "./user/pages/MisPedidos";
+import DetallePedido from "./user/pages/DetallePedido";
+import PedidosAdmin from "./admin/pages/PedidosAdmin";
+import DetallePedidoAdmin from "./admin/pages/DetallePedidoAdmin";
 
 function App() {
   return (
@@ -53,8 +56,6 @@ function App() {
           <Route path="/tienda" element={<Tienda />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/tienda/producto/:id" element={<ProductoDetails />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/boleta/:idVenta" element={<BoletaPage />} />
         </Route>
 
         {/* Rutas para admin (rol 1) */}
@@ -67,7 +68,12 @@ function App() {
             <Route path="productos" element={<ProductosAdmin />} />
             <Route path="metodos-envio" element={<MetodosEnvioAdmin />} />
             <Route path="metodos-pago" element={<MetodosPagoAdmin />} />
-            <Route path="reviews_productos" element={<ReviewsProductosAdmin />} />
+            <Route path="pedidos" element={<PedidosAdmin />} />
+            <Route path="pedidos/:id" element={<DetallePedidoAdmin />} />
+            <Route
+              path="reviews_productos"
+              element={<ReviewsProductosAdmin />}
+            />
             <Route path="testimonios" element={<TestimoniosAdmin />} />
           </Route>
         </Route>
@@ -85,17 +91,48 @@ function App() {
         >
           <Route index element={<PerfilUser />} />
         </Route>
+
+        {/* RUTA PROTEGIDA PARA EL CARRITO (solo clientes, rol 2) */}
         <Route
-          path="/historialCompras"
+          path="/carrito"
           element={
             <ProtectedRoute
               roles={[2]}
-              redirectTo="/"
-              specialRedirectPath="/" // Redirige a '/' cuando no autenticado
+              redirectTo="/login"
+              specialRedirectPath="/"
             />
           }
         >
-          <Route index element={<HistorialCompras />} />
+          <Route index element={<CarritoDetalle />} />
+        </Route>
+
+        {/* RUTA PROTEGIDA PARA EL CHECKOUT (solo clientes, rol 2) */}
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute
+              roles={[2]}
+              redirectTo="/login"
+              specialRedirectPath="/"
+            />
+          }
+        >
+          <Route index element={<CheckoutPago />} />
+        </Route>
+
+        {/* NUEVA RUTA PROTEGIDA PARA MIS PEDIDOS (solo clientes, rol 2) */}
+        <Route
+          path="/mis-pedidos"
+          element={
+            <ProtectedRoute
+              roles={[2]}
+              redirectTo="/login"
+              specialRedirectPath="/"
+            />
+          }
+        >
+          <Route index element={<MisPedidos />} />
+          <Route path=":id" element={<DetallePedido />} />
         </Route>
       </Routes>
     </AuthProvider>

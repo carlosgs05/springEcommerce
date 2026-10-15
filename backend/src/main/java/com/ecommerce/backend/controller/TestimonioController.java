@@ -3,6 +3,8 @@ package com.ecommerce.backend.controller;
 import com.ecommerce.backend.entity.Testimonio;
 import com.ecommerce.backend.service.TestimonioService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,6 +47,7 @@ public class TestimonioController {
                         testimonioMap.put("idtestimonio", testimonio.getIdtestimonio());
                         testimonioMap.put("descripcion", testimonio.getDescripcion());
                         testimonioMap.put("fechatestimonio", testimonio.getFechatestimonio());
+                        testimonioMap.put("calificacion", testimonio.getCalificacion());
                         testimonioMap.put("estado", testimonio.getEstado());
 
                         if (testimonio.getUsuario() != null) {
@@ -127,4 +130,22 @@ public class TestimonioController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    @GetMapping("/pendientes/count")
+    public ResponseEntity<?> contarComentariosPendientes() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            long cantidad = testimonioService.contarTestimoniosPendientes();
+
+            resp.put("success", true);
+            resp.put("count", cantidad);
+            return ResponseEntity.ok(resp);
+
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error al contar testimonios pendientes: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
 }

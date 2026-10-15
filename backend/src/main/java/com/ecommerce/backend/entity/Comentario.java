@@ -29,9 +29,12 @@ public class Comentario {
     @Column(name = "estado", columnDefinition = "INTEGER DEFAULT -1")
     private Integer estado = -1;
 
+    @Column(name = "calificacion", columnDefinition = "INTEGER")
+    private Integer calificacion;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "iduser")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // <- AÑADE ESTO
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)

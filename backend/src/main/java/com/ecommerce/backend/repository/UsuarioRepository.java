@@ -11,6 +11,9 @@ import java.util.Optional;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
+  @Query("SELECT u FROM Usuario u WHERE u.iduser = :iduser")
+  Optional<Usuario> findByIdUser(@Param("iduser") Integer iduser);
+
   @Query("""
         SELECT DISTINCT u
           FROM Usuario u
@@ -24,5 +27,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
   Optional<Usuario> findByVerificationToken(String token);
 
   List<Usuario> findByEnabledFalseAndTokenExpirationBefore(LocalDateTime expirationTime);
+
+  @Query("SELECT u FROM Usuario u WHERE u.rol.idrol = :idrol")
+  List<Usuario> findAllByRolId(@Param("idrol") Integer idrol);
 
 }

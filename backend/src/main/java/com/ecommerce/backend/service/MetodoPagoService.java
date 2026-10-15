@@ -56,8 +56,37 @@ public class MetodoPagoService {
         }).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable(value = "metodosPagoActivos")
+    public List<MetodoPagoDTO> obtenerMetodosPagoActivos() {
+        return metodoPagoRepository.findByActivo(true).stream().map(m -> {
+            MetodoPagoDTO dto = new MetodoPagoDTO();
+            dto.setIdMetodoPago(m.getIdMetodoPago());
+            dto.setNombre(m.getNombre());
+            dto.setDescripcion(m.getDescripcion());
+            dto.setActivo(m.getActivo());
+            dto.setIconoImg(m.getIconoImg());
+            dto.setConfigAdicional(m.getConfigAdicional());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<MetodoPagoDTO> obtenerPrimerosCuatroMetodosPago() {
+        return metodoPagoRepository.findTop4ByOrderByIdMetodoPagoAsc().stream().map(m -> {
+            MetodoPagoDTO dto = new MetodoPagoDTO();
+            dto.setIdMetodoPago(m.getIdMetodoPago());
+            dto.setNombre(m.getNombre());
+            dto.setDescripcion(m.getDescripcion());
+            dto.setActivo(m.getActivo());
+            dto.setIconoImg(m.getIconoImg());
+            dto.setConfigAdicional(m.getConfigAdicional());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
     @Transactional
-    @CacheEvict(value = { "metodosPago", "metodoPago" }, allEntries = true)
+    @CacheEvict(value = { "metodosPago", "metodoPago", "metodosPagoActivos" }, allEntries = true)
     public MetodoPagoDTO crearMetodoPago(MetodoPagoDTO req) throws IOException {
         MetodoPago m = new MetodoPago();
         m.setNombre(req.getNombre());
@@ -69,7 +98,8 @@ public class MetodoPagoService {
 
         if (req.getIconoMultipart() != null) {
             File carpeta = new File(uploadDir);
-            if (!carpeta.exists()) carpeta.mkdirs();
+            if (!carpeta.exists())
+                carpeta.mkdirs();
             req.getIconoMultipart().transferTo(new File(uploadDir + req.getIconoImg()));
         }
 
@@ -84,7 +114,7 @@ public class MetodoPagoService {
     }
 
     @Transactional
-    @CacheEvict(value = { "metodosPago", "metodoPago" }, allEntries = true)
+    @CacheEvict(value = { "metodosPago", "metodoPago", "metodosPagoActivos" }, allEntries = true)
     public MetodoPagoDTO actualizarMetodoPago(Long id, MetodoPagoDTO req) throws IOException {
         MetodoPago m = metodoPagoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado"));
@@ -97,7 +127,8 @@ public class MetodoPagoService {
             String nombreArchivo = UUID.randomUUID() + "_" + req.getIconoMultipart().getOriginalFilename();
             m.setIconoImg(nombreArchivo);
             File carpeta = new File(uploadDir);
-            if (!carpeta.exists()) carpeta.mkdirs();
+            if (!carpeta.exists())
+                carpeta.mkdirs();
             req.getIconoMultipart().transferTo(new File(uploadDir + nombreArchivo));
         }
 
@@ -114,7 +145,7 @@ public class MetodoPagoService {
     }
 
     @Transactional
-    @CacheEvict(value = { "metodosPago", "metodoPago" }, allEntries = true)
+    @CacheEvict(value = { "metodosPago", "metodoPago", "metodosPagoActivos" }, allEntries = true)
     public void eliminarMetodoPago(Long id) {
         if (!metodoPagoRepository.existsById(id)) {
             throw new IllegalArgumentException("Método de pago no encontrado");
@@ -123,7 +154,7 @@ public class MetodoPagoService {
     }
 
     @Transactional
-    @CacheEvict(value = { "metodosPago", "metodoPago" }, allEntries = true)
+    @CacheEvict(value = { "metodosPago", "metodoPago", "metodosPagoActivos" }, allEntries = true)
     public MetodoPagoDTO cambiarEstadoMetodoPago(Long id, boolean activo) {
         MetodoPago m = metodoPagoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado"));

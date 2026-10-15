@@ -40,7 +40,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (token && userData) {
       try {
         const parsedUser: User = JSON.parse(userData);
-        // Verificamos que tenga todos los campos esperados
         const safeUser: User = {
           iduser: parsedUser.iduser,
           nombre: parsedUser.nombre || "",
@@ -60,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         logout();
       }
     }
+    // eslint-disable-next-line
   }, []);
 
   const login = (userData: User, token: string) => {

@@ -11,7 +11,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -66,15 +65,19 @@ public class Usuario implements UserDetails {
 
     @JsonIgnore
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Carrito> carritos;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Pedido> pedidos;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Comentario> comentarios;
 
     @JsonIgnore
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Testimonio> testimonios;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Venta> ventas = new ArrayList<>();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

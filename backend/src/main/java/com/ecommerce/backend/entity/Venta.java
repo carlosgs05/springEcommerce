@@ -1,45 +1,25 @@
 package com.ecommerce.backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
-@Entity
-@Table(name = "venta")
 @Getter
 @Setter
+@Entity
+@Table(name = "venta")
 public class Venta {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idventa")
-    private Long idventa;
+    private Long idVenta;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "iduser", referencedColumnName = "iduser")
-    private Usuario usuario;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idpedido", referencedColumnName = "idpedido", nullable = false, unique = true)
+    private Pedido pedido;
 
-    @Column(name = "montototal")
-    private BigDecimal montoTotal;
-
-    @Column(name = "fechaventa", columnDefinition = "TIMESTAMP")
-    private LocalDateTime fechaVenta;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idmetodo_pago", referencedColumnName = "idmetodo_pago")
-    private MetodoPago metodoPago;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idmetodo_envio", referencedColumnName = "idmetodo_envio")
-    private MetodoEnvio metodoEnvio;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DetalleVenta> detalleVentas = new ArrayList<>();
+    @Column(name = "fecha_entrega", nullable = false)
+    private LocalDateTime fechaEntrega;
 }

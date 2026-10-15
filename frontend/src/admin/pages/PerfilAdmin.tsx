@@ -103,10 +103,11 @@ const PerfilAdmin: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center min-h-[590px] py-8">
-      <div className="w-full max-w-5xl mx-auto bg-white rounded-xl shadow-lg relative">
+      <div className="w-full max-w-5xl mx-auto bg-white bg-opacity-80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 relative">
+        {/* Avatar position */}
         <div className="absolute -top-10 left-1/2 transform -translate-x-1/2">
-          <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center border-4 border-white shadow-md">
-            <UserCircleIcon className="w-16 h-16 text-blue-600" />
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center border-4 border-white shadow-md">
+            <UserCircleIcon className="w-16 h-16 text-white" />
           </div>
           <span className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
             Admin
@@ -115,75 +116,81 @@ const PerfilAdmin: React.FC = () => {
 
         <div className="pt-16 px-6 pb-6">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Configuración de Perfil</h1>
-            <p className="text-gray-500 mt-1">Administra tu información personal y de seguridad</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-br from-cyan-500 to-blue-600 bg-clip-text text-transparent">
+              Configuración de Perfil
+            </h1>
+            <p className="text-gray-600 mt-1">Administra tu información personal y de seguridad</p>
           </div>
 
           <div className="flex space-x-4 mb-8 border-b border-gray-200 justify-center">
             <button
               onClick={() => handleTabChange('personal')}
-              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out ${
-                activeSection === 'personal'
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out relative ${activeSection === 'personal'
+                ? 'text-blue-600 font-semibold'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
               Información Personal
+              {activeSection === 'personal' && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"></span>
+              )}
             </button>
             <button
               onClick={() => handleTabChange('security')}
-              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out ${
-                activeSection === 'security'
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`pb-3 px-1 text-base font-medium cursor-pointer transition-all duration-300 ease-in-out relative ${activeSection === 'security'
+                ? 'text-blue-600 font-semibold'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
               Seguridad
+              {activeSection === 'security' && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"></span>
+              )}
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8 transition-all duration-300 ease-in-out">
             {activeSection === 'personal' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 transition-all duration-300 ease-in-out">
-                <div className="space-y-7">
+                <div className="space-y-6">
                   <div className="flex flex-col">
-                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Nombre</label>
+                    <label className="block w-full text-sm font-medium text-gray-700 mb-2">Nombre</label>
                     <input
                       name="nombre"
                       value={userData.nombre}
                       onChange={handleChange}
-                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="w-full px-4 py-2.5 text-base rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Celular</label>
-                    <div className="flex rounded-lg shadow-sm w-full">
-                      <span className="px-4 inline-flex items-center text-base text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-md">
+                    <label className="block w-full text-sm font-medium text-gray-700 mb-2">Celular</label>
+                    <div className="flex rounded-xl shadow-sm w-full">
+                      <span className="px-4 inline-flex items-center text-base text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-xl">
                         +51
                       </span>
                       <input
                         name="celular"
                         value={userData.celular}
                         onChange={handleChange}
-                        className="py-2.5 px-4 w-full text-base border border-gray-300 rounded-r-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="py-2.5 px-4 w-full text-base border border-gray-300 rounded-r-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         placeholder="Ej: 987654321"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-7">
+                <div className="space-y-6">
                   <div className="flex flex-col">
-                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Apellido</label>
+                    <label className="block w-full text-sm font-medium text-gray-700 mb-2">Apellido</label>
                     <input
                       name="apellido"
                       value={userData.apellido}
                       onChange={handleChange}
-                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="w-full px-4 py-2.5 text-base rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="block w-full text-base font-medium text-gray-700 mb-2">DNI</label>
+                    <label className="block w-full text-sm font-medium text-gray-700 mb-2">DNI</label>
                     <input
                       name="dni"
                       value={userData.dni}
@@ -200,36 +207,36 @@ const PerfilAdmin: React.FC = () => {
               <div className="space-y-6 transition-all duration-300 ease-in-out pb-4">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="flex flex-col">
-                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Correo electrónico</label>
+                    <label className="block w-full text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
                     <input
                       name="correo"
                       value={userData.correo}
                       disabled
-                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                      className="w-full px-4 py-2.5 text-base rounded-xl border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="block w-full text-base font-medium text-gray-700 mb-2">Contraseña actual</label>
+                    <label className="block w-full text-sm font-medium text-gray-700 mb-2">Contraseña actual</label>
                     <input
                       type="password"
                       value="••••••••••••••••••••"
                       disabled
-                      className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                      className="w-full px-4 py-2.5 text-base rounded-xl border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
                     />
                   </div>
                 </div>
 
-                <div className="border-t border-gray-200 pt-7">
+                <div className="border-t border-gray-200 pt-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="flex flex-col">
-                      <label className="block w-full text-base font-medium text-gray-700 mb-2">Nueva contraseña</label>
+                      <label className="block w-full text-sm font-medium text-gray-700 mb-2">Nueva contraseña</label>
                       <div className="relative w-full">
                         <input
                           type={showPassword.new ? 'text' : 'password'}
                           name="newPassword"
                           value={userData.newPassword}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-12"
+                          className="w-full px-4 py-2.5 text-base rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-12 transition-all"
                         />
                         <button
                           type="button"
@@ -246,14 +253,14 @@ const PerfilAdmin: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="block w-full text-base font-medium text-gray-700 mb-2">Confirmar contraseña</label>
+                      <label className="block w-full text-sm font-medium text-gray-700 mb-2">Confirmar contraseña</label>
                       <div className="relative w-full">
                         <input
                           type={showPassword.confirm ? 'text' : 'password'}
                           name="confirmPassword"
                           value={userData.confirmPassword}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-12"
+                          className="w-full px-4 py-2.5 text-base rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-12 transition-all"
                         />
                         <button
                           type="button"
@@ -276,14 +283,14 @@ const PerfilAdmin: React.FC = () => {
             <div className="flex justify-center gap-3 pt-8 border-t border-gray-200">
               <button
                 type="button"
-                className="px-6 py-2.5 text-base font-medium text-gray-600 hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors cursor-pointer"
+                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl transition-colors cursor-pointer text-white font-medium"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 text-base font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="px-6 py-2.5 text-base font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md cursor-pointer"
               >
                 {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
               </button>
