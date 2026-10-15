@@ -1,15 +1,79 @@
 @import "tailwindcss";
 
+/* Modo oscuro por clase (<html class="dark">), no por preferencia del sistema */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* static: emite todas las variables aunque aún no se usen */
+@theme static {
+  --font-heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-accent: #06B6D4;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+
+  --color-surface: #FFFFFF;
+  --color-canvas: #F8FAFC;
+  --color-border: #E2E8F0;
+  --color-text: #0F172A;
+  --color-text-muted: #475569;
+
+  --shadow-elevation-1: 0 1px 3px rgba(15,23,42,0.08);
+  --shadow-elevation-2: 0 10px 24px -6px rgba(15,23,42,0.12);
+  --shadow-elevation-3: 0 20px 40px -8px rgba(15,23,42,0.18);
+  --shadow-primary-glow: 0 4px 12px rgba(37,99,235,0.25);
+
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+}
+
+.dark {
+  --color-surface: #151E32;
+  --color-canvas: #0B1120;
+  --color-border: rgba(255,255,255,0.08);
+  --color-text: #F1F5F9;
+  --color-primary: #3B82F6;
+  --color-accent: #22D3EE;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
 @keyframes fadeInOut {
     0% { opacity: 0; }
     10% { opacity: 1; }
     90% { opacity: 1; }
     100% { opacity: 0; }
   }
-  
+
   .animate-fade-in-out {
     animation: fadeInOut 5s forwards;
   }
+
+/* Componentes nuevos (src/components/ui): marcados con data-ui */
+@media (prefers-reduced-motion: reduce) {
+  [data-ui],
+  [data-ui] * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 
   @media print {
   header, footer, .no-print {

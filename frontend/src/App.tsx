@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import GuestRoute from "./components/GuestRoute";
@@ -33,10 +34,28 @@ import DetallePedido from "./user/pages/DetallePedido";
 import PedidosAdmin from "./admin/pages/PedidosAdmin";
 import DetallePedidoAdmin from "./admin/pages/DetallePedidoAdmin";
 
+// Solo en desarrollo: en el build de producción la rama se elimina y el chunk no se genera
+const UiShowcase = import.meta.env.DEV
+  ? lazy(() =>
+      import("./dev/UiShowcase").then((m) => ({ default: m.UiShowcase })),
+    )
+  : null;
+
 function App() {
   return (
     <AuthProvider>
       <Routes>
+        {UiShowcase && (
+          <Route
+            path="/dev/ui"
+            element={
+              <Suspense fallback={<p className="p-6">Cargando…</p>}>
+                <UiShowcase />
+              </Suspense>
+            }
+          />
+        )}
+
         {/* Ruta raíz */}
         <Route path="/" element={<HomeRoute />} />
 

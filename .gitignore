@@ -1,0 +1,3 @@
+# Archivos que generan iniciar_sistema.bat / detener_sistema.bat en cada corrida
+scripts/*.pid
+scripts/ecommerce_log.txt
