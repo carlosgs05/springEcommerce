@@ -2,7 +2,7 @@
 
 ## Progreso (actualizar al cerrar cada día — así se sabe cuál sigue sin releer todo)
 
-- [ ] Día 1 — Fundamentos: tokens de diseño, piezas compartidas, seguridad transversal y base de datos versionada
+- [x] Día 1 — Fundamentos: tokens de diseño, piezas compartidas, seguridad transversal y base de datos versionada
 - [ ] Día 2 — Autenticación (con multifactor de 3 factores)
 - [ ] Día 3 — Usuarios/Perfil + Roles y Permisos + Gestión de Clientes (admin)
 - [ ] Día 4 — Categorías + Marcas
