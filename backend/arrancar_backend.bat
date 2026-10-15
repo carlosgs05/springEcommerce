@@ -31,4 +31,7 @@ if defined BACKEND_JAVA_HOME (
 
 rem Ruta explicita [".\"] - esta PC tiene activado NoDefaultCurrentDirectoryInExePath,
 rem que impide que cmd encuentre mvnw.cmd por nombre suelto aunque este en esta carpeta.
-call .\mvnw.cmd spring-boot:run
+rem -Dmaven.compiler.proc=full - sin esto, con JDK 23 el procesador de anotaciones
+rem de Lombok no corre y la compilacion falla con "cannot find symbol" en los
+rem getters/setters que Lombok deberia generar [@Getter/@Setter/@Data].
+call .\mvnw.cmd spring-boot:run -Dmaven.compiler.proc=full

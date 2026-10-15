@@ -49,7 +49,7 @@ public class Pedido {
     @Column(name = "comprobante_pago", nullable = false, columnDefinition = "TEXT")
     private String comprobantePago;
 
-    @Column(name = "direccion_envio", nullable = false, columnDefinition = "VARCHAR(150)")
+    @Column(name = "direccion_envio", nullable = false, length = 150)
     private String direccionEnvio;
 
     @Column(name = "observacion", columnDefinition = "TEXT")
