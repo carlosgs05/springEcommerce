@@ -38,7 +38,8 @@ if not exist "%ROOT_DIR%frontend\node_modules" (
 
 echo.
 echo [2/5] Cerrando una corrida anterior, si quedo alguna abierta...
-call "%ROOT_DIR%detener_sistema.bat" /SILENCIOSO
+rem /SOLO_PROCESOS: solo mata procesos colgados, no borra target/.vite [ver detener_sistema.bat].
+call "%ROOT_DIR%detener_sistema.bat" /SOLO_PROCESOS
 
 echo.
 echo [3/5] Iniciando el backend [Spring Boot] en puerto 8080...
