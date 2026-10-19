@@ -16,14 +16,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-white hover:bg-primary-hover hover:shadow-primary-glow",
+    "bg-primary text-surface hover:bg-primary-hover hover:shadow-primary-glow",
   secondary:
     "bg-surface text-text border border-border hover:bg-canvas hover:shadow-elevation-1",
-  danger: "bg-danger text-white hover:brightness-90 hover:shadow-elevation-2",
+  danger: "bg-danger text-surface hover:brightness-90 hover:shadow-elevation-2",
   ghost: "bg-transparent text-text hover:bg-border",
 };
 
-// Primario en modo oscuro: blanco sobre #3B82F6 = 3.68:1 (< AA 4.5); token aprobado, pendiente de decisión del dueño.
+// Primario: texto oscuro (#1C1917 = surface) sobre oro, nunca blanco.
 // Base: nunca menos de 44px de alto. sm se compacta solo desde el breakpoint sm.
 const sizes: Record<ButtonSize, string> = {
   sm: "min-h-11 px-3 text-sm sm:min-h-9",
@@ -79,7 +79,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        "relative inline-flex items-center justify-center gap-2 rounded-control font-heading font-medium",
+        "relative inline-flex items-center justify-center gap-2 rounded-control font-body font-semibold",
         "transition-[color,background-color,box-shadow,filter,border-color] duration-[var(--duration-fast)] ease-standard",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",

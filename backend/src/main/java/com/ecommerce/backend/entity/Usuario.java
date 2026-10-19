@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
+import lombok.ToString;
 import lombok.Setter;
 
 import org.springframework.security.core.GrantedAuthority;
@@ -38,26 +39,54 @@ public class Usuario implements UserDetails {
     @Column(name = "correo", length = 100)
     private String correo;
 
+    @JsonIgnore
+    @ToString.Exclude
     @Column(name = "password", length = 255)
     private String password;
 
     @Column(name = "celular", length = 9)
     private String celular;
 
+    @JsonIgnore
+    @ToString.Exclude
     @Column(name = "reset_code")
     private Integer resetCode;
 
+    @JsonIgnore
     @Column(name = "reset_code_expires_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime resetCodeExpiresAt;
 
+    @JsonIgnore
+    @ToString.Exclude
     @Column(name = "verification_token", length = 255)
     private String verificationToken;
 
     @Column(name = "is_enabled")
     private boolean enabled;
 
+    @JsonIgnore
     @Column(name = "token_expiration", columnDefinition = "TIMESTAMP")
     private LocalDateTime tokenExpiration;
+
+    // --- Cambio de correo pendiente (migracion V3) ---
+    @JsonIgnore
+    @Column(name = "correo_pendiente", length = 100)
+    private String correoPendiente;
+
+    @JsonIgnore
+    @ToString.Exclude
+    @Column(name = "correo_pendiente_codigo")
+    private Integer correoPendienteCodigo;
+
+    @JsonIgnore
+    @Column(name = "correo_pendiente_expira", columnDefinition = "TIMESTAMP")
+    private LocalDateTime correoPendienteExpira;
+
+    // --- Cierre Dia 2 (migracion V5): version de sesion; sube al cambiar rol o confirmar cambio de correo
+    // y mata todos los JWT emitidos antes (claim "sv"). ---
+    @JsonIgnore
+    @Column(name = "sesion_version", nullable = false)
+    private int sesionVersion;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idrol", referencedColumnName = "idrol")

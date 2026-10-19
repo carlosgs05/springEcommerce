@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { CheckCircle, SpinnerGap, XCircle } from "@phosphor-icons/react";
+import { api } from "../lib/api";
+import { Button } from "../components/ui";
+import { apiMessage } from "./formUtils";
 
 interface VerifyResponse {
   statusCode: number;
@@ -10,10 +13,8 @@ interface VerifyResponse {
 }
 
 const VerificationAccount: React.FC = () => {
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
-  );
-  const [message, setMessage] = useState("Verificando cuenta...");
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [message, setMessage] = useState("");
   const [seconds, setSeconds] = useState(5);
   const hasFetched = useRef(false);
   const navigate = useNavigate();
@@ -22,108 +23,81 @@ const VerificationAccount: React.FC = () => {
     if (hasFetched.current) return;
     hasFetched.current = true;
 
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
+    const token = new URLSearchParams(window.location.search).get("token");
     if (!token) {
       setStatus("error");
-      setMessage("Token no proporcionado en la URL.");
+      setMessage("El enlace no es válido. Abre el enlace completo que te enviamos por correo.");
       return;
     }
 
-    axios
-      .get<VerifyResponse>(
-        `http://localhost:8080/api/auth/verify-email?token=${token}`
-      )
+    api
+      .get<VerifyResponse>("/api/auth/verify-email", { params: { token } })
       .then((resp) => {
-        console.log("HTTP status:", resp.status, "Payload:", resp.data);
-        if (resp.status === 200 && resp.data.statusCode === 200) {
+        if (resp.data.statusCode === 200) {
           const { nombre = "", message: srvMsg } = resp.data;
           setStatus("success");
-          setMessage(`¡Hola ${nombre}! ${srvMsg}`);
+          setMessage(nombre ? `¡Hola ${nombre}! ${srvMsg}` : srvMsg);
         } else {
           setStatus("error");
-          setMessage(resp.data.message || "Error en la verificación.");
+          setMessage(resp.data.message || "No pudimos verificar tu cuenta.");
         }
       })
       .catch((err) => {
-        console.error("Axios catch:", err);
-        const errMsg =
-          err.response?.data?.message ||
-          err.message ||
-          "No se pudo conectar con el servidor.";
         setStatus("error");
-        setMessage(errMsg);
+        setMessage(apiMessage(err, "No pudimos verificar tu cuenta. Inténtalo de nuevo."));
       });
   }, []);
 
-  // Contador y redirección
+  // Cuenta regresiva y redirección al login
   useEffect(() => {
-    if (status === "success") {
-      const interval = setInterval(() => {
-        setSeconds((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            navigate("/login");
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [status, navigate]);
+    if (status !== "success") return;
+    const interval = setInterval(() => setSeconds((prev) => prev - 1), 1000);
+    return () => clearInterval(interval);
+  }, [status]);
+
+  useEffect(() => {
+    if (status === "success" && seconds <= 0) navigate("/login");
+  }, [status, seconds, navigate]);
+
+  const title =
+    status === "loading"
+      ? "Verificando tu cuenta"
+      : status === "success"
+        ? "Cuenta verificada"
+        : "No pudimos verificar tu cuenta";
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gradient-to-tr from-zinc-900 to-gray-700">
-      <div className="w-full max-w-md p-8 bg-zinc-800 rounded-2xl shadow-2xl text-center text-white space-y-4">
-        <img
-          className="w-20 mx-auto mb-4 animate-pulse"
-          src={
-            status === "loading"
-              ? "https://img.icons8.com/ios-filled/50/00ffff/spinner-frame-2.png"
-              : status === "success"
-              ? "https://img.icons8.com/color/96/ok--v1.png"
-              : "https://img.icons8.com/color/96/cancel--v1.png"
-          }
-          alt={status}
-        />
+    <div className="text-center">
+      <span
+        className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${
+          status === "error" ? "bg-danger/15 text-danger" : status === "success" ? "bg-success/15 text-success" : "bg-primary/15 text-primary"
+        }`}
+      >
+        {status === "loading" && <SpinnerGap size={30} className="animate-spin" aria-hidden="true" />}
+        {status === "success" && <CheckCircle size={30} weight="fill" aria-hidden="true" />}
+        {status === "error" && <XCircle size={30} weight="fill" aria-hidden="true" />}
+      </span>
 
-        <h1 className="text-2xl font-semibold tracking-wide">
-          {status === "loading"
-            ? "Verificando cuenta..."
-            : status === "success"
-            ? "Cuenta verificada"
-            : "Verificación fallida"}
-        </h1>
+      <h1 className="font-heading text-2xl font-bold sm:text-3xl">{title}</h1>
 
-        <p
-          className={`text-base ${
-            status === "success" ? "text-green-400" : "text-red-400"
-          }`}
-        >
-          {message}
-        </p>
-
+      <div role="status" aria-live="polite">
+        {status === "loading" ? (
+          <p className="mt-3 text-text-muted">Un momento, estamos confirmando tu correo.</p>
+        ) : (
+          <p className="mt-3 break-words text-text-muted">{message}</p>
+        )}
         {status === "success" && (
-          <p className="text-sm text-gray-300">
-            Redirigiendo al login en{" "}
-            <span className="font-bold">{seconds}</span> segundos...
+          <p className="mt-2 text-sm text-text-muted">
+            Te llevamos a iniciar sesión en {Math.max(seconds, 0)} segundos.
           </p>
         )}
-
-        {status !== "loading" && (
-          <Link to="/login">
-            <button
-              className={`mt-4 w-full py-2 rounded-xl font-medium transition-colors cursor-pointer ${
-                status === "success"
-                  ? "bg-cyan-500 hover:bg-cyan-600"
-                  : "bg-red-500 hover:bg-red-600"
-              }`}
-            >
-              Ir al Login
-            </button>
-          </Link>
-        )}
       </div>
+
+      {status !== "loading" && (
+        <Button fullWidth size="lg" className="mt-6" onClick={() => navigate("/login")}>
+          Ir a iniciar sesión
+        </Button>
+      )}
     </div>
   );
 };

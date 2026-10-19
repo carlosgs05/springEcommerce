@@ -36,11 +36,11 @@ class SeguridadConfigTest {
         JWTUtils jwt = new JWTUtils(clave(64));
         UserDetails u = new User("a@b.com", "x", List.of());
         String t = jwt.generateToken(u);
-        assertEquals("a@b.com", jwt.extractUsername(t));
-        assertTrue(jwt.isTokenValid(t, u));
+        assertEquals("a@b.com", jwt.parseClaims(t).getSubject());
+        assertEquals("access", jwt.parseClaims(t).get("typ", String.class));
         // token firmado con otra clave no vale
         String ajeno = new JWTUtils(clave(64)).generateToken(u);
-        assertThrows(Exception.class, () -> jwt.extractUsername(ajeno));
+        assertThrows(Exception.class, () -> jwt.parseClaims(ajeno));
     }
 
     private static List<String> origenes(String raw) {

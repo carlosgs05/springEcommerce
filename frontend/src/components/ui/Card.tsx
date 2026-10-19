@@ -60,7 +60,7 @@ export function CardHeader({ className, ...rest }: HTMLAttributes<HTMLDivElement
 }
 
 export function CardBody({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("text-text-muted dark:text-slate-400", className)} {...rest} />;
+  return <div className={cn("text-text-muted", className)} {...rest} />;
 }
 
 export function CardFooter({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {

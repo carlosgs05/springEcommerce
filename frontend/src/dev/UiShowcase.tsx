@@ -24,16 +24,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function UiShowcase() {
-  const [dark, setDark] = useState(() =>
-    document.documentElement.classList.contains("dark"),
-  );
   const [loading, setLoading] = useState(false);
-
-  const toggleDark = () => {
-    const next = !dark;
-    document.documentElement.classList.toggle("dark", next);
-    setDark(next);
-  };
 
   const fakeSubmit = () => {
     setLoading(true);
@@ -45,9 +36,6 @@ export function UiShowcase() {
       <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
         <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold sm:text-3xl">TechStore · UI base</h1>
-          <Button variant="secondary" onClick={toggleDark} aria-pressed={dark}>
-            {dark ? "Modo claro" : "Modo oscuro"}
-          </Button>
         </header>
 
         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -1,30 +1,32 @@
 @import "tailwindcss";
 
-/* Modo oscuro por clase (<html class="dark">), no por preferencia del sistema */
-@custom-variant dark (&:where(.dark, .dark *));
+/* Un solo modo (oscuro): sin clase .dark ni alternancia */
+:root {
+  color-scheme: dark;
+}
 
 /* static: emite todas las variables aunque aún no se usen */
 @theme static {
-  --font-heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Playfair Display", ui-serif, Georgia, serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --color-primary: #2563EB;
-  --color-primary-hover: #1D4ED8;
-  --color-accent: #06B6D4;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
+  --color-primary: #D4AF37;
+  --color-primary-hover: #E8C547;
+  --color-accent: #F2C94C;
+  --color-success: #22C55E;
+  --color-warning: #F97316;
+  --color-danger: #EF4444;
 
-  --color-surface: #FFFFFF;
-  --color-canvas: #F8FAFC;
-  --color-border: #E2E8F0;
-  --color-text: #0F172A;
-  --color-text-muted: #475569;
+  --color-surface: #1C1917;
+  --color-canvas: #0C0A09;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text: #FAFAF9;
+  --color-text-muted: #A8A29E;
 
-  --shadow-elevation-1: 0 1px 3px rgba(15,23,42,0.08);
-  --shadow-elevation-2: 0 10px 24px -6px rgba(15,23,42,0.12);
-  --shadow-elevation-3: 0 20px 40px -8px rgba(15,23,42,0.18);
-  --shadow-primary-glow: 0 4px 12px rgba(37,99,235,0.25);
+  --shadow-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-elevation-2: 0 10px 24px -6px rgba(0, 0, 0, 0.5);
+  --shadow-elevation-3: 0 20px 40px -8px rgba(0, 0, 0, 0.6);
+  --shadow-primary-glow: 0 4px 16px rgba(212, 175, 55, 0.35);
 
   --radius-card: 1rem;
   --radius-control: 0.75rem;
@@ -33,15 +35,6 @@
   --duration-fast: 150ms;
   --duration-base: 250ms;
   --duration-slow: 400ms;
-}
-
-.dark {
-  --color-surface: #151E32;
-  --color-canvas: #0B1120;
-  --color-border: rgba(255,255,255,0.08);
-  --color-text: #F1F5F9;
-  --color-primary: #3B82F6;
-  --color-accent: #22D3EE;
 }
 
 @layer base {
@@ -65,6 +58,18 @@
     animation: fadeInOut 5s forwards;
   }
 
+/* Autenticación: entrada de pantalla/paso (solo transform/opacity). El shake de campos va por WAAPI en autenticacion/formUtils.ts */
+@keyframes auth-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes auth-in-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.auth-step-right { animation: auth-in-right var(--duration-base) var(--ease-standard) both; }
+.auth-step-left { animation: auth-in-left var(--duration-base) var(--ease-standard) both; }
+
 /* Componentes nuevos (src/components/ui): marcados con data-ui */
 @media (prefers-reduced-motion: reduce) {
   [data-ui],
@@ -72,6 +77,10 @@
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+  .auth-step-right,
+  .auth-step-left {
+    animation: none;
   }
 }
 

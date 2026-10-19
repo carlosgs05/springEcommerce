@@ -1,90 +1,103 @@
 # Identidad visual — TechStore
 
-Este documento es la fuente de verdad del sistema de diseño. **Toda pantalla
-nueva o rediseñada debe seguir esto**, no reinventar valores sueltos. Si algo
-cambia aquí durante la construcción (un ajuste de contraste, un hover que no
-se sentía bien, etc.), se actualiza este archivo en el mismo commit que lo
-cambia en código — nunca al revés. El detalle día por día de qué pantalla usa
-qué está en `PLAN_DISENO_PORTAFOLIO.md`; esto es solo el sistema en sí.
+Fuente de verdad del sistema de diseño. Toda pantalla nueva o rediseñada
+sigue esto, no inventa valores sueltos. Si algo cambia durante la
+construcción, se actualiza este archivo en el mismo commit que lo cambia en
+código. El detalle día por día de qué pantalla usa qué está en
+`PLAN_DISENO_PORTAFOLIO.md`; esto es solo el sistema en sí.
 
 ## Marca
 
-- **Nombre:** "TechStore" — placeholder. No existe ningún nombre real en el
-  proyecto todavía (`frontend/index.html` seguía con el título por defecto de
-  Vite antes del Día 1). Queda centralizado en pocos lugares (`index.html`,
-  `Header.tsx`, `Footer.tsx`, pantallas de auth) para poder cambiarlo en un
-  minuto cuando el dueño tenga el nombre real — **no repetirlo hardcodeado**
-  en más archivos de los necesarios.
-- **Logo:** no existe todavía. Pendiente de que el dueño lo traiga o se
-  diseñe uno — no es parte de los 12 días del plan.
+- **Nombre:** "TechStore" — única fuente de verdad (el código tiene hoy
+  "TechShop" suelto en varios archivos de usuario; se corrige al tocar cada
+  pantalla, no se inventa un nombre nuevo).
+- **Logo:** no existe un logo real todavía. Mientras tanto, **el logo es el
+  wordmark del nombre en Playfair Display** — nada de íconos prestados. Hoy
+  el código usa un ícono hotlinkeado de `icons8.com` (un tigre, sin relación
+  con la marca) en 6 archivos (`Header`, `Footer`, `SidebarAdmin`, `Login`,
+  `ForgotPassword`, `RegisterUser`) — se quita al tocar cada pantalla.
 
 ## Por qué este sistema (no genérico, no repite lo de CAR_WASH)
 
-Dos estilos activos de la base de datos de la skill `ui-ux-pro-max`, elegidos
-a propósito por no superponerse con lo que ya usó CAR_WASH (que usó Material
-3 Expressive, Bento Box Grid, Glassmorphism, Dark Mode OLED):
+Estilos activos de `ui-ux-pro-max` elegidos para no superponerse con el otro
+proyecto del portafolio (CAR_WASH: Material 3 Expressive, Bento Box,
+Glassmorphism, Dark Mode OLED):
 
 | Estilo | Rol aquí |
 |---|---|
-| **Dimensional Layering** | Tarjetas de producto con profundidad real por elevación (sombra en 4 niveles) — una laptop/celular "flota" sobre el fondo, sensación premium sin blur. |
-| **Minimalism & Swiss Style** | Grid tipográfico limpio y de alto contraste en checkout, perfil y panel admin — genera confianza sin verse "plano". |
+| **Dimensional Layering** | Tarjetas de producto con profundidad por elevación (sombra en 4 niveles) — sensación premium sin blur. |
+| **Minimalism & Swiss Style** | Grid tipográfico limpio y de alto contraste en checkout/perfil/admin. |
 
-Se descartó a propósito "Vibrant & Block-based" (la recomendación genérica
-de la base para "E-commerce") porque es el estilo que reutilizan las
-plantillas — el objetivo es que esta tienda no se vea como una.
+Se descartó "Vibrant & Block-based" (recomendación genérica de la base para
+"E-commerce") y "Glassmorphism"/"Liquid Glass" (recomendación genérica para
+"E-commerce Luxury") a propósito — son el estilo que reutilizan las
+plantillas; el objetivo es que esta tienda no se vea como una.
 
-## Tipografía
+## Modo: oscuro único, sin toggle
 
-Pareo real de `typography.csv`: **"Tech Startup"**.
-
-- **Space Grotesk** — headings.
-- **DM Sans** — body.
-- Google Fonts: `https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap`
-
-| Peso | Uso |
-|---|---|
-| Space Grotesk 700 | Títulos de pantalla / precios grandes |
-| Space Grotesk 600 | Encabezados de sección, nombre de producto en tarjeta |
-| Space Grotesk 500 | Botones, labels de formulario |
-| DM Sans 400 | Cuerpo de texto, descripciones, tablas |
-| DM Sans 500/700 | Énfasis dentro de texto de cuerpo (precio inline, estado) |
-
-## Paleta — Claro (por defecto)
+**No hay modo claro.** Es un solo sistema, sin clase `.dark` ni lógica de
+alternancia — se declara `color-scheme: dark` en `:root` para que los
+controles nativos del navegador también se vean oscuros.
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-canvas` | `#F8FAFC` | Fondo general |
-| `--color-surface` | `#FFFFFF` | Tarjetas/superficies (borde 1px `--color-border`) |
-| `--color-border` | `#E2E8F0` | Borde de tarjetas/inputs |
-| `--color-text` | `#0F172A` | Texto principal |
-| `--color-text-muted` | `#475569` | Texto secundario |
-| `--color-primary` | `#2563EB` | Marca/CTA |
-| `--color-primary-hover` | `#1D4ED8` | Hover de primario |
-| `--color-accent` | `#06B6D4` | Precio, badges "oferta" |
-| `--color-success` | `#16A34A` | Stock disponible, pedido entregado |
-| `--color-warning` | `#D97706` | Poco stock |
-| `--color-danger` | `#DC2626` | Error/destructivo |
+| `--color-canvas` | `#0C0A09` | Fondo general |
+| `--color-surface` | `#1C1917` | Tarjetas/superficies |
+| `--color-border` | `rgba(255,255,255,0.08)` | Borde de tarjetas/inputs |
+| `--color-text` | `#FAFAF9` | Texto principal |
+| `--color-text-muted` | `#A8A29E` | Texto secundario |
+| `--color-primary` | `#D4AF37` | Marca/CTA (oro — sobre un fondo tan oscuro el grafito no se vería) |
+| `--color-primary-hover` | `#E8C547` | Hover de primario |
+| `--color-accent` | `#F2C94C` | Precio, badges "oferta" (oro claro, distinto del primario) |
+| `--color-success` | `#22C55E` | Stock disponible, pedido entregado |
+| `--color-warning` | `#F97316` | Poco stock |
+| `--color-danger` | `#EF4444` | Error/destructivo |
 
-Sombras (elevación por capas, nunca blur/backdrop-filter):
-- `--shadow-elevation-1`: `0 1px 3px rgba(15,23,42,0.08)` — tarjeta en reposo.
-- `--shadow-elevation-2`: `0 10px 24px -6px rgba(15,23,42,0.12)` — tarjeta en hover/destacada.
-- `--shadow-elevation-3`: `0 20px 40px -8px rgba(15,23,42,0.18)` — modal/panel flotante.
-- `--shadow-primary-glow`: `0 4px 12px rgba(37,99,235,0.25)` — hover del botón primario (token agregado en el Día 1).
+Sombras (elevación por capas, recalculadas para fondo oscuro — nunca
+blur/backdrop-filter):
+- `--shadow-elevation-1`: `0 1px 3px rgba(0,0,0,0.4)` — tarjeta en reposo.
+- `--shadow-elevation-2`: `0 10px 24px -6px rgba(0,0,0,0.5)` — hover/destacada.
+- `--shadow-elevation-3`: `0 20px 40px -8px rgba(0,0,0,0.6)` — modal/panel flotante.
+- `--shadow-primary-glow`: `0 4px 16px rgba(212,175,55,0.35)` — hover del botón primario.
 
-## Paleta — Oscuro (opción activable, clase `.dark`, no es la base)
+**On-primary fijo:** texto **oscuro** (`#1C1917`) sobre el botón primario
+(oro) — nunca blanco, blanco sobre oro no pasa contraste.
 
-| Token | Valor |
+## Tipografía
+
+Pareo real de `typography.csv`: **"Classic Elegant"** (recomendado para
+e-commerce premium, combina con Grafito+Oro mejor que un sans+sans).
+
+- **Playfair Display** — headings (serif de alto contraste).
+- **Inter** — body, botones, labels, **tablas de specs técnicas** (el serif
+  nunca baja a tamaño de botón ni a datos tabulares).
+- Google Fonts: `https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap`
+
+| Peso | Uso |
 |---|---|
-| `--color-canvas` | `#0B1120` |
-| `--color-surface` | `#151E32` (borde `rgba(255,255,255,0.08)`) |
-| `--color-text` | `#F1F5F9` |
-| `--color-primary` | `#3B82F6` |
-| `--color-accent` | `#22D3EE` |
+| Playfair Display 700 | Títulos de pantalla / precios grandes |
+| Playfair Display 600 | Encabezados de sección, nombre de producto en tarjeta |
+| Inter 500/600 | Botones, labels de formulario |
+| Inter 400 | Cuerpo de texto, descripciones, tablas de specs |
+| Inter 500/700 | Énfasis dentro de texto de cuerpo (precio inline, estado) |
+
+Cuidado a aplicar: Playfair Display en mobile necesita tamaños de título más
+conservadores que un sans — probar salto de línea en nombres de producto
+largos en las tarjetas del catálogo, en los 3 anchos.
+
+## Iconografía
+
+**Phosphor** (`@phosphor-icons/react`) como librería única; **Heroicons**
+solo como respaldo si falta un ícono puntual. `react-icons` deja de usarse
+para código nuevo (hoy es la librería dominante en el proyecto, mezclada
+además con Heroicons en un solo archivo y con PNGs sueltos de icons8 para
+estados de carga/verificación — se migra pantalla por pantalla, el día que
+el plan la toque).
 
 ## Botón principal
 
-- Color sólido `#2563EB` (**sin degradado** — a propósito, eso ya lo usó
-  CAR_WASH en su botón). Hover: `box-shadow: 0 4px 12px rgba(37,99,235,0.25)`.
+- Color sólido `#D4AF37` (oro — **sin degradado**), texto oscuro encima.
+  Hover: `box-shadow: 0 4px 16px rgba(212,175,55,0.35)`.
 - Forma: `rounded-xl` (12px) — no píldora.
 
 ## Radios
@@ -101,49 +114,63 @@ Sombras (elevación por capas, nunca blur/backdrop-filter):
 --duration-slow: 400ms;
 ```
 
-Reglas:
-- Solo propiedades compuestas (`transform`, `opacity`) — nunca animar
-  `width`/`top`/`left` directamente (skill `animation-performance`).
-- No se anima todo porque sí — antes de animar una pantalla, usar
-  `find-animation-opportunities` para confirmar que ayuda (confirma una
-  acción: se agregó al carrito, el pago se confirmó, hay notificación
-  nueva), no que distrae.
-- Construir cada animación con la skill `animate`, revisar con
-  `review-animations` como parte del pulido de cada día.
+Solo propiedades compuestas (`transform`, `opacity`) — nunca `width`/`top`/
+`left` directamente. No se anima todo porque sí: usar
+`find-animation-opportunities` antes de animar una pantalla; construir con
+`animate`; revisar con `review-animations`.
+
+## Distribución/estructura — no solo color
+
+Comparado contra un sitio real del mismo rubro (electrónica/audio premium),
+confirmado que el patrón actual (hero en carrusel + countdown de oferta +
+testimonios + marcas + beneficios en la Home; sidebar de filtros fijo en el
+catálogo; specs técnicas escondidas en una pestaña en la ficha de producto)
+es el más genérico de ecommerce que existe. Reglas para el rediseño:
+
+- **Home:** hero de una sola pieza (no carrusel automático); nada de
+  countdown de "oferta relámpago" sin fecha real de vencimiento (presión
+  artificial, además de ser el patrón de plantilla más repetido) — en su
+  lugar, una franja de "más vendidos"/"recomendados" con datos reales.
+- **Catálogo:** los filtros no se quitan (hacen falta con un catálogo
+  real), pero no van en un sidebar fijo de escritorio — van en chips
+  compactos + drawer en mobile; los chips deben poder envolver o colapsar
+  en "+n", nunca cortarse en una fila fija.
+- **Ficha de producto:** se mantienen las 2 columnas (galería + compra,
+  funciona), pero las specs técnicas no van en una pestaña más — son la
+  sección fuerte visible justo debajo, sin clic extra (es lo que decide una
+  compra de electrónica de ticket alto).
 
 ## Anti-patrones a evitar (decisión explícita, no olvido)
 
-- Nada de `backdrop-filter`/blur.
-- Nada de tonal elevation ni state layers de Material.
-- Nada de grillas asimétricas tipo bento — las tarjetas de producto son
-  todas del mismo tamaño base; la jerarquía se construye con elevación y
-  tipografía, no con tamaños de celda distintos.
+- Nada de `backdrop-filter`/blur, nada de tonal elevation ni state layers de
+  Material, nada de grillas asimétricas tipo bento.
+- Nada de imágenes hotlinkeadas de servicios externos (icons8 u otros) para
+  logo o estados de carga/verificación.
+- Nada de degradados azul→cian tipo "dashboard de plantilla" (incluido
+  texto con degradado `bg-clip-text`).
+- Nada de `rounded-xl`/`shadow-*` sueltos de Tailwind fuera de los
+  tokens/componentes ya definidos en `components/ui/`, al tocar una
+  pantalla del plan.
+- Nada de countdown de urgencia sin fecha real detrás.
 
 ## Responsive
 
-Mobile-first, sin excepción, en los 3 anchos:
-- **Base (< 640px):** una columna, tarjetas apiladas, barra de acción
-  inferior fija donde haya un CTA principal (ej. "Finalizar compra").
-- **`sm:`/`md:` (tablet):** 2 columnas en grillas de producto/tarjetas.
-- **`lg:`/`xl:` (escritorio):** 3-4 columnas en catálogo, layout de admin
-  con sidebar fija + contenido.
-
-Ningún componente se da por cerrado sin probarse en los 3 anchos — área
-táctil mínima de 44px en botones para mobile.
+Mobile-first, sin excepción, en los 3 anchos (base <640px una columna con
+barra de acción inferior fija; `sm/md` 2 columnas; `lg/xl` 3-4 columnas en
+catálogo, admin con sidebar fija). Área táctil mínima de 44px en mobile.
+Ningún componente se cierra sin probarse en los 3 anchos.
 
 ## Piezas compartidas (`frontend/src/components/ui/`)
 
-Construidas en el Día 1, reutilizadas en el resto del plan — no se repiten
-clases sueltas por pantalla (ese era el problema confirmado: `ProductosAdmin.tsx`
-tenía 8+ combinaciones distintas de `bg-{color}-{tono}` para lo que debía ser
-un solo componente).
+Construidas en el Día 1, casi no usadas hoy fuera de sí mismas (el 95% de
+las pantallas reales cae en utilidades Tailwind sueltas en su lugar — se
+corrige pantalla por pantalla según el plan):
 
-- **`Button.tsx`**: variantes `primary`/`secondary`/`danger`/`ghost`, tamaños
-  `sm`/`md`/`lg`, estado `loading` real (spinner).
-- **`Badge.tsx`**: variantes semánticas `success`/`warning`/`danger`/`info` (+ `neutral`).
-  El texto del badge usa tonos 800 de la paleta de Tailwind (green/amber/red/blue)
-  sobre fondo tenue, no el token directo: `--color-success` como texto no llega
-  a contraste AA.
+- **`Button.tsx`**: variantes `primary`/`secondary`/`danger`/`ghost`,
+  tamaños `sm`/`md`/`lg`, estado `loading` real.
+- **`Badge.tsx`**: variantes `success`/`warning`/`danger`/`info`/`neutral`
+  (texto en tono 800 de Tailwind sobre fondo tenue, el token directo no
+  llega a contraste AA).
 - **`Card.tsx`**: con `elevation` 1/2/3.
 - **`FormField.tsx`**: label + error inline + helper text.
 
@@ -152,10 +179,10 @@ un solo componente).
 - **`ui-ux-pro-max`** — antes de construir cualquier pantalla nueva/rediseñada.
 - **`impeccable`** — pulido final de cada pantalla antes de cerrarla.
 - **`find-animation-opportunities`** / **`animate`** / **`animation-performance`**
-  / **`review-animations`** — para todo lo de movimiento (ver arriba).
+  / **`review-animations`** — para todo lo de movimiento.
 
 ## Dónde se aplica esto
 
 Se extiende a cada pantalla según `PLAN_DISENO_PORTAFOLIO.md`, día por día —
-cuando se rediseñe cada módulo, debe usar estos mismos tokens y reglas, no
-inventar una paleta, tipografía o radios distintos.
+al rediseñar cada módulo, usa estos mismos tokens y reglas, no inventa una
+paleta, tipografía, radios o estructura distintos.

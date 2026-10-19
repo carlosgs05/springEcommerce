@@ -46,7 +46,7 @@ export function FormField({
 
   return (
     <div data-ui className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={fieldId} className="font-heading text-sm font-medium text-text">
+      <label htmlFor={fieldId} className="font-body text-sm font-semibold text-text">
         {label}
         {required && (
           <>
@@ -64,12 +64,12 @@ export function FormField({
         "aria-describedby": describedBy,
       })}
       {helperText && (
-        <p id={helperId} className="text-sm text-text-muted dark:text-slate-400">
+        <p id={helperId} className="text-sm text-text-muted">
           {helperText}
         </p>
       )}
       {/* La región role=alert se mantiene en el DOM para que el cambio se anuncie */}
-      <p id={errorId} role="alert" className={cn("text-sm font-medium text-danger dark:text-red-400", !error && "hidden")}>
+      <p id={errorId} role="alert" className={cn("text-sm font-medium text-danger", !error && "hidden")}>
         {error}
       </p>
     </div>
@@ -78,7 +78,7 @@ export function FormField({
 
 const control = cn(
   "block w-full min-h-11 rounded-control border border-border bg-surface px-3 py-2",
-  "text-base text-text sm:text-sm placeholder:text-text-muted dark:placeholder:text-slate-400",
+  "text-base text-text sm:text-sm placeholder:text-text-muted",
   "transition-[border-color,box-shadow] duration-[var(--duration-fast)] ease-standard",
   "focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40",
   "aria-[invalid=true]:border-danger aria-[invalid=true]:focus-visible:ring-danger/40",

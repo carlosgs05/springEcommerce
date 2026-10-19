@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import HomeRoute from "./components/HomeRoute";
 import PublicRoute from "./components/PublicRoute";
 
+import AuthLayout from "./autenticacion/AuthLayout";
 import Login from "./autenticacion/Login";
 import RegisterUser from "./autenticacion/RegisterUser";
 import Nosotros from "./user/pages/Nosotros";
@@ -61,12 +62,15 @@ function App() {
 
         {/* Rutas para invitados */}
         <Route element={<GuestRoute />}>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<RegisterUser />} />
-          <Route path="/verify-account" element={<VerificationAccount />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-reset-code" element={<VerifyResetCode />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* AuthLayout: marco común (wordmark + Card) con transición entre pantallas */}
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<RegisterUser />} />
+            <Route path="/verify-account" element={<VerificationAccount />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-reset-code" element={<VerifyResetCode />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+          </Route>
         </Route>
 
         {/* Rutas públicas */}

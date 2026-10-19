@@ -1,105 +1,119 @@
 import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import axios from "axios";
-import swal from "sweetalert2/dist/sweetalert2.all.js";
+import { api } from "../lib/api";
+import { Button, FormField, Input } from "../components/ui";
+import { AuthAlert } from "./AuthAlert";
+import { apiMessage, fieldErrorsDe, flagInvalid } from "./formUtils";
+
+const rutas = { inicio: "/forgot-password", endpoint: "/api/auth/verify-reset-code", siguiente: "/reset-password" };
 
 const VerifyResetCode: React.FC = () => {
   const navigate = useNavigate();
-  const { state } = useLocation() as { state: { correo: string } };
+  const { state: routeState, pathname } = useLocation();
+  // Se copia al estado de React una vez y se quita del historial del navegador
+  const [initial] = useState(routeState as { correo?: string; mensaje?: string } | null);
+  const state = initial;
   const correo = state?.correo || "";
   const [code, setCode] = useState("");
+  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (correo) navigate(pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (!correo) {
-      navigate("/forgot-password");
+      navigate(rutas.inicio, { replace: true });
     }
   }, [correo, navigate]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setCode(e.target.value);
+    setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+    setError(undefined);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    setFormError(null);
 
     if (!/^\d{6}$/.test(code)) {
-      swal.fire("Error", "El código debe tener 6 dígitos numéricos", "error");
+      setError("El código tiene 6 dígitos, solo números. Revisa el correo que te enviamos.");
+      flagInvalid(["code"]);
       return;
     }
 
     setLoading(true);
     try {
-      const { data } = await axios.post(
-        "http://localhost:8080/api/auth/verify-reset-code",
-        { correo, resetCode: Number(code) }
-      );
-
-      if (data.statusCode === 200) {
-        swal.fire("Éxito", data.message, "success");
-        navigate("/reset-password", { state: { correo } });
-      } else {
-        swal.fire("Error", data.message || "Código inválido", "error");
+      await api.post(rutas.endpoint, { correo, resetCode: Number(code) });
+      // El código verificado viaja a la pantalla siguiente: el backend lo exige para cambiar la clave.
+      navigate(rutas.siguiente, { replace: true, state: { correo, resetCode: code } });
+    } catch (err) {
+      const fe = fieldErrorsDe(err);
+      if (fe.resetCode) {
+        setError(fe.resetCode);
+        flagInvalid(["code"]);
+        return;
       }
-    } catch (err: any) {
-      swal.fire(
-        "Error",
-        err.response?.data?.message || "Error de servidor",
-        "error"
-      );
+      setFormError(apiMessage(err, "No pudimos verificar el código. Inténtalo de nuevo."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-tr from-zinc-900 from-60% to-gray-600 to-110%">
-      <div className="w-full max-w-md m-auto bg-gradient-to-tr from-gray-900 from-60% to-stone-800 to-110% rounded-lg p-9 shadow-[-12px_12px_20px_0px_rgba(0,0,0,0.6)]">
-        <header>
-          <h1 className="text-2xl text-center text-white font-bold mb-6">
-            Verificar Código
-          </h1>
-        </header>
+    <div>
+      <header className="mb-6">
+        <h1 className="font-heading text-2xl font-bold sm:text-3xl">Verificar código</h1>
+        <p className="mt-1 break-words text-sm text-text-muted">
+          Escribe el código de 6 dígitos que enviamos a <strong className="font-semibold text-text">{correo}</strong>.
+        </p>
+      </header>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="mb-6">
-            <label
-              htmlFor="code"
-              className="block uppercase text-white text-xs font-bold mb-2"
-            >
-              Código de 6 dígitos
-            </label>
-            <input
-              id="code"
+      {state?.mensaje && !formError && (
+        <AuthAlert tone="info" className="mb-4">
+          {state.mensaje}
+        </AuthAlert>
+      )}
+      {formError && (
+        <AuthAlert tone="error" className="mb-4">
+          {formError}
+        </AuthAlert>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <FormField label="Código de 6 dígitos" id="code" required error={error}>
+          {(c) => (
+            <Input
+              {...c}
               name="code"
-              type="text"
-              placeholder="Ingresa el código recibido"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="123456"
               value={code}
               onChange={handleChange}
-              required
-              maxLength={6}
-              className="w-full px-4 py-3 bg-gray-800 text-cyan-600 border border-gray-700 rounded focus:outline-none focus:bg-zinc-900"
+              className="text-center font-mono text-lg tracking-[0.4em] sm:text-lg"
             />
-          </div>
+          )}
+        </FormField>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 font-bold text-white rounded bg-gradient-to-r from-blue-950 to-blue-800 hover:from-cyan-900 hover:to-cyan-600 disabled:opacity-75 transition-all mb-6 cursor-pointer"
-          >
-            {loading ? "Verificando..." : "VERIFICAR CÓDIGO"}
-          </button>
+        <Button type="submit" fullWidth size="lg" loading={loading}>
+          Verificar código
+        </Button>
+      </form>
 
-          <p className="text-center text-sm text-gray-400">
-            <Link
-              to="/forgot-password"
-              className="font-medium text-cyan-400 hover:text-cyan-300"
-            >
-              Volver
-            </Link>
-          </p>
-        </form>
-      </div>
+      <p className="mt-4 text-center text-sm">
+        <Link
+          to={rutas.inicio}
+          className="inline-flex min-h-11 items-center font-medium text-primary hover:text-primary-hover focus-visible:outline-none focus-visible:underline"
+        >
+          Pedir otro código
+        </Link>
+      </p>
     </div>
   );
 };

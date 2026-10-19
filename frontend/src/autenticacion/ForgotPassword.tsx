@@ -1,118 +1,103 @@
 import React, { useState, ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
-import swal from "sweetalert2/dist/sweetalert2.all.js";
+import { api } from "../lib/api";
+import { Button, FormField, Input } from "../components/ui";
+import { AuthAlert } from "./AuthAlert";
+import { EMAIL_RE, apiMessage, fieldErrorsDe, flagInvalid } from "./formUtils";
+
+const RUTAS = { endpoint: "/api/auth/forgot-password", siguiente: "/verify-reset-code" };
 
 const ForgotPassword: React.FC = () => {
+  const rutas = RUTAS;
   const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
+    setError(undefined);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (loading) return;
+    setFormError(null);
 
-    try {
-      const { data, status } = await axios.post(
-        "http://localhost:8080/api/auth/forgot-password",
-        { correo: email }
+    const correo = email.trim();
+    if (!EMAIL_RE.test(correo)) {
+      setError(
+        correo
+          ? "El correo necesita una @ y un dominio, por ejemplo nombre@correo.com."
+          : "Escribe el correo con el que te registraste.",
       );
+      flagInvalid(["email"]);
+      return;
+    }
 
-      if (status === 200 && data.statusCode === 200) {
-        swal.fire("Éxito", data.message, "success");
-        navigate("/verify-reset-code", { state: { correo: email } });
-      } else {
-        swal.fire("Error", data.message || "Error inesperado", "error");
+    setLoading(true);
+    try {
+      // El backend responde siempre 200 con un mensaje genérico, exista o no la cuenta
+      const { data } = await api.post(rutas.endpoint, { correo });
+      navigate(rutas.siguiente, { state: { correo, mensaje: data.message } });
+    } catch (err) {
+      const fe = fieldErrorsDe(err);
+      if (fe.correo) {
+        setError(fe.correo);
+        flagInvalid(["email"]);
+        return;
       }
-    } catch (error: any) {
-      const msg =
-        error.response?.data?.message || "Error al conectar con el servidor";
-      swal.fire("Error", msg, "error");
+      setFormError(apiMessage(err, "No pudimos enviar el código. Inténtalo de nuevo."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-tr from-zinc-900 from-60% to-gray-600 to-110%">
-      <div className="w-full max-w-lg m-auto bg-gradient-to-tr from-gray-900 from-60% to-stone-800 to-110% rounded-lg p-9 shadow-[-12px_12px_20px_0px_rgba(0,0,0,0.6)]">
-        <header>
-          <img
-            className="w-20 mx-auto mb-5"
-            src="https://img.icons8.com/fluent/344/year-of-tiger.png"
-            alt="Logo"
-          />
-          <h1 className="text-2xl text-center text-white font-bold mb-6">
-            Recuperar Contraseña
-          </h1>
-        </header>
+    <div>
+      <header className="mb-6">
+        <h1 className="font-heading text-2xl font-bold sm:text-3xl">Recuperar contraseña</h1>
+        <p className="mt-1 text-sm text-text-muted">
+          Escribe tu correo y te enviaremos un código de 6 dígitos.
+        </p>
+      </header>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="mb-6">
-            <label
-              htmlFor="email"
-              className="block uppercase text-white text-xs font-bold mb-2"
-            >
-              Correo Electrónico
-            </label>
-            <input
-              id="email"
+      {formError && (
+        <AuthAlert tone="error" className="mb-4">
+          {formError}
+        </AuthAlert>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <FormField label="Correo electrónico" id="email" required error={error}>
+          {(c) => (
+            <Input
+              {...c}
               name="email"
               type="email"
-              placeholder="Ingresa tu correo registrado"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="nombre@correo.com"
               value={email}
               onChange={handleChange}
-              required
-              autoComplete="email"
-              className="w-full px-4 py-3 bg-gray-800 text-cyan-600 border border-gray-700 rounded focus:outline-none focus:bg-zinc-900"
             />
-          </div>
+          )}
+        </FormField>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 font-bold text-white rounded bg-gradient-to-r from-blue-950 to-blue-800 hover:from-cyan-900 hover:to-cyan-600 disabled:opacity-75 transition-all mb-6 cursor-pointer"
-          >
-            {loading ? (
-              <svg
-                className="animate-spin h-5 w-5 mx-auto"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-            ) : (
-              "BUSCAR CUENTA"
-            )}
-          </button>
+        <Button type="submit" fullWidth size="lg" loading={loading}>
+          Enviar código
+        </Button>
+      </form>
 
-          <p className="text-center text-sm text-gray-400">
-            <Link
-              to="/login"
-              className="font-medium text-cyan-400 hover:text-cyan-300"
-            >
-              Regresar a login
-            </Link>
-          </p>
-        </form>
-      </div>
+      <p className="mt-4 text-center text-sm">
+        <Link
+          to="/login"
+          className="inline-flex min-h-11 items-center font-medium text-primary hover:text-primary-hover focus-visible:outline-none focus-visible:underline"
+        >
+          Volver a iniciar sesión
+        </Link>
+      </p>
     </div>
   );
 };

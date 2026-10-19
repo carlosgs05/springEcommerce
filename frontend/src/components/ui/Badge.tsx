@@ -10,28 +10,28 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   dot?: boolean;
 }
 
-// Usa la paleta Tailwind (no --color-success/warning/...) porque esos tokens son tonos medios que no alcanzan 4.5:1 como texto sobre fondo claro; success=green, warning=amber, danger=red, info=blue.
-// Texto 800 sobre fondo 50 (>= 7:1 en claro). En oscuro: texto 300 sobre fondo tenue.
+// Un solo modo (oscuro): texto en tono 300 sobre fondo tenue del mismo color (contraste alto sobre surface).
+// info usa oro claro (accent) porque la identidad no tiene azul.
 const variants: Record<BadgeVariant, { box: string; dot: string }> = {
   success: {
-    box: "bg-green-50 text-green-800 border-green-200 dark:bg-green-400/15 dark:text-green-300 dark:border-green-400/20",
-    dot: "bg-green-600 dark:bg-green-400",
+    box: "bg-green-400/15 text-green-300 border-green-400/20",
+    dot: "bg-green-400",
   },
   warning: {
-    box: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-400/15 dark:text-amber-300 dark:border-amber-400/20",
-    dot: "bg-amber-600 dark:bg-amber-400",
+    box: "bg-orange-400/15 text-orange-300 border-orange-400/20",
+    dot: "bg-orange-400",
   },
   danger: {
-    box: "bg-red-50 text-red-800 border-red-200 dark:bg-red-400/15 dark:text-red-300 dark:border-red-400/20",
-    dot: "bg-red-600 dark:bg-red-400",
+    box: "bg-red-400/15 text-red-300 border-red-400/20",
+    dot: "bg-red-400",
   },
   info: {
-    box: "bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-400/15 dark:text-blue-300 dark:border-blue-400/20",
-    dot: "bg-blue-600 dark:bg-blue-400",
+    box: "bg-accent/15 text-accent border-accent/20",
+    dot: "bg-accent",
   },
   neutral: {
-    box: "bg-slate-100 text-slate-700 border-border dark:bg-white/10 dark:text-slate-300",
-    dot: "bg-slate-500 dark:bg-slate-400",
+    box: "bg-white/10 text-stone-300 border-border",
+    dot: "bg-stone-400",
   },
 };
 

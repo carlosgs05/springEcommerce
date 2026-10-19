@@ -2,25 +2,22 @@ package com.ecommerce.backend.dto;
 
 import com.ecommerce.backend.entity.Permiso;
 import com.ecommerce.backend.entity.Rol;
-import com.ecommerce.backend.entity.Usuario;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UsuarioDTO {
     private int statusCode;
-    private String error;
     private String message;
     private String token;
-    private String refreshToken;
-    private String expirationTime;
 
-    // Campos para registro
+    // Campos para registro (idrol del body se ignora: el registro publico siempre es CLIENTE)
     private String nombre;
     private String apellido;
     private String dni;
@@ -30,14 +27,19 @@ public class UsuarioDTO {
     private Integer idrol;
     private Rol rol;
     private List<String> errors;
+    private Map<String, String> fieldErrors;
 
-    // Campos para respuesta
-    private Usuario usuario;
-    private List<Usuario> usuariosList;
+    // Campos para respuesta: el usuario SIEMPRE sale en su formato seguro
+    private UsuarioResponse usuario;
     private List<Permiso> permisos;
 
-    // Campos para recuperar contraseña
+    // Campos para recuperar / cambiar contrasena
     private String newPassword;
     private String confirmPassword;
+    private String currentPassword;
     private Integer resetCode;
+
+    /** Cambiar correo: el correo nuevo pedido y el codigo de 6 digitos recibido en el. */
+    private String newCorreo;
+    private String emailCode;
 }

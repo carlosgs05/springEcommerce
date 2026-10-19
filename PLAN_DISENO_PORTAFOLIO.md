@@ -3,7 +3,7 @@
 ## Progreso (actualizar al cerrar cada día — así se sabe cuál sigue sin releer todo)
 
 - [x] Día 1 — Fundamentos: tokens de diseño, piezas compartidas, seguridad transversal y base de datos versionada
-- [ ] Día 2 — Autenticación (con multifactor de 3 factores)
+- [ ] Día 2 — Autenticación (correo + contraseña; se quitó el MFA por decisión del dueño — falta cerrar la limpieza)
 - [ ] Día 3 — Usuarios/Perfil + Roles y Permisos + Gestión de Clientes (admin)
 - [ ] Día 4 — Categorías + Marcas
 - [ ] Día 5 — Productos
@@ -32,6 +32,21 @@ pantallas — confirmado en el código:
 - `ProductosAdmin.tsx` reinventa badges de estado con `bg-blue-50/100`,
   `bg-red-50/100`, `bg-gray-50/100/200` sueltos en al menos 8 lugares del
   mismo archivo, sin un componente de badge reutilizable.
+- **Confirmado además (análisis de colorimetría/tipografía/elementos
+  posterior al Día 1):** el logo es un ícono hotlinkeado de icons8.com (un
+  tigre, sin relación con la marca) en 6 archivos; el nombre de marca dice
+  "TechShop" en el código de usuario vs. "TechStore" en estos documentos;
+  dos librerías de íconos mezcladas (`react-icons` + `@heroicons` en un solo
+  archivo) más PNGs de icons8 como loaders/estados; el design system de
+  `components/ui/` ya existe pero el 95% de las pantallas no lo usa
+  (`rounded-xl`/`shadow-*` sueltos de Tailwind en su lugar); 3 lenguajes
+  visuales distintos conviviendo (tienda clara azul/cian, auth oscura
+  zinc suelta, admin oscuro gris/cian); y la estructura de Home (hero
+  carrusel + countdown de oferta + testimonios + marcas + beneficios),
+  catálogo (sidebar de filtros fijo) y ficha de producto (specs en pestaña)
+  es, comparado contra un sitio real del mismo rubro, el patrón más
+  genérico de ecommerce que existe — se corrige cada uno el día que le
+  corresponde abajo.
 
 El dueño pidió que la seguridad se corrija **auditando módulo por módulo,
 día por día**, con el espíritu del plan que se usó en el proyecto CAR_WASH
@@ -39,7 +54,7 @@ del mismo portafolio, con estos criterios propios para este proyecto:
 1. La seguridad va **integrada en cada día**, junto al rediseño, como una
    sección más — no aparte.
 2. **Los módulos grandes o de mayor riesgo van solos en su día**
-   (Autenticación+MFA, Productos, Métodos de Pago, Checkout/Pedidos) — los
+   (Autenticación, Productos, Métodos de Pago, Checkout/Pedidos) — los
    módulos chicos se agrupan en el mismo día cuando tiene sentido, para que
    el plan avance sin demorar de más sin sacrificar que cada cosa quede bien
    hecha y segura.
@@ -52,9 +67,8 @@ del mismo portafolio, con estos criterios propios para este proyecto:
 5. Pasarelas de pago reales (las más comunes en Perú, no solo una), en modo
    sandbox porque aún no hay RUC, manteniendo Yape/Plin/transferencia manual
    como alternativa aparte.
-6. Autenticación con **3 factores reales** de categorías distintas
-   (contraseña, Google Authenticator, verificación del dispositivo) — ver
-   el Día 2.
+6. Autenticación de **un solo paso: correo + contraseña**, igual para admin
+   y cliente, sin segundo factor (decisión final del dueño) — ver el Día 2.
 7. **No es solo reacomodar las pantallas que ya existen con otra
    distribución** — se revisó qué le falta a un ecommerce real que hoy no
    existe en el proyecto, y se agregó como módulos nuevos (Favoritos y
@@ -62,77 +76,30 @@ del mismo portafolio, con estos criterios propios para este proyecto:
    gráficos, pantalla de pago fallido, páginas legales, 404) — ver el mapa
    de pantallas más abajo.
 
-### Por qué este sistema de diseño (verificado contra la base de datos de `ui-ux-pro-max`, no inventado)
+### Sistema de diseño (detalle completo en `IDENTIDAD_VISUAL.md` — aquí solo el resumen)
 
-Se descartó explícitamente todo lo que ya usó CAR_WASH (Material 3
-Expressive, Bento Box Grid, Glassmorphism, Dark Mode OLED como base). Se
-eligieron dos estilos **activos** de `styles.csv` que no se superponen:
+Verificado contra la base `ui-ux-pro-max`, no inventado. **Estilo:**
+Dimensional Layering (elevación en 4 niveles) + Minimalism & Swiss Style —
+se descartó a propósito todo lo que ya usó CAR_WASH (Material 3 Expressive,
+Bento Box, Glassmorphism, Dark Mode OLED) y "Vibrant & Block-based" (la
+recomendación genérica de la base para "E-commerce", el look de plantilla
+que se quiere evitar).
 
-| Estilo (ID) | Rol en este plan |
-|---|---|
-| **Dimensional Layering** (`dimensional-layering`) | Tarjetas de producto con profundidad real por elevación (`box-shadow` en 4 niveles) — una laptop/celular "flota" sobre el fondo en catálogo y detalle, sensación premium sin el look traslúcido de Glassmorphism. |
-| **Minimalism & Swiss Style** (`minimalism-and-swiss-style`) | Grid tipográfico limpio y de alto contraste para checkout, perfil y panel admin — genera confianza (crítico para que alguien meta su tarjeta) sin verse "plano" porque se combina con la elevación de arriba. |
+**Tipografía:** Playfair Display (headings) + Inter (body/botones/specs) —
+pareo real "Classic Elegant" de la base, para e-commerce premium.
 
-Se descartó a propósito "Vibrant & Block-based" (la recomendación genérica de
-`products.csv` para `E-commerce`) porque es justo el estilo que reutilizan
-las plantillas — el objetivo es que no se vea como una.
+**Color:** un solo modo, **oscuro, sin toggle ni clase `.dark`** — Grafito
+(`#0C0A09`/`#1C1917`) + Oro (`--color-primary: #D4AF37`, texto oscuro
+encima, nunca blanco). Semánticos aclarados para leer sobre fondo casi
+negro: éxito `#22C55E`, advertencia `#F97316`, error `#EF4444`. Ver tabla
+completa de tokens, sombras y el resto (iconografía, estructura/layout,
+anti-patrones) en `IDENTIDAD_VISUAL.md`.
 
-**Tipografía** (`typography.csv`, pareo real): *"Tech Startup"* — **Space
-Grotesk** (headings) + **DM Sans** (body). Marcada en la base como
-`Best For: Tech companies, startups, SaaS, developer tools, AI products`.
-
-- Google Fonts: `https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap`
-- **Space Grotesk 700** — títulos de pantalla / precios grandes.
-- **Space Grotesk 600** — encabezados de sección, nombres de producto en tarjeta.
-- **Space Grotesk 500** — botones, labels de formulario.
-- **DM Sans 400** — cuerpo de texto, descripciones, tablas.
-- **DM Sans 500/700** — énfasis dentro de texto de cuerpo (precio inline, estado).
-
-**Paleta** (adaptando `color.csv` de confianza B2B/fintech a un acento más
-propio de producto tech, ya que no hay entrada exacta "ecommerce de
-tecnología"):
-
-**Claro (por defecto):**
-| Uso | Valor |
-|---|---|
-| Fondo (canvas) | `#F8FAFC` |
-| Superficie/tarjeta | `#FFFFFF`, borde 1px `#E2E8F0` |
-| Elevación 1 (tarjeta reposo) | `box-shadow: 0 1px 3px rgba(15,23,42,0.08)` |
-| Elevación 2 (tarjeta hover/producto destacado) | `box-shadow: 0 10px 24px -6px rgba(15,23,42,0.12)` |
-| Elevación 3 (modal/panel flotante) | `box-shadow: 0 20px 40px -8px rgba(15,23,42,0.18)` |
-| Texto principal | `#0F172A` |
-| Texto secundario | `#475569` |
-| Primario (marca/CTA) | `#2563EB` |
-| Primario hover | `#1D4ED8` |
-| Acento (precio, badges "oferta") | `#06B6D4` |
-| Éxito (stock disponible, pedido entregado) | `#16A34A` |
-| Advertencia (poco stock) | `#D97706` |
-| Error/destructivo | `#DC2626` |
-
-**Oscuro (opción activable, no la base):**
-| Uso | Valor |
-|---|---|
-| Fondo (canvas) | `#0B1120` |
-| Superficie/tarjeta | `#151E32`, borde 1px `rgba(255,255,255,0.08)` |
-| Texto principal | `#F1F5F9` |
-| Primario | `#3B82F6` |
-| Acento | `#22D3EE` |
-
-**Tokens de forma:** tarjetas de producto `rounded-2xl` (16px) con
-elevación (nunca blur); inputs y botones `rounded-xl` (12px). Botón
-primario: color sólido `#2563EB` (sin degradado — eso ya lo usó CAR_WASH) con
-`box-shadow: 0 4px 12px rgba(37,99,235,0.25)` al hover.
-
-**Anti-patrones a evitar:** nada de `backdrop-filter`/blur, nada de tonal
-elevation ni state layers de Material, nada de grillas asimétricas tipo
-bento — las tarjetas de producto son todas del mismo tamaño base, la
-jerarquía se construye con elevación y tipografía.
-
-**Nombre de marca:** se usa **"TechStore"** como placeholder (no existe
-ningún nombre en el proyecto hoy — `index.html` sigue con el título por
-defecto de Vite). Queda centralizado en pocos lugares (`index.html`,
-`Header.tsx`, `Footer.tsx`, pantallas de auth) para poder cambiarlo en un
-minuto cuando el dueño tenga el nombre real.
+**Nombre/logo de marca:** **"TechStore"** es la fuente de verdad (el código
+tiene hoy "TechShop" suelto en varias pantallas de usuario — se corrige al
+tocar cada una). El logo es el wordmark en Playfair Display, sin ícono —
+hoy hay un ícono hotlinkeado de icons8.com (un tigre, sin relación con la
+marca) en 6 archivos, se quita al tocar cada uno.
 
 ## Mapa de pantallas: las que ya existen (verificado en código) + las nuevas que se agregan
 
@@ -183,45 +150,39 @@ Día 2.
 
 ```css
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
-@theme {
-  --font-heading: "Space Grotesk", sans-serif;
-  --font-body: "DM Sans", sans-serif;
+:root {
+  color-scheme: dark; /* un solo modo — controles nativos también oscuros */
 
-  --color-primary: #2563EB;
-  --color-primary-hover: #1D4ED8;
-  --color-accent: #06B6D4;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
+  --font-heading: "Playfair Display", serif;
+  --font-body: "Inter", sans-serif;
 
-  --color-surface: #FFFFFF;
-  --color-canvas: #F8FAFC;
-  --color-border: #E2E8F0;
-  --color-text: #0F172A;
-  --color-text-muted: #475569;
+  --color-primary: #D4AF37;
+  --color-primary-hover: #E8C547;
+  --color-accent: #F2C94C;
+  --color-success: #22C55E;
+  --color-warning: #F97316;
+  --color-danger: #EF4444;
 
-  --shadow-elevation-1: 0 1px 3px rgba(15,23,42,0.08);
-  --shadow-elevation-2: 0 10px 24px -6px rgba(15,23,42,0.12);
-  --shadow-elevation-3: 0 20px 40px -8px rgba(15,23,42,0.18);
+  --color-surface: #1C1917;
+  --color-canvas: #0C0A09;
+  --color-border: rgba(255,255,255,0.08);
+  --color-text: #FAFAF9;
+  --color-text-muted: #A8A29E;
+
+  --shadow-elevation-1: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-elevation-2: 0 10px 24px -6px rgba(0,0,0,0.5);
+  --shadow-elevation-3: 0 20px 40px -8px rgba(0,0,0,0.6);
+  --shadow-primary-glow: 0 4px 16px rgba(212,175,55,0.35);
 
   --radius-card: 1rem;
   --radius-control: 0.75rem;
 }
-
-.dark {
-  --color-surface: #151E32;
-  --color-canvas: #0B1120;
-  --color-border: rgba(255,255,255,0.08);
-  --color-text: #F1F5F9;
-  --color-primary: #3B82F6;
-  --color-accent: #22D3EE;
-}
 ```
 
-También: cambiar `<title>Vite + React + TS</title>` por "TechStore" en
-`frontend/index.html`.
+No hay clase `.dark` ni alternancia — es el único tema. También: cambiar
+`<title>Vite + React + TS</title>` por "TechStore" en `frontend/index.html`.
 
 ### Piezas compartidas (nuevas, en `frontend/src/components/ui/`)
 
@@ -272,8 +233,7 @@ esquema solo en cada arranque (confirmado en `application.properties`) — en
 un proyecto pensado para producción eso es un riesgo real en cuanto haya
 datos de verdad. Se reemplaza por **Flyway aquí, en este primer día** — para
 que **cada día siguiente que cambie algo del esquema escriba su propia
-migración versionada en el momento** (ej. el Día 2 agrega las columnas de
-MFA, el Día 6 la tabla de favoritos, el Día 7 las columnas de pasarela de
+migración versionada en el momento** (ej. el Día 6 la tabla de favoritos, el Día 7 las columnas de pasarela de
 pago, etc.), igual que se versiona el código.
 
 1. Agregar la dependencia `flyway-core` (+ `flyway-database-postgresql` en
@@ -366,6 +326,12 @@ pantalla de prueba; Flyway crea todo el esquema actual desde
 `V1__esquema_inicial.sql` contra una base Postgres vacía, sin intervención
 manual, y `ddl-auto` ya no puede alterar nada (queda en `validate`).
 
+**Deuda agregada tras el cierre de este día (hallazgo posterior, no reabre
+el checklist):** cuando se edite `index.css`, aplicar el bloque de tokens de
+arriba (ya actualizado a Grafito+Oro/un solo modo) en vez del original
+azul/claro-con-`.dark` — es el mismo archivo, el día sigue cerrado, solo
+cambia el valor final que debía quedar.
+
 ---
 
 **Válido para todos los días siguientes, no se repite en cada uno:** todo
@@ -388,13 +354,23 @@ ojo; las métricas del dashboard y reportes admin (Día 10) salen de consultas
 reales (`COUNT`/`SUM` sobre pedidos de hoy, productos bajo el umbral de
 stock), no de números fijos en el HTML.
 
-## Día 2 — Autenticación (con multifactor de 3 factores)
+## Día 2 — Autenticación (correo + contraseña)
 
 - **Problema real:** un comprador que no confía en que su contraseña está
   segura, o que ve un error críptico al registrarse, abandona antes de
   comprar — en electrónica (ticket alto: laptops, celulares) esa
   desconfianza cuesta más caro que en cualquier otro rubro.
-- **Hallazgos de seguridad:**
+- **Decisión final del dueño (reemplaza la de 2 factores):** la
+  autenticación es de **un solo paso, correo + contraseña**, igual para
+  admin y cliente. **No hay segundo factor** de ningún tipo (ni Google
+  Authenticator/TOTP, ni códigos de respaldo, ni WebAuthn, ni SMS). El
+  código que se había escrito para eso se quitó del proyecto (no quedó
+  apagado), y con él el flujo "Recuperar acceso" y su aprobación por otro
+  admin, que solo existían para quien perdía el celular: quien olvida la
+  clave usa "Olvidé mi contraseña", admin y cliente por igual. Riesgo
+  aceptado: una contraseña robada da acceso a la cuenta. Contrato técnico
+  del día: `docs/contratos/CONTRATO_DIA2.md`.
+- **Hallazgos de seguridad (se corrigen aquí, no dependen del MFA):**
   - `UsuarioService.resetPassword()` **nunca valida el código de
     verificación ni su expiración** — solo pide correo + contraseña nueva.
     `verifyResetCode()` existe como endpoint separado pero no se llama desde
@@ -409,75 +385,47 @@ stock), no de números fijos en el HTML.
     solo en servidor.
   - El carrito en `localStorage` no se limpia al cerrar sesión
     (`AuthContext.tsx`) — se corrige aquí (verificación final en Día 6).
-- **Autenticación multifactor con 3 factores — criterio de riesgo, no
-  decoración:** ISO/IEC 27001 (control A.9.4.2, acceso seguro) y COBIT
-  (DSS05, gestionar servicios de seguridad según el riesgo) piden reforzar
-  la autenticación donde el daño de una cuenta robada es mayor. Aquí eso es
-  la cuenta `ROLE_ADMIN` (puede cambiar precios, aprobar pedidos, ver datos
-  de todos los clientes) — por eso los 3 factores son **obligatorios para
-  admin** y **opcionales, ofrecidos, para cliente**. El estándar (NIST SP
-  800-63B) define multifactor como 2+ factores de categorías distintas;
-  aquí se usan las 3 categorías completas para que cada factor aporte algo
-  real y no sea un paso de relleno:
-  1. **Algo que sabes** — la contraseña (ya existe).
-  2. **Algo que tienes** — código TOTP de 6 dígitos con **Google
-     Authenticator** (RFC 6238, librería `dev.samstevens.totp` en el
-     backend). No SMS: NIST ya no lo recomienda como factor por el riesgo
-     de SIM-swap, y además evita pagar por mensajes.
-  3. **Verificación del dispositivo** — vía **WebAuthn** (la API estándar
-     de navegadores; la misma que usan GitHub, Google y Microsoft). No
-     exige cámara ni lector de huella: el navegador le pide al sistema
-     operativo "verifica que es el dueño" y el dispositivo usa lo que
-     tenga disponible — huella o rostro si hay sensor, el PIN/patrón de
-     desbloqueo de Windows/Android/iOS si no lo hay, o una llave de
-     seguridad física (USB) si se conecta una. Nuestro código no elige el
-     método, el sistema operativo sí — así que funciona igual en una PC
-     sin cámara que en un celular con huella. El dato biométrico (cuando se
-     usa) nunca sale del dispositivo ni llega al backend: solo se guarda
-     una llave pública de verificación (`webauthn_credential_id`,
-     `webauthn_public_key`).
-  - Migración Flyway de este día: `Usuario` gana `mfa_secret` (TEXT,
-    cifrado en reposo), `mfa_enabled` (boolean, default `false`),
-    `webauthn_credential_id` (TEXT) y `webauthn_public_key` (TEXT).
-  - Backend: además de `dev.samstevens.totp`, la librería `webauthn4j` (o
-    el soporte nativo de Spring Security 6 para WebAuthn) para registrar y
-    verificar la credencial biométrica.
-  - **Códigos de respaldo:** al activar los 3 factores se generan 8 códigos
-    de un solo uso (hasheados en la base, igual que una contraseña) para
-    cuando el usuario pierda el celular o cambie de dispositivo — sin esto,
-    perder cualquiera de los dos factores extra deja la cuenta inaccesible,
-    un problema real de soporte.
-  - Flujo de login en tres pasos cuando los 3 factores están activos:
-    `POST /login` valida correo+contraseña y devuelve un token temporal
-    corto; `POST /login/mfa` valida el código TOTP; `POST /login/webauthn`
-    valida la verificación del dispositivo y recién ahí entrega el JWT
-    real. El JWT de sesión **nunca** se entrega sin pasar los 3 factores
-    cuando están activos.
-- **Patrón + qué se construye:** `Login.tsx`/`RegisterUser.tsx`/
+- **Lo que se construye en el backend:**
+  - `POST /login` valida correo+contraseña y entrega el JWT de sesión
+    directo (sin paso intermedio), con límite de intentos por correo y por
+    IP. Respuestas solo con el objeto `usuario` seguro (nunca la entidad).
+  - `resetPassword` exige código válido, no vencido (10 min) y con límite
+    de fallos; tope por IP en las rutas de códigos.
+  - `PUT /change-password` pide la contraseña actual (con límite de
+    intentos) y devuelve un token nuevo; los viejos dejan de valer.
+  - Cambiar correo desde el perfil: contraseña actual + código enviado al
+    correo nuevo; aviso al correo viejo.
+  - Cambiar rol (`PUT /api/admin/usuarios/{id}/rol`, solo admin): mueren
+    las sesiones del afectado (`sesion_version`); no se puede dejar 0
+    admins.
+  - Correo único sin distinguir mayúsculas.
+  - Migraciones: V2–V6 ya se aplicaron a la base local y no se tocan;
+    `V7__quitar_mfa_y_recuperacion.sql` quita las columnas y tablas del MFA
+    y de la recuperación de admin.
+- **Patrón + qué se construye en pantalla:** `Login.tsx`/`RegisterUser.tsx`/
   `ForgotPassword.tsx`/`VerifyResetCode.tsx`/`ResetPassword.tsx`/
-  `VerificationAccount.tsx` dejan la paleta verde/gris aislada y pasan a
-  `Card` `elevation-2`, título en `font-heading` 700, `FormField` con error
-  inline, `Button` con `loading` real. Nueva pantalla `ActivarMFA.tsx` con
-  los 3 pasos de activación (QR de Google Authenticator, registro de la
-  verificación del dispositivo vía WebAuthn — huella, rostro, PIN o llave
-  física, según lo que el dispositivo ofrezca — y la lista de códigos de
-  respaldo para guardar) y un `Login.tsx` que, cuando la cuenta los tiene
-  activos, pide los 3 en orden tras la contraseña. **Movimiento:**
-  transición deslizante entre "Iniciar sesión"/"Registrarse" en vez de salto
-  brusco; cada paso del flujo de MFA entra con un fade+slide corto
-  (`--duration-fast`); error de campo con un shake sutil al fallar la
-  validación (usar `find-animation-opportunities` para confirmar que esto
-  ayuda y no distrae).
+  `VerificationAccount.tsx` dejan la paleta verde/gris/zinc aislada y pasan a
+  los tokens Grafito+Oro (`Card` `elevation-2`, título en `font-heading` 700,
+  `FormField` con error inline, `Button` con `loading` real) — además se
+  quita el ícono de icons8 (logo "tigre") de los 3 primeros y los PNG de
+  icons8 (`verified-account.png`, `spinner-frame-2.png`, `ok--v1.png`,
+  `cancel--v1.png`) de `RegisterUser.tsx`/`VerificationAccount.tsx`,
+  reemplazados por el wordmark y por íconos Phosphor (ver
+  `IDENTIDAD_VISUAL.md`). `Login.tsx` es un solo paso (correo +
+  contraseña). **Movimiento:** transición deslizante entre "Iniciar
+  sesión"/"Registrarse" en vez de salto brusco; cada paso de "olvidé mi
+  contraseña" entra con un fade+slide corto (`--duration-fast`); error de
+  campo con un shake sutil al fallar la validación (usar
+  `find-animation-opportunities` para confirmar que esto ayuda y no
+  distrae).
 - **Prueba:** registrar → verificar correo → login → "olvidé mi contraseña"
-  de punta a punta; `resetPassword` ahora exige código válido y no expirado;
+  de punta a punta; `resetPassword` exige código válido y no expirado;
   `/api/auth/correo` ya no devuelve `password`/`resetCode`; `/update-user`
-  solo edita la cuenta de la sesión actual; crear una cuenta admin de
-  prueba, confirmar que no puede entrar sin activar los 3 factores primero;
-  activar los 3 en una cuenta cliente, cerrar sesión y volver a entrar
-  pasando contraseña → código TOTP → verificación del dispositivo (con lo
-  que haya disponible: huella, PIN o llave), en ese orden; entrar con un
-  código de respaldo y confirmar que ese código ya no sirve una segunda
-  vez.
+  solo edita la cuenta de la sesión actual; una cuenta admin de prueba y una
+  cliente entran con correo + contraseña en un solo paso; cambiar la
+  contraseña con la actual correcta (funciona) e incorrecta (se rechaza);
+  cambiar correo con el código del correo nuevo; ya no existen
+  `/login/mfa`, `/mfa/**`, `/recover-access*` ni `/admin/recuperaciones`.
 
 ## Día 3 — Usuarios/Perfil + Roles y Permisos + Gestión de Clientes (admin)
 
@@ -494,9 +442,15 @@ stock), no de números fijos en el HTML.
     agrega en el futuro, debe exigir `ROLE_ADMIN` explícito.
   - Verificar aquí que `PerfilUser.tsx`/`PerfilAdmin.tsx` ya solo editan la
     propia cuenta tras el fix de `/update-user` del Día 2.
+  - **Cambiar correo:** ya construido en el Día 2 (contraseña actual +
+    código al correo nuevo). Aquí solo se verifica en la pantalla.
+  - **Cambio de rol:** ya existe `PUT /api/admin/usuarios/{id}/rol`
+    (Día 2); falta la pantalla en el panel.
 - **Patrón + qué se construye:** `PerfilUser.tsx`/`PerfilAdmin.tsx` con
   `FormField` + `Card`; `Badge` de rol visible ("Cliente"/"Administrador") —
-  hoy no hay ninguna pista visual de rol.
+  hoy no hay ninguna pista visual de rol. De paso, `PerfilAdmin.tsx` migra
+  sus íconos de `@heroicons/react` (hoy el único archivo que los usa) a
+  Phosphor, consistente con el resto del proyecto.
 - **Prueba:** editar perfil de punta a punta (cliente y admin); un token de
   cliente no puede llamar a un endpoint `ROLE_ADMIN` (403, no 500).
 
@@ -510,8 +464,8 @@ stock), no de números fijos en el HTML.
   admin en `admin/pages/`).
 - **Hallazgos de seguridad del módulo (nuevo):**
   - El endpoint de listado paginado de usuarios exige `ROLE_ADMIN` y su DTO
-    de respuesta **nunca** incluye `password`, `mfaSecret` ni
-    `webauthnPublicKey` (misma lección del Día 2: esos campos no salen del
+    de respuesta **nunca** incluye `password`, `resetCode` ni tokens de
+    verificación (misma lección del Día 2: esos campos no salen del
     backend hacia ningún listado).
   - El endpoint de desactivar cuenta (no se borra, por integridad con sus
     pedidos existentes) exige `ROLE_ADMIN` y no permite que un admin se
@@ -524,7 +478,7 @@ stock), no de números fijos en el HTML.
 - **Prueba:** listar y buscar clientes como admin; desactivar una cuenta de
   prueba y confirmar que ya no puede iniciar sesión; acceder sin sesión de
   admin → rechaza; confirmar que la respuesta de la lista nunca trae
-  `password`/`mfaSecret`/`webauthnPublicKey`.
+  `password`/`resetCode`.
 
 ## Día 4 — Categorías + Marcas
 
@@ -538,8 +492,10 @@ stock), no de números fijos en el HTML.
   rol (consecuencia de `permitAll()`) — se restringe `POST`/`PUT`/`DELETE`
   a `ROLE_ADMIN`, `GET` queda público.
 - **Patrón + qué se construye:** `CategoriasAdmin.tsx` con `Card` + tabla,
-  formulario con `FormField`; filtros de categoría en `Tienda.tsx` como
-  chips con los tokens nuevos.
+  formulario con `FormField` — quita el degradado `from-blue-500
+  to-cyan-500` de su encabezado (color sólido + elevación, igual que el
+  resto del admin); filtros de categoría en `Tienda.tsx` como chips con los
+  tokens nuevos.
 - **Prueba:** crear/editar/eliminar categoría como admin; la misma llamada
   sin sesión de admin devuelve 401/403.
 
@@ -552,8 +508,9 @@ stock), no de números fijos en el HTML.
   restringe escritura a `ROLE_ADMIN`; revisar que la subida del logo de
   marca (`MarcaDTO.getImagen()`/multipart) valide tipo de archivo y tamaño
   antes de guardarlo.
-- **Patrón + qué se construye:** `MarcasAdmin.tsx` con `Card` + tabla, logos
-  de marca con tamaño consistente.
+- **Patrón + qué se construye:** `MarcasAdmin.tsx` con `Card` + tabla (quita
+  el mismo degradado azul→cian de su encabezado), logos de marca con tamaño
+  consistente.
 - **Prueba:** crear/editar/eliminar marca con logo; subir un archivo
   no-imagen como logo → debe rechazar; sin sesión admin → rechaza.
 
@@ -570,8 +527,15 @@ stock), no de números fijos en el HTML.
   que exista el archivo (riesgo de subir un ejecutable disfrazado).
 - **Patrón + qué se construye:** `Tienda.tsx`/`ProductoDetails.tsx` con
   `Card` `elevation-2` para la tarjeta de producto; specs en tabla de dos
-  columnas con `font-body`; `ProductosAdmin.tsx` reemplaza los 8+ combos de
-  badges sueltos por el `Badge` único del Día 1. **Calificación real en el
+  columnas con `font-body`. **Estructura (no solo color):** el sidebar de
+  filtros fijo de `Tienda.tsx` pasa a chips compactos + drawer en mobile
+  (nunca una fila fija que corte chips, deben envolver o colapsar en "+n");
+  en `ProductoDetails.tsx`, las specs técnicas dejan de ser una pestaña más
+  entre otras — pasan a sección visible inmediatamente debajo de
+  galería/compra, sin clic extra (patrón confirmado comparando con una
+  marca real de electrónica premium, ver `IDENTIDAD_VISUAL.md`).
+  `ProductosAdmin.tsx` reemplaza los 8+ combos de badges sueltos por el
+  `Badge` único del Día 1. **Calificación real en el
   catálogo:** hoy `Tienda.tsx` no muestra ninguna estrella — se agrega
   `calificacionPromedio` y `totalResenas` calculados en el backend
   (`ProductoService`, consulta agregada sobre comentarios aprobados, no en
@@ -797,7 +761,8 @@ stock), no de números fijos en el HTML.
   semánticos, distinguiendo si el pago fue por pasarela (con el id de
   transacción visible) o manual (con el comprobante subido);
   `PedidosAdmin.tsx`/`DetallePedidoAdmin.tsx` con línea de tiempo de
-  estados, `font-heading` para el estado actual. **Movimiento:** cada paso
+  estados, `font-heading` para el estado actual, y quita el degradado
+  azul→cian de su encabezado (color sólido + elevación). **Movimiento:** cada paso
   del checkout entra con slide horizontal (avanza a la derecha, retrocede a
   la izquierda — refuerza en qué paso está sin leer el breadcrumb); al
   confirmarse un pago exitoso, un check animado (dibujo del trazo, no un
@@ -851,10 +816,11 @@ stock), no de números fijos en el HTML.
   cifras del negocio.
 - **Patrón + qué se construye:**
   - `SidebarAdmin.tsx`/`HeaderAdmin.tsx`/`Layout.tsx` con los tokens de
-    marca aplicados y estado activo de navegación consistente;
+    marca aplicados y estado activo de navegación consistente — quita el
+    ícono de icons8 (logo "tigre") de `SidebarAdmin.tsx`, pasa a wordmark;
     `HomeAdmin.tsx` (dashboard) con métricas reales destacadas (pedidos de
     hoy, productos con poco stock) en `font-heading` para los números
-    grandes, reemplazando contenido estático si lo hay.
+    grandes, sin el degradado azul→cian de su encabezado actual.
   - **`ReportesAdmin.tsx` (nueva):** gráfico de línea de ventas de los
     últimos 30 días y gráfico de barras de productos más vendidos, con
     `recharts`, alimentados por endpoints de agregación reales (`GROUP BY`
@@ -890,10 +856,18 @@ stock), no de números fijos en el HTML.
   - Dejar documentado (se ejecuta en el Día 12): agregar pruebas
     automáticas reales antes de un deploy serio.
 - **Patrón + qué se construye:** `HomeUser.tsx` unifica toda la paleta a
-  `color-primary`/`color-accent` (quita la mezcla azul/índigo);
-  `Header.tsx`/`Footer.tsx`/`Dropdown.tsx` con `font-heading` en el
-  logo/nombre; `Nosotros.tsx`/`Contacto.tsx` con el mismo sistema de
-  `Card`/`FormField` del resto de la app. **Nuevas:** `Terminos.tsx`,
+  `color-primary`/`color-accent` (quita la mezcla azul/índigo) **y
+  reestructura el orden de secciones** (ver `IDENTIDAD_VISUAL.md`): hero de
+  una sola pieza en vez de carrusel automático; se quita la sección
+  "Ofertas relámpago" con countdown (presión artificial sin fecha real, y el
+  patrón más repetido de plantilla ecommerce) a favor de "Más
+  vendidos"/"Recomendados" con datos reales; se quita la clase ajena
+  `font-samsung-one` de la sección de testimonios (resto de otra
+  plantilla). `Header.tsx`/`Footer.tsx`/`Dropdown.tsx` con `font-heading`
+  en el wordmark (se quita el ícono de icons8 y se corrige el texto de
+  marca de "TechShop" a "TechStore"); `Nosotros.tsx`/`Contacto.tsx` con el
+  mismo sistema de `Card`/`FormField` del resto de la app. **Nuevas:**
+  `Terminos.tsx`,
   `Privacidad.tsx`, `Devoluciones.tsx` con contenido real y específico del
   negocio (política de cambio de 7 días para electrónica, qué datos se
   guardan y por qué, condiciones de uso), enlazadas desde `Footer.tsx`;
@@ -913,6 +887,20 @@ construyó (incluida la base de datos versionada con Flyway desde el Día 1).
 Va al final porque recién tiene sentido cuando hay algo terminado que
 mostrar, y porque los webhooks de pago del Día 7 **necesitan una URL
 pública**, algo que no existe hoy (todo corre en `localhost`).
+
+**Pendientes de seguridad heredados del Día 2 (revisar antes de abrir al público):**
+- Sin segundo factor (decisión del dueño), las cuentas admin dependen solo
+  de su contraseña: usar claves largas y únicas para cada admin real
+  **antes** de exponer el sistema.
+- Los límites de intentos por IP usan la IP de la conexión. Si el backend
+  queda detrás de un proxy (Nginx, el del proveedor), configurar
+  `server.forward-headers-strategy` con el proxy de confianza; si no, todos
+  los usuarios comparten IP y un atacante puede bloquear el login de todos
+  (429 por 15 min).
+- El código de "olvidé mi contraseña" (`reset_code`, 6 dígitos, expira y
+  admite 5 fallos) se guarda legible en la base. Quien pudiera leer la base
+  podría usarlo durante su vigencia; guardarlo con hash (HMAC con clave del
+  servidor, porque 6 dígitos con un hash simple se adivinan al instante).
 
 ### Dónde correr esto en producción (hoy no hay nada preparado — ni Docker ni config de ningún proveedor)
 
@@ -955,15 +943,14 @@ actualiza el estado del pedido correspondiente.
 - `backend/src/main/java/com/ecommerce/backend/service/JWTUtils.java`
 - `backend/src/main/java/com/ecommerce/backend/controller/{Usuario,Carrito,Pedido,Notificacion,Comentario,Testimonio,Categoria,Marca,MetodoPago,MetodoEnvio,Producto}Controller.java`
 - `backend/src/main/java/com/ecommerce/backend/controller/{Favorito,Reporte}Controller.java` (nuevos)
-- `backend/src/main/java/com/ecommerce/backend/entity/{MetodoPago,Pedido,Usuario,Favorito}.java` (campos nuevos de pasarela, MFA, y la entidad Favorito)
+- `backend/src/main/java/com/ecommerce/backend/entity/{MetodoPago,Pedido,Usuario,Favorito}.java` (campos nuevos de pasarela y la entidad Favorito)
 - `backend/src/main/resources/application.properties` (+ `application-prod.properties` nuevo)
 - `backend/src/main/resources/db/migration/` (nuevo: scripts Flyway)
-- `backend/pom.xml` (agregar Flyway + SDK de Mercado Pago + `dev.samstevens.totp` y `webauthn4j` para MFA; quitar `mysql-connector-j`)
+- `backend/pom.xml` (agregar Flyway + SDK de Mercado Pago; quitar `mysql-connector-j`)
 - `frontend/src/index.css` (tokens `@theme`)
 - `frontend/src/components/ui/` (nuevo: `Button`, `Badge`, `Card`, `FormField`)
 - `frontend/src/lib/api.ts` (nuevo: cliente HTTP centralizado con `VITE_API_BASE_URL`)
 - `frontend/src/user/pages/CheckoutPago.tsx` (widget de Culqi/Mercado Pago + pantalla de pago fallido)
-- `frontend/src/autenticacion/ActivarMFA.tsx` (nuevo: activación de MFA y códigos de respaldo)
 - `frontend/src/user/pages/{Favoritos,ComparadorProductos,Terminos,Privacidad,Devoluciones}.tsx` (nuevas)
 - `frontend/src/admin/pages/{UsuariosAdmin,ReportesAdmin}.tsx` (nuevas)
 - `frontend/src/NotFound.tsx` (nueva, 404)
