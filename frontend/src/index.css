@@ -45,6 +45,12 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
   }
+
+  /* Tailwind v4 deja los botones con flecha; los activos muestran la manita */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
 }
 
 @keyframes fadeInOut {

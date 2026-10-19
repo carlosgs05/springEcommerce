@@ -82,7 +82,7 @@ export function Button({
         "relative inline-flex items-center justify-center gap-2 rounded-control font-body font-semibold",
         "transition-[color,background-color,box-shadow,filter,border-color] duration-[var(--duration-fast)] ease-standard",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
-        "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",
+        "cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",
         variants[variant],
         sizes[size],
         fullWidth && "w-full",
