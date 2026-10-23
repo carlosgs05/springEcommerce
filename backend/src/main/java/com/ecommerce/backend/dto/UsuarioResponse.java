@@ -17,6 +17,7 @@ public class UsuarioResponse {
     private String celular;
     private String dni;
     private RolResumen rol;
+    private boolean activo;
 
 
     @Data
@@ -36,6 +37,7 @@ public class UsuarioResponse {
         r.setCorreo(u.getCorreo());
         r.setCelular(u.getCelular());
         r.setDni(u.getDni());
+        r.setActivo(u.isActivo());
         if (u.getRol() != null) {
             RolResumen rr = new RolResumen();
             rr.setIdrol(u.getRol().getIdrol());

@@ -1,6 +1,8 @@
 package com.ecommerce.backend.repository;
 
 import com.ecommerce.backend.entity.Usuario;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -130,5 +132,24 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
   @Query("SELECT u FROM Usuario u WHERE u.rol.idrol = :idrol")
   List<Usuario> findAllByRolId(@Param("idrol") Integer idrol);
+
+  // ---- Listado de usuarios para el admin (GET /api/admin/usuarios), con busqueda opcional ----
+
+  Page<Usuario> findByNombreContainingIgnoreCaseOrApellidoContainingIgnoreCaseOrCorreoContainingIgnoreCase(
+      String nombre, String apellido, String correo, Pageable pageable);
+
+  // ---- Activar/desactivar cuenta (lo usa EstadoCuentaPersistencia) ----
+
+  /** Cambia activo y sube la version de sesion, solo si activo sigue siendo el valor leido (0 filas = cambio concurrente). */
+  @Modifying(clearAutomatically = true)
+  @Transactional
+  @Query("UPDATE Usuario u SET u.activo = :activo, u.sesionVersion = u.sesionVersion + 1 "
+       + "WHERE u.iduser = :iduser AND u.activo = :actual")
+  int cambiarEstado(@Param("iduser") Integer iduser, @Param("activo") boolean activo, @Param("actual") boolean actual);
+
+  /** Bloquea (FOR UPDATE) las filas de administradores activos y habilitados, y devuelve sus ids. Solo dentro de una transaccion. */
+  @Query(value = "SELECT iduser FROM usuario WHERE idrol = 1 AND is_enabled = true AND activo = true ORDER BY iduser FOR UPDATE",
+         nativeQuery = true)
+  List<Integer> bloquearAdminsActivosYHabilitados();
 
 }

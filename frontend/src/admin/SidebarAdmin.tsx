@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { MdOutlineReviews, MdRateReview } from "react-icons/md";
 import { AiOutlineProduct } from "react-icons/ai";
 import { FiLock } from "react-icons/fi";
+import { UsersThree } from "@phosphor-icons/react";
 
 interface SidebarAdminProps {
   isOpen: boolean;
@@ -154,6 +155,16 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({ isOpen, toggle }) => {
                 <FaThList className="w-3.5 h-3.5 text-gray-300 group-hover:text-white" />
               </div>
               <span className="ml-3">Categorías</span>
+            </button>
+
+            <button
+              onClick={() => navigate("/admin/clientes")}
+              className="w-full flex items-center px-3 py-2.5 rounded-xl hover:bg-gray-700 hover:bg-opacity-50 transition-all text-left text-sm cursor-pointer group"
+            >
+              <div className="bg-gray-700 group-hover:bg-cyan-500 rounded-lg p-1.5 transition-colors">
+                <UsersThree className="w-3.5 h-3.5 text-gray-300 group-hover:text-white" />
+              </div>
+              <span className="ml-3">Clientes</span>
             </button>
 
             <button

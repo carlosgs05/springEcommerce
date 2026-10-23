@@ -1,14 +1,16 @@
 import { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import { FaUserEdit, FaEye, FaEyeSlash, FaUser } from "react-icons/fa";
+import { Eye, EyeSlash, UserCircle } from "@phosphor-icons/react";
 import axios from "axios";
-import { api } from "../../lib/api";
+import { api } from "@/lib/api";
 import Swal from "sweetalert2";
-import Header from "../Header";
-import Footer from "../Footer";
-import { useAuth } from '../../context/AuthContext';
-import { FieldError, INVALID_CLASS, fieldAria } from '../../components/FieldError';
-import { useCambiarCorreo, idCorreo } from '../../autenticacion/useCambiarCorreo';
-import { PASSWORD_HINT, PASSWORD_RE, fieldErrorsDe, flagInvalid } from '../../autenticacion/formUtils';
+import { useAuth } from '@/context/AuthContext';
+import { FieldError, fieldAria } from '@/components/FieldError';
+import { useCambiarCorreo, idCorreo } from '@/autenticacion/useCambiarCorreo';
+import { PASSWORD_HINT, PASSWORD_RE, fieldErrorsDe, flagInvalid } from '@/autenticacion/formUtils';
+import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { FormField, Input } from '@/components/ui/FormField';
 
 interface UserData {
   nombre: string;
@@ -132,8 +134,8 @@ const PerfilUser = () => {
         mostrarErrores(found);
         return;
       }
-      const errorMessage = axios.isAxiosError(error) && error.response?.data?.message 
-        ? error.response.data.message 
+      const errorMessage = axios.isAxiosError(error) && error.response?.data?.message
+        ? error.response.data.message
         : 'Error en la operación';
       Swal.fire({ title: 'Error', text: errorMessage, icon: 'error' });
     } finally {
@@ -147,265 +149,245 @@ const PerfilUser = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <section className="flex-grow bg-gradient-to-b from-gray-50 to-stone-100 py-12 px-4 sm:px-6 lg:px-8">
+      <section className="flex-grow bg-canvas py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-cyan-600 mb-8 flex items-center gap-2">
-            <FaUserEdit className="inline-block" /> Mi Perfil
-          </h1>
-
           <form onSubmit={handleSubmit} noValidate className="space-y-8">
-            <div className="flex items-center gap-6 mb-8">
-              <div className="relative group">
-                <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                  <FaUser className="text-4xl text-gray-500" />
+            <Card elevation={2} padding="lg">
+              <div className="flex items-center gap-6 mb-2">
+                <div className="w-24 h-24 rounded-full bg-primary/15 flex items-center justify-center overflow-hidden shrink-0">
+                  <UserCircle className="text-6xl text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-text">
+                    {userData.nombre} {userData.apellido}
+                  </h2>
+                  <p className="text-text-muted break-all">{userData.correo}</p>
+                  <Badge variant="success" size="sm" className="mt-2">Cliente</Badge>
                 </div>
               </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {userData.nombre} {userData.apellido}
+            </Card>
+
+            <Card elevation={1} padding="lg">
+              <CardHeader>
+                <h2 className="text-xl font-semibold text-text">
+                  Información Personal
                 </h2>
-                <p className="text-gray-600">{userData.correo}</p>
-              </div>
-            </div>
+              </CardHeader>
+              <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField label="Nombre" required error={errors.nombre}>
+                  {(ctrl) => (
+                    <Input
+                      {...ctrl}
+                      name="nombre"
+                      value={userData.nombre}
+                      onChange={handleChange}
+                    />
+                  )}
+                </FormField>
+                <FormField label="Apellido" required error={errors.apellido}>
+                  {(ctrl) => (
+                    <Input
+                      {...ctrl}
+                      name="apellido"
+                      value={userData.apellido}
+                      onChange={handleChange}
+                    />
+                  )}
+                </FormField>
+                <FormField label="Teléfono" error={errors.celular}>
+                  {(ctrl) => (
+                    <Input
+                      {...ctrl}
+                      type="tel"
+                      name="celular"
+                      value={userData.celular}
+                      onChange={handleChange}
+                    />
+                  )}
+                </FormField>
+                <FormField label="DNI">
+                  {(ctrl) => (
+                    <Input
+                      {...ctrl}
+                      name="dni"
+                      value={userData.dni}
+                      disabled
+                    />
+                  )}
+                </FormField>
+              </CardBody>
+            </Card>
 
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-              <h2 className="text-xl font-semibold text-cyan-600 mb-6">
-                Información Personal
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="nombre" className="block text-gray-700 mb-2">Nombre</label>
-                  <input
-                    type="text"
-                    name="nombre"
-                    {...fieldAria("nombre", errors.nombre)}
-                    value={userData.nombre}
-                    onChange={handleChange}
-                    className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none ${INVALID_CLASS}`}
-                    required
-                  />
-                  <FieldError id="nombre" error={errors.nombre} />
-                </div>
-                <div>
-                  <label htmlFor="apellido" className="block text-gray-700 mb-2">Apellido</label>
-                  <input
-                    type="text"
-                    name="apellido"
-                    {...fieldAria("apellido", errors.apellido)}
-                    value={userData.apellido}
-                    onChange={handleChange}
-                    className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none ${INVALID_CLASS}`}
-                    required
-                  />
-                  <FieldError id="apellido" error={errors.apellido} />
-                </div>
-                <div>
-                  <label htmlFor="celular" className="block text-gray-700 mb-2">Teléfono</label>
-                  <input
-                    type="tel"
-                    name="celular"
-                    {...fieldAria("celular", errors.celular)}
-                    value={userData.celular}
-                    onChange={handleChange}
-                    className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none ${INVALID_CLASS}`}
-                  />
-                  <FieldError id="celular" error={errors.celular} />
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-2">DNI</label>
-                  <input
-                    type="text"
-                    name="dni"
-                    value={userData.dni}
-                    disabled
-                    className="w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-500 cursor-not-allowed"
-                  />
-                </div>
-              </div>
-            </div>
+            <Card elevation={1} padding="lg">
+              <CardHeader>
+                <h2 className="text-xl font-semibold text-text">
+                  Seguridad
+                </h2>
+              </CardHeader>
+              <CardBody className="space-y-6">
+                <FormField label="Correo Electrónico (se cambia en «Cambiar correo», más abajo)">
+                  {() => (
+                    <Input
+                      type="email"
+                      id="correo"
+                      name="correo"
+                      value={userData.correo}
+                      disabled
+                    />
+                  )}
+                </FormField>
 
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-              <h2 className="text-xl font-semibold text-cyan-600 mb-6">
-                Seguridad
-              </h2>
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="correo" className="block text-gray-700 mb-2">Correo Electrónico (se cambia en «Cambiar correo», más abajo)</label>
-                  <input
-                    type="email"
-                    id="correo"
-                    name="correo"
-                    value={userData.correo}
-                    disabled
-                    className="w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-500 cursor-not-allowed"
-                  />
-                </div>
-                
-                <div className="border-t border-gray-200 pt-6 space-y-6">
-                  <div className="relative">
-                    <label htmlFor="currentPassword" className="block text-gray-700 mb-2">Contraseña Actual</label>
+                <div className="border-t border-border pt-6 space-y-6">
+                  <div>
+                    <label htmlFor="currentPassword" className="font-body text-sm font-semibold text-text mb-1.5 block">Contraseña Actual</label>
                     <div className="relative">
-                      <input
+                      <Input
                         type={showPassword.current ? "text" : "password"}
                         name="currentPassword"
                         {...fieldAria("currentPassword", errors.currentPassword)}
                         value={userData.currentPassword}
                         onChange={handleChange}
                         autoComplete="current-password"
-                        className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none pr-12 ${INVALID_CLASS}`}
+                        className="pr-12"
                       />
                       <button
                         type="button"
                         onClick={() => togglePasswordVisibility('current')}
-                        className="absolute right-3 top-3.5 text-gray-500 hover:text-cyan-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary cursor-pointer"
+                        aria-label={showPassword.current ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
-                        {showPassword.current ? <FaEyeSlash /> : <FaEye />}
+                        {showPassword.current ? <EyeSlash /> : <Eye />}
                       </button>
                     </div>
                     <FieldError id="currentPassword" error={errors.currentPassword} />
                   </div>
 
-                  <div className="relative">
-                    <label htmlFor="newPassword" className="block text-gray-700 mb-2">Nueva Contraseña</label>
+                  <div>
+                    <label htmlFor="newPassword" className="font-body text-sm font-semibold text-text mb-1.5 block">Nueva Contraseña</label>
                     <div className="relative">
-                      <input
+                      <Input
                         type={showPassword.new ? "text" : "password"}
                         name="newPassword"
                         {...fieldAria("newPassword", errors.newPassword)}
                         value={userData.newPassword}
                         onChange={handleChange}
-                        className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none pr-12 ${INVALID_CLASS}`}
+                        className="pr-12"
                       />
                       <button
                         type="button"
                         onClick={() => togglePasswordVisibility('new')}
-                        className="absolute right-3 top-3.5 text-gray-500 hover:text-cyan-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary cursor-pointer"
+                        aria-label={showPassword.new ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
-                        {showPassword.new ? <FaEyeSlash /> : <FaEye />}
+                        {showPassword.new ? <EyeSlash /> : <Eye />}
                       </button>
                     </div>
                     <FieldError id="newPassword" error={errors.newPassword} />
                   </div>
 
-                  <div className="relative">
-                    <label htmlFor="confirmPassword" className="block text-gray-700 mb-2">Confirmar Nueva Contraseña</label>
+                  <div>
+                    <label htmlFor="confirmPassword" className="font-body text-sm font-semibold text-text mb-1.5 block">Confirmar Nueva Contraseña</label>
                     <div className="relative">
-                      <input
+                      <Input
                         type={showPassword.confirm ? "text" : "password"}
                         name="confirmPassword"
                         {...fieldAria("confirmPassword", errors.confirmPassword)}
                         value={userData.confirmPassword}
                         onChange={handleChange}
-                        className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none pr-12 ${INVALID_CLASS}`}
+                        className="pr-12"
                       />
                       <button
                         type="button"
                         onClick={() => togglePasswordVisibility('confirm')}
-                        className="absolute right-3 top-3.5 text-gray-500 hover:text-cyan-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary cursor-pointer"
+                        aria-label={showPassword.confirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
-                        {showPassword.confirm ? <FaEyeSlash /> : <FaEye />}
+                        {showPassword.confirm ? <EyeSlash /> : <Eye />}
                       </button>
                     </div>
                     <FieldError id="confirmPassword" error={errors.confirmPassword} />
                   </div>
                 </div>
+              </CardBody>
+            </Card>
 
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-4 mt-8">
-              <button
-                type="button"
-                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors duration-200"
-              >
+            <div className="flex justify-end gap-4">
+              <Button type="button" variant="secondary">
                 Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
-              </button>
+              </Button>
+              <Button type="submit" variant="primary" loading={isSubmitting}>
+                Guardar Cambios
+              </Button>
             </div>
           </form>
 
-          <form onSubmit={correo.paso === 1 ? correo.pedirCodigo : correo.confirmar} noValidate className="mt-8 bg-white rounded-xl p-6 shadow-lg border border-gray-200 space-y-6">
-            <h2 className="text-xl font-semibold text-cyan-600">Cambiar correo</h2>
-            {correo.aviso && (
-              <p role="status" className="rounded-lg bg-cyan-50 border border-cyan-200 px-4 py-3 text-sm text-gray-800">{correo.aviso}</p>
-            )}
-            {correo.paso === 1 ? (
-              <>
-                <div>
-                  <label htmlFor={idCorreo("newCorreo")} className="block text-gray-700 mb-2">Correo nuevo</label>
-                  <input
-                    type="email"
-                    name="newCorreo"
-                    inputMode="email"
-                    autoComplete="email"
-                    {...fieldAria(idCorreo("newCorreo"), correo.errors.newCorreo)}
-                    value={correo.valores.newCorreo}
-                    onChange={correo.handleChange}
-                    className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none ${INVALID_CLASS}`}
-                  />
-                  <FieldError id={idCorreo("newCorreo")} error={correo.errors.newCorreo} />
-                </div>
-                <div>
-                  <label htmlFor={idCorreo("currentPassword")} className="block text-gray-700 mb-2">Contraseña actual</label>
-                  <input
-                    type="password"
-                    name="currentPassword"
-                    autoComplete="current-password"
-                    {...fieldAria(idCorreo("currentPassword"), correo.errors.currentPassword)}
-                    value={correo.valores.currentPassword}
-                    onChange={correo.handleChange}
-                    className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none ${INVALID_CLASS}`}
-                  />
-                  <FieldError id={idCorreo("currentPassword")} error={correo.errors.currentPassword} />
-                </div>
-              </>
-            ) : (
-                <div>
-                  <label htmlFor={idCorreo("emailCode")} className="block text-gray-700 mb-2">Código de 6 dígitos enviado al correo nuevo</label>
-                  <input
-                    type="text"
-                    name="emailCode"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    {...fieldAria(idCorreo("emailCode"), correo.errors.emailCode)}
-                    value={correo.valores.emailCode}
-                    onChange={correo.handleChange}
-                    className={`w-full bg-gray-50 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-500 focus:outline-none ${INVALID_CLASS}`}
-                  />
-                  <FieldError id={idCorreo("emailCode")} error={correo.errors.emailCode} />
-                </div>
-            )}
-            {correo.paso === 2 && (
-              <p className="text-sm text-gray-600 break-all">Correo nuevo: <strong>{correo.valores.newCorreo}</strong></p>
-            )}
-            <div className="flex flex-wrap justify-end gap-4">
-              {correo.paso === 2 && (
-                <button type="button" onClick={correo.volver} className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors duration-200">
-                  Pedir otro código
-                </button>
+          <Card elevation={1} padding="lg" className="mt-8">
+            <form onSubmit={correo.paso === 1 ? correo.pedirCodigo : correo.confirmar} noValidate className="space-y-6">
+              <h2 className="text-xl font-semibold text-text">Cambiar correo</h2>
+              {correo.aviso && (
+                <p role="status" className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-text">{correo.aviso}</p>
               )}
-              <button
-                type="submit"
-                disabled={correo.loading}
-                className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {correo.loading ? 'Enviando...' : correo.paso === 1 ? 'Enviar código' : 'Confirmar correo'}
-              </button>
-            </div>
-          </form>
+              {correo.paso === 1 ? (
+                <>
+                  <FormField label="Correo nuevo" error={correo.errors.newCorreo}>
+                    {() => (
+                      <Input
+                        type="email"
+                        name="newCorreo"
+                        inputMode="email"
+                        autoComplete="email"
+                        {...fieldAria(idCorreo("newCorreo"), correo.errors.newCorreo)}
+                        value={correo.valores.newCorreo}
+                        onChange={correo.handleChange}
+                      />
+                    )}
+                  </FormField>
+                  <FormField label="Contraseña actual" error={correo.errors.currentPassword}>
+                    {() => (
+                      <Input
+                        type="password"
+                        name="currentPassword"
+                        autoComplete="current-password"
+                        {...fieldAria(idCorreo("currentPassword"), correo.errors.currentPassword)}
+                        value={correo.valores.currentPassword}
+                        onChange={correo.handleChange}
+                      />
+                    )}
+                  </FormField>
+                </>
+              ) : (
+                  <FormField label="Código de 6 dígitos enviado al correo nuevo" error={correo.errors.emailCode}>
+                    {() => (
+                      <Input
+                        type="text"
+                        name="emailCode"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        {...fieldAria(idCorreo("emailCode"), correo.errors.emailCode)}
+                        value={correo.valores.emailCode}
+                        onChange={correo.handleChange}
+                      />
+                    )}
+                  </FormField>
+              )}
+              {correo.paso === 2 && (
+                <p className="text-sm text-text-muted break-all">Correo nuevo: <strong>{correo.valores.newCorreo}</strong></p>
+              )}
+              <div className="flex flex-wrap justify-end gap-4">
+                {correo.paso === 2 && (
+                  <Button type="button" variant="secondary" onClick={correo.volver}>
+                    Pedir otro código
+                  </Button>
+                )}
+                <Button type="submit" variant="primary" loading={correo.loading}>
+                  {correo.paso === 1 ? 'Enviar código' : 'Confirmar correo'}
+                </Button>
+              </div>
+            </form>
+          </Card>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };

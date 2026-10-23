@@ -46,7 +46,7 @@ import jakarta.mail.internet.MimeMultipart;
  */
 @WebMvcTest({UsuarioController.class, AdminUsuarioController.class})
 @Import({SecurityConfig.class, JWTAuthFilter.class, JWTUtils.class, UsuarioDetailsService.class, UsuarioService.class,
-        AdminUsuarioService.class, RolPersistencia.class})
+        AdminUsuarioService.class, RolPersistencia.class, EstadoCuentaPersistencia.class})
 @TestPropertySource(properties = {"app.jwt.secret=" + AuthSeguridadDia2Test.SECRETO})
 class CambioRolDia2Test {
 

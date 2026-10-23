@@ -64,6 +64,10 @@ public class Usuario implements UserDetails {
     @Column(name = "is_enabled")
     private boolean enabled;
 
+    // --- Activo/desactivado por un administrador (migracion V8); distinto de is_enabled (correo verificado) ---
+    @Column(name = "activo")
+    private boolean activo = true;
+
     @JsonIgnore
     @Column(name = "token_expiration", columnDefinition = "TIMESTAMP")
     private LocalDateTime tokenExpiration;

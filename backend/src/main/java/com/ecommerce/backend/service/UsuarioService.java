@@ -455,6 +455,9 @@ public class UsuarioService {
             if (!user.isEnabled()) {
                 return respuesta(403, "Debes verificar tu correo antes de iniciar sesión");
             }
+            if (!user.isActivo()) {
+                return respuesta(403, "Tu cuenta ha sido desactivada. Contacta con soporte.");
+            }
 
             Auditoria.evento("login_ok", user.getIduser(), ip);
             return respuestaSesion(user);
