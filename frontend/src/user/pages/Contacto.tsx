@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import swal from 'sweetalert2/dist/sweetalert2.all.js';
-import { useAuth } from '../../context/AuthContext';
-import Header from '../Header';
-import Footer from '../Footer';
+import { useAuth } from '@/context/AuthContext';
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock, FaCommentAlt } from 'react-icons/fa';
 
 const Contacto: React.FC = () => {
@@ -35,7 +33,6 @@ const Contacto: React.FC = () => {
 
   return (
     <>
-      <Header />
       <main className="bg-gradient-to-b from-gray-50 to-gray-100 py-16 min-h-screen">
         <div className="max-w-4xl mx-auto px-4">
           {/* Título principal */}
@@ -168,7 +165,6 @@ const Contacto: React.FC = () => {
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 };

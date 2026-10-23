@@ -1,11 +1,9 @@
 import React, { useEffect, useState, ChangeEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Header from "../Header";
-import Footer from "../Footer";
 import axios from "axios";
 import { AiOutlineFilePdf, AiOutlineCreditCard } from "react-icons/ai";
 import { HiOutlineTrash, HiOutlineArrowNarrowLeft } from "react-icons/hi";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import Select, { components } from "react-select";
 import Swal from "sweetalert2/dist/sweetalert2.all.js";
 
@@ -338,7 +336,6 @@ const CheckoutPago: React.FC = () => {
         </div>
       )}
 
-      <Header />
       <main className="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen flex flex-col items-center py-4 px-2">
         <div className="w-full max-w-[1370px] mx-4 my-10">
           <div className="flex items-center mb-4">
@@ -556,7 +553,6 @@ const CheckoutPago: React.FC = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 };

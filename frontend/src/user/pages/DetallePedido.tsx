@@ -9,8 +9,6 @@ import {
   FiAlertCircle,
   FiFileText,
 } from "react-icons/fi";
-import Header from "../Header";
-import Footer from "../Footer";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2/dist/sweetalert2.all.js";
@@ -636,7 +634,6 @@ const DetallePedido = () => {
         </div>
       )}
 
-      <Header />
       <main className="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
         <div className="w-full max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center mb-5">
@@ -962,7 +959,6 @@ const DetallePedido = () => {
           </div>
         </div>
       </main>
-      <Footer />
 
       {/* Modal de detalles de rechazo */}
       {showRechazoModal && (

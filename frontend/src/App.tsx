@@ -1,14 +1,16 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import GuestRoute from "./components/GuestRoute";
-import ProtectedRoute from "./components/ProtectedRoute";
-import HomeRoute from "./components/HomeRoute";
-import PublicRoute from "./components/PublicRoute";
+import GuestRoute from "./router/GuestRoute";
+import ProtectedRoute from "./router/ProtectedRoute";
+import HomeRoute from "./router/HomeRoute";
+import PublicRoute from "./router/PublicRoute";
+import UserLayout from "./layouts/UserLayout";
 
 import AuthLayout from "./autenticacion/AuthLayout";
 import Login from "./autenticacion/Login";
 import RegisterUser from "./autenticacion/RegisterUser";
+import HomeUser from "./user/HomeUser";
 import Nosotros from "./user/pages/Nosotros";
 import Tienda from "./user/pages/Tienda";
 import Contacto from "./user/pages/Contacto";
@@ -34,6 +36,7 @@ import MisPedidos from "./user/pages/MisPedidos";
 import DetallePedido from "./user/pages/DetallePedido";
 import PedidosAdmin from "./admin/pages/PedidosAdmin";
 import DetallePedidoAdmin from "./admin/pages/DetallePedidoAdmin";
+import UsuariosAdmin from "./admin/pages/UsuariosAdmin";
 
 // Solo en desarrollo: en el build de producción la rama se elimina y el chunk no se genera
 const UiShowcase = import.meta.env.DEV
@@ -58,7 +61,11 @@ function App() {
         )}
 
         {/* Ruta raíz */}
-        <Route path="/" element={<HomeRoute />} />
+        <Route path="/" element={<HomeRoute />}>
+          <Route element={<UserLayout />}>
+            <Route index element={<HomeUser />} />
+          </Route>
+        </Route>
 
         {/* Rutas para invitados */}
         <Route element={<GuestRoute />}>
@@ -75,10 +82,12 @@ function App() {
 
         {/* Rutas públicas */}
         <Route element={<PublicRoute />}>
-          <Route path="/nosotros" element={<Nosotros />} />
-          <Route path="/tienda" element={<Tienda />} />
-          <Route path="/contacto" element={<Contacto />} />
-          <Route path="/tienda/producto/:id" element={<ProductoDetails />} />
+          <Route element={<UserLayout />}>
+            <Route path="/nosotros" element={<Nosotros />} />
+            <Route path="/tienda" element={<Tienda />} />
+            <Route path="/contacto" element={<Contacto />} />
+            <Route path="/tienda/producto/:id" element={<ProductoDetails />} />
+          </Route>
         </Route>
 
         {/* Rutas para admin (rol 1) */}
@@ -87,6 +96,7 @@ function App() {
             <Route index element={<HomeAdmin />} />
             <Route path="perfil" element={<PerfilAdmin />} />
             <Route path="categorias" element={<CategoriasAdmin />} />
+            <Route path="clientes" element={<UsuariosAdmin />} />
             <Route path="marcas" element={<MarcasAdmin />} />
             <Route path="productos" element={<ProductosAdmin />} />
             <Route path="metodos-envio" element={<MetodosEnvioAdmin />} />
@@ -112,7 +122,9 @@ function App() {
             />
           }
         >
-          <Route index element={<PerfilUser />} />
+          <Route element={<UserLayout />}>
+            <Route index element={<PerfilUser />} />
+          </Route>
         </Route>
 
         {/* RUTA PROTEGIDA PARA EL CARRITO (solo clientes, rol 2) */}
@@ -126,7 +138,9 @@ function App() {
             />
           }
         >
-          <Route index element={<CarritoDetalle />} />
+          <Route element={<UserLayout />}>
+            <Route index element={<CarritoDetalle />} />
+          </Route>
         </Route>
 
         {/* RUTA PROTEGIDA PARA EL CHECKOUT (solo clientes, rol 2) */}
@@ -140,7 +154,9 @@ function App() {
             />
           }
         >
-          <Route index element={<CheckoutPago />} />
+          <Route element={<UserLayout />}>
+            <Route index element={<CheckoutPago />} />
+          </Route>
         </Route>
 
         {/* NUEVA RUTA PROTEGIDA PARA MIS PEDIDOS (solo clientes, rol 2) */}
@@ -154,8 +170,10 @@ function App() {
             />
           }
         >
-          <Route index element={<MisPedidos />} />
-          <Route path=":id" element={<DetallePedido />} />
+          <Route element={<UserLayout />}>
+            <Route index element={<MisPedidos />} />
+            <Route path=":id" element={<DetallePedido />} />
+          </Route>
         </Route>
       </Routes>
     </AuthProvider>

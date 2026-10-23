@@ -17,9 +17,6 @@ import {
   FaHeadset,
   FaAward,
 } from "react-icons/fa";
-import Footer from "./Footer";
-import Header from "./Header";
-
 interface Especificacion {
   unidadmedida: string;
   valor: number;
@@ -213,8 +210,6 @@ const HomeUser = () => {
 
   return (
     <div className="bg-gray-50 text-gray-800 min-h-screen w-full">
-      <Header />
-
       {/* HERO */}
       <section className="relative h-96 w-full overflow-hidden">
         {banners.map((src, idx) => (
@@ -560,8 +555,6 @@ const HomeUser = () => {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };

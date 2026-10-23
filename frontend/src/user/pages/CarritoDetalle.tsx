@@ -8,9 +8,7 @@ import {
   HiOutlineLocationMarker,
 } from "react-icons/hi";
 import { TbMoodEmpty } from "react-icons/tb";
-import { useAuth } from "../../context/AuthContext";
-import Header from "../Header";
-import Footer from "../Footer";
+import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import swal from "sweetalert2/dist/sweetalert2.all.js";
 
@@ -242,7 +240,6 @@ const CarritoDetalle: React.FC = () => {
 
   return (
     <>
-      <Header />
       <main className="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
         <div className="max-w-[1410px] mx-auto px-4 py-12 sm:px-6">
           <div className="flex items-center mb-8">
@@ -533,7 +530,6 @@ const CarritoDetalle: React.FC = () => {
           )}
         </div>
       </main>
-      <Footer />
 
       {/* Modal de selección de método de envío */}
       {showMetodoModal && (

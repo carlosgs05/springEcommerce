@@ -1,7 +1,6 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import HomeUser from '../user/HomeUser';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 const HomeRoute: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -11,8 +10,8 @@ const HomeRoute: React.FC = () => {
     return <Navigate to="/admin" replace />;
   }
 
-  // En cualquier otro caso (invitado o cliente), mostramos HomeUser
-  return <HomeUser />;
+  // En cualquier otro caso (invitado o cliente), dejamos pasar (Outlet renderiza HomeUser vía el layout)
+  return <Outlet />;
 };
 
 export default HomeRoute;

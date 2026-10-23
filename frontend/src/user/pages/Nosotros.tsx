@@ -11,8 +11,6 @@ import {
   FaChevronDown,
 } from "react-icons/fa";
 import { useState } from "react";
-import Header from "../Header";
-import Footer from "../Footer";
 
 const Nosotros = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -94,8 +92,6 @@ const Nosotros = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-cyan-600 to-blue-800 text-white py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
@@ -261,8 +257,6 @@ const Nosotros = () => {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 };

@@ -17,10 +17,8 @@ import {
   FiInbox,
 } from "react-icons/fi";
 import { FaSpinner } from "react-icons/fa";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
-import Header from "../Header";
-import Footer from "../Footer";
 
 const months = [
   "Enero",
@@ -270,7 +268,6 @@ const MisPedidos = () => {
 
   return (
     <>
-      <Header />
       <main className="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
         <div className="w-full max-w-7xl mx-auto px-4 py-8">
           {/* Header */}
@@ -508,7 +505,6 @@ const MisPedidos = () => {
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 };
