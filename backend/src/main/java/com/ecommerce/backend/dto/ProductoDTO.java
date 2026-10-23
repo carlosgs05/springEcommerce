@@ -28,6 +28,9 @@ public class ProductoDTO {
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<Comentario> comentariosAprobados;
 
+    private Double calificacionPromedio;
+    private Integer totalResenas;
+
     // — Campos de petición —
     private List<MultipartFile> imagenes;
 }

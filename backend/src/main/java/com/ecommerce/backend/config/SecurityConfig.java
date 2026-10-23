@@ -54,6 +54,43 @@ public class SecurityConfig {
                                 new AuthorizationDecision(tieneSesionAccess(auth.get())
                                         && auth.get().getAuthorities().stream()
                                                 .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        // Escritura de categorias y marcas: sesion access Y rol ADMINISTRADOR. El GET sigue publico.
+                        .requestMatchers(HttpMethod.POST, "/api/categorias/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.PUT, "/api/categorias/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.DELETE, "/api/categorias/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.POST, "/api/marcas/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.PUT, "/api/marcas/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.DELETE, "/api/marcas/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.POST, "/api/productos/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.PUT, "/api/productos/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.DELETE, "/api/productos/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
                         // /error debe ser accesible: sin esto un JSON mal formado de un anonimo acaba en 401 en vez de 400
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/**").permitAll()

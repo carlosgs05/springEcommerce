@@ -90,6 +90,26 @@
   }
 }
 
+/* Tienda/catálogo: entrada escalonada de tarjetas de producto (solo transform/opacity) */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.card-enter {
+  animation: card-enter var(--duration-base) var(--ease-standard) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-enter {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Detalle de producto: crossfade de la imagen principal al cambiar de miniatura */
+.image-crossfade {
+  transition: opacity var(--duration-base) var(--ease-standard);
+}
+
   @media print {
   header, footer, .no-print {
     display: none !important;

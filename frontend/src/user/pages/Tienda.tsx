@@ -1,23 +1,105 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import Header from "../Header";
-import Footer from "../Footer";
 import { useNavigate, useLocation } from "react-router-dom";
+import { FaStar, FaRegStar } from "react-icons/fa";
+import { api, assetUrl } from "@/lib/api";
+import { getStockBadge } from "@/lib/stockBadge";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+
+interface Categoria {
+  idcategoria: number;
+  nombre: string;
+}
+
+interface Marca {
+  idmarca: number;
+  nombre: string;
+}
+
+interface Producto {
+  idproducto: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  stock: number;
+  imagenesNombres: string[];
+  calificacionPromedio: number;
+  totalResenas: number;
+}
+
+function Estrellas({ calificacion }: { calificacion: number }) {
+  return (
+    <div className="flex text-primary" aria-hidden="true">
+      {[...Array(5)].map((_, i) =>
+        i < Math.round(calificacion) ? (
+          <FaStar key={i} className="h-3.5 w-3.5" />
+        ) : (
+          <FaRegStar key={i} className="h-3.5 w-3.5" />
+        )
+      )}
+    </div>
+  );
+}
+
+function FiltroChips<T extends { nombre: string }>({
+  titulo,
+  items,
+  getId,
+  getLabel,
+  selectedId,
+  onToggle,
+}: {
+  titulo: string;
+  items: T[];
+  getId: (item: T) => number;
+  getLabel: (item: T) => string;
+  selectedId: number | null;
+  onToggle: (id: number) => void;
+}) {
+  return (
+    <div className="py-5 border-b border-border">
+      <h3 className="font-semibold text-text mb-3">{titulo}</h3>
+      <div className="flex flex-wrap gap-2">
+        {items.length === 0 ? (
+          <p className="text-sm text-text-muted">Sin opciones disponibles</p>
+        ) : (
+          items.map((item) => {
+            const id = getId(item);
+            const active = selectedId === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onToggle(id)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-[color,background-color,border-color] duration-[var(--duration-fast)] ease-standard cursor-pointer ${
+                  active
+                    ? "bg-primary text-surface border-primary"
+                    : "bg-transparent text-text-muted border-border hover:border-primary/50 hover:text-text"
+                }`}
+              >
+                {getLabel(item)}
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
 
 const Tienda = () => {
-  const [categorias, setCategorias] = useState<any[]>([]);
-  const [marcas, setMarcas] = useState<any[]>([]);
-  const [productos, setProductos] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(
     null
   );
   const [selectedMarca, setSelectedMarca] = useState<number | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-
-  const [openSections, setOpenSections] = useState({
-    categoria: true,
-    smarca: true,
-  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,8 +109,8 @@ const Tienda = () => {
     const init = async () => {
       try {
         const [catRes, marRes] = await Promise.all([
-          axios.get("http://localhost:8080/api/categorias/listar"),
-          axios.get("http://localhost:8080/api/marcas/listar"),
+          api.get("/api/categorias/listar"),
+          api.get("/api/marcas/listar"),
         ]);
         setCategorias(catRes.data.data);
         setMarcas(marRes.data.data);
@@ -52,27 +134,27 @@ const Tienda = () => {
 
     const fetchProductos = async () => {
       try {
-        const query: any = {};
+        setLoading(true);
+        setError(null);
+        const query: Record<string, number> = {};
         if (catId !== null) query.categoria = catId;
         if (marId !== null) query.marca = marId;
         const endpoint =
           Object.keys(query).length > 0
-            ? "http://localhost:8080/api/productos/filtrar"
-            : "http://localhost:8080/api/productos/listarAll";
-        const resp = await axios.get(endpoint, { params: query });
+            ? "/api/productos/filtrar"
+            : "/api/productos/listarAll";
+        const resp = await api.get(endpoint, { params: query });
         setProductos(resp.data.data);
-        // al recargar productos, volvemos arriba
         window.scrollTo(0, 0);
       } catch (e) {
         console.error(e);
+        setError("No se pudieron cargar los productos. Intenta de nuevo.");
+      } finally {
+        setLoading(false);
       }
     };
     fetchProductos();
   }, [location.search]);
-
-  const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
 
   // 3) Handlers que actualizan URL y hacen scroll al top
   const handleCategoriaChange = (idcategoria: number) => {
@@ -103,23 +185,44 @@ const Tienda = () => {
     window.scrollTo(0, 0);
   };
 
+  const limpiarFiltros = () => navigate("/tienda");
+
+  const filtrosContent = (
+    <>
+      <FiltroChips
+        titulo="Categorías"
+        items={categorias}
+        getId={(c) => c.idcategoria}
+        getLabel={(c) => c.nombre}
+        selectedId={selectedCategoria}
+        onToggle={handleCategoriaChange}
+      />
+      <FiltroChips
+        titulo="Marcas"
+        items={marcas}
+        getId={(m) => m.idmarca}
+        getLabel={(m) => m.nombre}
+        selectedId={selectedMarca}
+        onToggle={handleMarcaChange}
+      />
+      <Button variant="secondary" fullWidth className="mt-4" onClick={limpiarFiltros}>
+        Limpiar filtros
+      </Button>
+    </>
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-
       <main className="flex-1">
-        <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-14">
-          <div className="relative z-10 flex items-baseline justify-between pt-6 pb-6 border-b border-gray-200">
-            <h1 className="text-3xl font-extrabold text-gray-900">Tienda</h1>
+        <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-14">
+          <div className="relative z-10 flex items-baseline justify-between pt-6 pb-6 border-b border-border">
+            <h1 className="text-3xl font-extrabold text-text">Tienda</h1>
             <button
-              className="lg:hidden p-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+              className="lg:hidden p-2 text-text-muted hover:text-text cursor-pointer"
               onClick={() => setShowMobileFilters(!showMobileFilters)}
+              aria-label="Mostrar filtros"
             >
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -134,22 +237,20 @@ const Tienda = () => {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-x-8 gap-y-10">
               {/* Filtros móviles */}
               {showMobileFilters && (
-                <div className="lg:hidden">
-                  <div className="fixed inset-0 bg-black/25 z-40" />
-                  <div className="relative z-50 bg-white p-4 h-full overflow-y-auto border-r border-gray-200">
+                <div className="lg:hidden fixed inset-0 z-50">
+                  <div
+                    className="fixed inset-0 bg-black/40"
+                    onClick={() => setShowMobileFilters(false)}
+                  />
+                  <div className="relative z-50 bg-surface p-4 h-full w-5/6 max-w-sm overflow-y-auto border-r border-border">
                     <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-lg font-medium text-gray-900">
-                        Filtros
-                      </h2>
+                      <h2 className="text-lg font-medium text-text">Filtros</h2>
                       <button
                         onClick={() => setShowMobileFilters(false)}
-                        className="text-gray-400 hover:text-gray-500 cursor-pointer"
+                        className="text-text-muted hover:text-text cursor-pointer"
+                        aria-label="Cerrar filtros"
                       >
-                        <svg
-                          className="h-6 w-6"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
+                        <svg className="h-6 w-6" viewBox="0 0 24 24" stroke="currentColor">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -159,241 +260,113 @@ const Tienda = () => {
                         </svg>
                       </button>
                     </div>
-                    {/* Categorías */}
-                    <div className="border-b border-gray-200 py-6">
-                      <button
-                        className="flex w-full justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
-                        onClick={() => toggleSection("categoria")}
-                      >
-                        <span className="font-medium text-gray-900">
-                          Categorías
-                        </span>
-                        <span>{openSections.categoria ? "-" : "+"}</span>
-                      </button>
-                      {openSections.categoria && (
-                        <div className="pt-6 space-y-4">
-                          {categorias.map((c) => (
-                            <label
-                              key={c.idcategoria}
-                              className="flex items-center"
-                            >
-                              <input
-                                type="radio"
-                                checked={selectedCategoria === c.idcategoria}
-                                onChange={() =>
-                                  handleCategoriaChange(c.idcategoria)
-                                }
-                                className="h-4 w-4 text-blue-600 cursor-pointer"
-                              />
-                              <span className="ml-3 text-sm text-gray-600">
-                                {c.nombre}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {/* Marcas */}
-                    <div className="border-b border-gray-200 py-6">
-                      <button
-                        className="flex w-full justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
-                        onClick={() => toggleSection("smarca")}
-                      >
-                        <span className="font-medium text-gray-900">
-                          Marcas
-                        </span>
-                        <span>{openSections.smarca ? "-" : "+"}</span>
-                      </button>
-                      {openSections.smarca && (
-                        <div className="pt-6 space-y-4">
-                          {marcas.map((m) => (
-                            <label
-                              key={m.idmarca}
-                              className="flex items-center"
-                            >
-                              <input
-                                type="radio"
-                                checked={selectedMarca === m.idmarca}
-                                onChange={() => handleMarcaChange(m.idmarca)}
-                                className="h-4 w-4 text-blue-600 cursor-pointer"
-                              />
-                              <span className="ml-3 text-sm text-gray-600">
-                                {m.nombre}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => navigate("/tienda")}
-                      className="mt-6 w-full bg-blue-600 text-white py-2 rounded-md cursor-pointer"
-                    >
-                      Limpiar filtros
-                    </button>
+                    {filtrosContent}
                   </div>
                 </div>
               )}
 
               {/* Filtros escritorio */}
-              <form className="hidden lg:block space-y-10 divide-y divide-gray-200">
-                <div className="pt-4">
-                  <div className="border-b border-gray-200 py-6">
-                    <button
-                      className="flex w-full justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
-                      onClick={() => toggleSection("categoria")}
-                    >
-                      <span className="font-medium text-gray-900">
-                        Categorías
-                      </span>
-                      <span>{openSections.categoria ? "-" : "+"}</span>
-                    </button>
-                    {openSections.categoria && (
-                      <div className="pt-6 space-y-4">
-                        {categorias.map((c) => (
-                          <label
-                            key={c.idcategoria}
-                            className="flex items-center"
-                          >
-                            <input
-                              type="radio"
-                              checked={selectedCategoria === c.idcategoria}
-                              onChange={() =>
-                                handleCategoriaChange(c.idcategoria)
-                              }
-                              className="h-4 w-4 text-blue-600 cursor-pointer"
-                            />
-                            <span className="ml-3 text-sm text-gray-600">
-                              {c.nombre}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="border-b border-gray-200 py-6">
-                    <button
-                      className="flex w-full justify-between py-3 text-sm text-gray-400 hover:text-gray-500"
-                      onClick={() => toggleSection("smarca")}
-                    >
-                      <span className="font-medium text-gray-900">Marcas</span>
-                      <span>{openSections.smarca ? "-" : "+"}</span>
-                    </button>
-                    {openSections.smarca && (
-                      <div className="pt-6 space-y-4">
-                        {marcas.map((m) => (
-                          <label key={m.idmarca} className="flex items-center">
-                            <input
-                              type="radio"
-                              checked={selectedMarca === m.idmarca}
-                              onChange={() => handleMarcaChange(m.idmarca)}
-                              className="h-4 w-4 text-blue-600 cursor-pointer"
-                            />
-                            <span className="ml-3 text-sm text-gray-600">
-                              {m.nombre}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate("/tienda");
-                    }}
-                    className="mt-6 w-full bg-blue-600 text-white py-2 rounded-md cursor-pointer"
-                  >
-                    Limpiar filtros
-                  </button>
-                </div>
-              </form>
+              <div className="hidden lg:block">{filtrosContent}</div>
 
               {/* Productos */}
               <div className="lg:col-span-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                  {productos.length > 0 ? (
-                    productos.map((producto) => (
-                      <div
-                        key={producto.idproducto}
-                        className="group relative bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 aspect-square overflow-hidden"
-                      >
-                        <div className="h-1/2 relative overflow-hidden">
-                          <img
-                            src={`http://localhost:8080/uploads/${producto.imagenesNombres[0]}`}
-                            alt={producto.nombre}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-30" />
-                        </div>
-                        <div className="h-1/2 p-4 flex flex-col justify-between">
-                          <div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                              <button
-                                onClick={() =>
-                                  navigate(
-                                    `/tienda/producto/${producto.idproducto}`,
-                                    { state: producto }
-                                  )
-                                }
-                                className="hover:text-blue-600 focus:outline-none text-left w-full cursor-pointer"
-                              >
-                                {producto.nombre}
-                              </button>
-                            </h3>
-                            <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                {loading ? (
+                  <div className="flex justify-center py-16">
+                    <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : error ? (
+                  <Card elevation={1} padding="lg" className="text-center">
+                    <p className="text-danger">{error}</p>
+                  </Card>
+                ) : productos.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {productos.map((producto, index) => {
+                      const stockBadge = getStockBadge(producto.stock);
+                      const irADetalle = () =>
+                        navigate(`/tienda/producto/${producto.idproducto}`, {
+                          state: producto,
+                        });
+                      return (
+                        <Card
+                          key={producto.idproducto}
+                          elevation={1}
+                          padding="none"
+                          className="card-enter overflow-hidden flex flex-col transition-[box-shadow,transform] duration-[var(--duration-base)] ease-standard hover:shadow-elevation-3 hover:scale-[1.02]"
+                          style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+                        >
+                          <button
+                            onClick={irADetalle}
+                            className="aspect-square w-full overflow-hidden bg-canvas cursor-pointer"
+                            aria-label={`Ver detalles de ${producto.nombre}`}
+                          >
+                            <img
+                              src={assetUrl(`uploads/${producto.imagenesNombres[0]}`)}
+                              alt={producto.nombre}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                          <div className="p-4 flex flex-col gap-2 flex-1">
+                            <button
+                              onClick={irADetalle}
+                              className="text-left font-medium text-text hover:text-primary cursor-pointer line-clamp-1"
+                            >
+                              {producto.nombre}
+                            </button>
+                            <p className="text-sm text-text-muted line-clamp-2">
                               {producto.descripcion}
                             </p>
+                            <div className="flex items-center gap-2">
+                              <Estrellas calificacion={producto.calificacionPromedio} />
+                              <span className="text-xs text-text-muted">
+                                ({producto.totalResenas})
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={stockBadge.variant} size="sm">
+                                {stockBadge.label}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between items-center mt-auto pt-2">
+                              <p className="font-bold text-primary text-lg">
+                                S/ {producto.precio.toFixed(2)}
+                              </p>
+                              <Button size="sm" onClick={irADetalle}>
+                                Ver detalles
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex justify-between items-center mt-1 mx-2">
-                            <p className="mt-1 font-bold text-blue-600 text-lg">
-                              S/ {producto.precio.toFixed(2)}
-                            </p>
-                            <button
-                              onClick={() =>
-                                navigate(`/tienda/producto/${producto.idproducto}`, {
-                                  state: producto,
-                                })
-                              }
-                              className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium cursor-pointer"
-                            >
-                              Ver detalles
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 col-span-full">
-                      <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">
-                        No se encontraron productos
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Intenta con otros filtros de búsqueda
-                      </p>
-                    </div>
-                  )}
-                </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <svg
+                      className="mx-auto h-12 w-12 text-text-muted"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-text">
+                      No se encontraron productos
+                    </h3>
+                    <p className="mt-1 text-sm text-text-muted">
+                      Intenta con otros filtros de búsqueda
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </section>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

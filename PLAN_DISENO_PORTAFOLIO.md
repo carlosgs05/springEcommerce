@@ -4,9 +4,9 @@
 
 - [x] Día 1 — Fundamentos: tokens de diseño, piezas compartidas, seguridad transversal y base de datos versionada
 - [x] Día 2 — Autenticación (correo + contraseña; se quitó el MFA por decisión del dueño)
-- [ ] Día 3 — Usuarios/Perfil + Roles y Permisos + Gestión de Clientes (admin)
-- [ ] Día 4 — Categorías + Marcas
-- [ ] Día 5 — Productos
+- [x] Día 3 — Usuarios/Perfil + Roles y Permisos + Gestión de Clientes (admin) — ver nota de verificación pendiente abajo
+- [x] Día 4 — Categorías + Marcas
+- [x] Día 5 — Productos
 - [ ] Día 6 — Favoritos y Comparador de Productos + Carrito
 - [ ] Día 7 — Métodos de Pago: pasarelas reales + manual
 - [ ] Día 8 — Métodos de Envío + Comentarios/Reseñas + Testimonios
@@ -480,6 +480,24 @@ stock), no de números fijos en el HTML.
   admin → rechaza; confirmar que la respuesta de la lista nunca trae
   `password`/`resetCode`.
 
+**Cierre real del Día 3:** backend con 125 pruebas unitarias (mocks) en
+verde, incluidas las 11 nuevas de cambio de estado; `seguridad` revisó todo
+lo nuevo (listado, desactivar cuenta, login con cuenta inactiva, IDOR,
+mensajes de error) y no encontró hallazgos bloqueantes. **Verificado en vivo
+en el navegador, contra la base local real del dueño** (no una descartable):
+login normal del cliente, entrar como admin y ver `UsuariosAdmin.tsx` con los
+usuarios reales + de prueba, desactivar una cuenta de prueba desde la
+pantalla, confirmar en la pestaña de Network que la respuesta de la lista
+nunca trae `password`/`resetCode`, e intentar iniciar sesión con la cuenta
+recién desactivada → rechazada con el mensaje "Tu cuenta ha sido desactivada.
+Contacta con soporte." Los dos usuarios de prueba se crearon por SQL (sin
+mandar correo real) y se borraron al terminar. **Pendiente de verificar, no
+bloqueante:** no se probó la concurrencia real del "último admin" con dos
+transacciones simultáneas contra una base de verdad (la lógica SQL se
+revisó y es correcta, pero sin ejecutarla). El botón "Ver pedidos" en
+`UsuariosAdmin.tsx` queda deshabilitado — el historial de pedidos por
+usuario es del Día 9, todavía no existe.
+
 ## Día 4 — Categorías + Marcas
 
 ### Módulo: Categorías
@@ -513,6 +531,140 @@ stock), no de números fijos en el HTML.
   consistente.
 - **Prueba:** crear/editar/eliminar marca con logo; subir un archivo
   no-imagen como logo → debe rechazar; sin sesión admin → rechaza.
+
+**Cierre real del Día 4:** probado en vivo contra la base local del dueño,
+con el sistema arrancado igual que siempre (`iniciar_sistema.bat`), no con
+mocks. Categorías y Marcas: crear/editar/eliminar en el navegador con sesión
+admin, filtros de categoría en `Tienda.tsx` (chips, incluye el drawer de
+filtros en mobile); subida de logo probada contra el backend real con un
+archivo de texto disfrazado de `.jpg` (rechazado, 400, revisa los bytes
+reales del archivo) y con un PNG válido (aceptado, visible en pantalla);
+sin sesión admin, la escritura rechaza con 401; `seguridad` revisó permisos,
+la validación de logo (incluida la posibilidad de un archivo polyglot) y el
+nuevo manejador de `/uploads/**` — sin hallazgos bloqueantes tras corregir
+el que encontró (ver abajo). Responsive revisado en mobile/tablet/escritorio
+no solo en las pantallas de hoy sino en las del Día 1 al 4 (Login,
+Perfil/UsuariosAdmin, Categorías/Marcas/Tienda) a pedido del dueño, sin
+hallazgos.
+
+**Bugs reales encontrados hoy y corregidos (no estaban en el encargo
+original, salieron al probar en vivo):**
+- `CategoriaController.actualizarCategoria` tenía un typo (`"sucess"` en vez
+  de `"success"`) que hacía que el frontend mostrara "Error" en cada edición
+  de categoría aunque sí se guardara — corregido.
+- **Las 4 pantallas con subida de archivo del proyecto** (Marcas, Productos,
+  Métodos de Envío, Métodos de Pago) guardaban el archivo en una carpeta que
+  el sistema nunca sirve, por una ruta relativa que asume mal desde dónde se
+  arranca el backend — con la forma en que el sistema arranca siempre
+  (`iniciar_sistema.bat`), **ninguna subida de imagen funcionaba de verdad**.
+  Corregido en los 4 servicios (`uploadDir` ya no asume el directorio raíz
+  del proyecto) + se agregó un `ResourceHandler` nuevo en `CorsConfig.java`
+  que sirve `/uploads/**` directo desde disco (antes dependía del classpath
+  compilado, que no se actualiza con archivos subidos en caliente).
+- `seguridad` encontró que `CategoriaController`/`MarcaController` devolvían
+  `e.getMessage()` crudo al cliente en los catch genéricos (patrón heredado
+  del resto del proyecto) — corregido con mensaje genérico + log en servidor,
+  igual que ya se hizo en el Día 2/3; los mensajes de validación propia
+  (ej. "Ya existe una categoría con ese nombre") se siguen mostrando.
+
+### Adelanto del Día 11 (navbar/footer del cliente) + reestructuración de carpetas
+
+Al probar el Día 4 en el navegador, el navbar/footer del cliente seguía con el
+diseño viejo (azul/cian, "TechShop", ícono hotlinkeado de icons8.com) mientras
+las pantallas de adentro ya tenían Grafito+Oro. El dueño pidió adelantar SOLO
+el navbar/footer (no `HomeUser.tsx`, que sigue siendo Día 11 completo) y de
+paso reestructurar las carpetas del frontend aprovechando que se iba a tocar
+`Header.tsx` de todos modos.
+
+**Qué se hizo:**
+- `Header.tsx` (883 líneas) partido en `frontend/src/user/components/header/`:
+  `Header.tsx` (orquestador, ~249 líneas), `useClickOutside.ts`, `HeaderNav.tsx`,
+  `UserMenu.tsx`, `CartMenu.tsx`, `NotificationsMenu.tsx`, `HeaderMobileMenu.tsx`
+  — elimina la duplicación desktop/mobile que tenía cada dropdown escrito dos
+  veces.
+- Lógica de datos extraída a `frontend/src/user/hooks/{useCarrito.ts,
+  useNotificaciones.ts}`, migrando las 7 llamadas `axios` con URL hardcodeada
+  `http://localhost:8080/...` al cliente HTTP centralizado `lib/api.ts` (antes
+  el carrito/notificaciones no habrían funcionado fuera de `localhost`).
+- `Footer.tsx` movido a `frontend/src/user/components/footer/Footer.tsx`.
+- Guards de router movidos de `components/` a `router/`:
+  `GuestRoute`/`ProtectedRoute`/`PublicRoute`/`HomeRoute` — `HomeRoute` ahora
+  usa `<Outlet/>` en vez de renderizar `HomeUser` directo.
+- `frontend/src/layouts/UserLayout.tsx` nuevo (Header + `<Outlet/>` + Footer),
+  anidado en `App.tsx` dentro de cada guard que sirve pantallas de cliente —
+  las 9 páginas de `user/pages/*` ya no importan ni pintan Header/Footer ellas
+  mismas.
+- Rediseño visual Grafito+Oro de Header y Footer: "TechShop" → "TechStore" en
+  `font-heading`, ícono hotlinkeado de icons8 reemplazado por `Storefront` de
+  `@phosphor-icons/react` (también reemplaza el resto de iconos `react-icons`
+  del Header/Footer), `<a href>` → `<Link>` en la navegación interna, y todos
+  los colores migrados a los tokens de `index.css` (`bg-canvas`/`bg-surface`,
+  `text-primary`/`text-primary-hover`, `text-text`/`text-text-muted`,
+  `border-border`, `shadow-elevation-*`) — un grep final de
+  `cyan-|blue-[0-9]|gray-[0-9]|red-[0-9]00|#[0-9a-f]{3,6}` sobre los 8 archivos
+  salió limpio.
+- Alias `@/` configurado de verdad (`vite.config.ts` **y** `tsconfig.app.json`,
+  los dos, a diferencia de referencias externas que solo lo hacen a medias) y
+  aplicado en los 24 archivos que este encargo tocó (imports que "suben" varios
+  niveles `../../..`; los imports entre archivos vecinos de una misma carpeta
+  chica se dejaron relativos a propósito). El resto del proyecto (~48 archivos)
+  queda con imports relativos para una pasada futura aparte.
+- `frontend/src/user/Dropdown.tsx` borrado (confirmado sin importadores).
+- Bug cosmético preexistente corregido de pasada: el dropdown de notificaciones
+  en el menú mobile se salía de la pantalla por la izquierda (heredaba el mismo
+  posicionamiento `absolute` del dropdown desktop, que no cabe en un panel
+  angosto) — ahora se ancla al contenedor del panel mobile en vez de al botón.
+
+**Qué NO se tocó (fuera de alcance, documentado):** `HomeUser.tsx` (sigue
+siendo Día 11), `admin/`, `autenticacion/`, los enlaces rotos del Footer
+(`/products`, `/testimonials`, etc. no son rutas reales — deuda señalada, no
+arreglada hoy), migración de `services/` por recurso, renombre de carpetas por
+rol a `features/`.
+
+**Bug preexistente encontrado y señalado (no corregido, fuera de alcance):**
+`DELETE /api/carrito/{iduser}` devuelve 405 cuando el carrito ya está vacío al
+cerrar sesión (el backend solo tiene mapeado `DELETE /api/carrito/eliminar/{id}`,
+no `DELETE /api/carrito/{id}`); está envuelto en `try/catch` en el frontend así
+que no rompe la UI, pero es deuda real del contrato HTTP del backend.
+
+**Qué probar (se suma a lo de Categorías/Marcas para el cierre único del Día
+4):** login/logout como cliente y como admin, las 9 páginas de cliente con el
+Header/Footer nuevo, los 3 dropdowns (usuario/carrito/notificaciones) abriendo
+y cerrando en desktop y en el menú mobile, fusión de carrito (local+BD) y
+guardado al salir, notificaciones (llegada, marcar leída, polling), navegación
+interna sin recarga completa de página, responsive en 3 anchos
+(375/768/1440).
+
+**Cierre real de este bloque:** el líder se quedó atascado reintentando a
+ciegas la prueba del dropdown de carrito/notificaciones en el navegador
+automatizado (6 intentos fallidos seguidos, sin converger) y hubo que
+cortarlo; la verificación final de punta a punta la terminé yo directamente,
+contra la base local del dueño (usuario cliente y admin de prueba creados y
+borrados por SQL), con el sistema arrancado igual que siempre
+(`iniciar_sistema.bat`). Confirmado en el navegador real: login/logout
+cliente y admin (los guards movidos a `router/` siguen redirigiendo bien),
+agregar producto al carrito desde `ProductoDetails.tsx` y verlo reflejado en
+el dropdown con imagen/precio/controles, dropdown de notificaciones con una
+notificación de prueba real (título, mensaje, "hace unos segundos"), menú de
+usuario, y el navbar/Tienda con el diseño nuevo consistente en escritorio y
+mobile (incluido el drawer de filtros).
+
+**Un bug real más, encontrado en esta verificación final (no lo había
+agarrado nadie antes, es justo lo que tenía atascado al líder):** en el menú
+mobile, el badge rojo del contador de notificaciones (`w-5 h-5`, anclado
+`top-0 right-0`) tapaba casi por completo el ícono de la campana (16px,
+centrado en un botón de 36px) — visualmente parecía que el ícono no existía.
+Corregido en `NotificationsMenu.tsx`, `CartMenu.tsx` y el botón de carrito de
+`HeaderMobileMenu.tsx`: el badge pasa de `top-0 right-0` a `-top-1 -right-1`
+(se asoma por fuera de la esquina del botón, patrón estándar de badge de
+contador) — confirmado visualmente en el navegador tras el cambio. `seguridad`
+revisó Header/Footer/hooks/guards/layout antes de este último fix — sin
+hallazgos bloqueantes (el único punto señalado, el patrón de IDOR por id sin
+verificar dueño en el cliente, es diseño preexistente del proyecto, no algo
+que este cambio introdujo; el candado real está del lado del backend, fuera
+de este encargo). No se pidió `pruebas` — esto lo probaron el líder/frontend
+y, en la parte final, yo mismo directamente en navegador; no es una revisión
+de un tercero ajeno a la implementación.
 
 ## Día 5 — Productos
 
@@ -556,6 +708,44 @@ stock), no de números fijos en el HTML.
   sesión; la calificación mostrada en la tarjeta de catálogo coincide con el
   promedio real de reseñas aprobadas de ese producto; bajar el stock de un
   producto a 3 y a 0 y confirmar que el badge cambia en las tres pantallas.
+
+**Cierre real del Día 5:** backend con 127 pruebas pasando (incluye las 2
+nuevas que prueban la validación de imagen: un archivo de texto disfrazado
+de `.jpg` se rechaza, una imagen JPEG real se acepta con nombre solo
+UUID). Verificado en vivo contra la base local del dueño: creé un producto
+real con imagen (vía backend directo, el formulario del navegador
+automatizado no permite adjuntar archivos — confirmado que el administrador
+sí puede hacerlo normal desde el navegador real), con categoría, marca y una
+especificación técnica. Confirmado en los 3 anchos y en las 3 pantallas:
+- Tienda: chips de categoría **y marca** (antes la marca eran radios),
+  estrellas con la calificación real del backend, badge de stock.
+- `ProductoDetails.tsx`: specs técnicas visibles de inmediato, sin pestaña
+  extra; calificación y badge de stock iguales a los de Tienda; botón
+  "Añadir al carrito" deshabilitado cuando está agotado.
+- `ProductosAdmin.tsx`: migrado al patrón `Card`/`Badge`/`Button`/`Input`,
+  columna de stock con el mismo `Badge` compartido (`getStockBadge`).
+
+Subí el stock del producto de prueba a 3 y a 0 **a través del endpoint real
+de actualizar** (no con un `UPDATE` directo a la base, que no limpia la
+caché del backend y deja viendo datos viejos — detalle a tener en cuenta
+para pruebas futuras de Producto) y confirmé que el badge cambia a "Poco
+stock"/"Agotado" en las tres pantallas. Archivo de texto disfrazado de
+`.jpg` → rechazado (400, revisa los bytes reales); sin sesión admin →
+rechazado (401). Datos de prueba borrados al terminar.
+
+**Bug real encontrado hoy, no corregido (preexistente, fuera de alcance del
+Día 5):** `ProductoDetails.tsx` recibe el producto completo por
+`location.state` de react-router al navegar desde `Tienda.tsx`, **no vuelve
+a pedirlo al backend por su id**. Si alguien recarga la página, entra por un
+enlace directo o lo comparte, `state` viene vacío y la pantalla muestra
+"Producto no encontrado" sin forma de recuperarse salvo volver al inicio —
+confirmado reproduciéndolo (recargar `/tienda/producto/:id` rompe la
+pantalla). No es algo que el Día 5 haya introducido (ninguno de los cambios
+de hoy tocó cómo llega el dato), pero es un hueco real de experiencia de
+usuario que conviene resolver: agregar un `GET /api/productos/{id}` al
+backend (hoy `ProductoController` no tiene uno — solo `/listarAll` y
+`/filtrar`) y que `ProductoDetails.tsx` lo use como respaldo cuando
+`location.state` viene vacío.
 
 ## Día 6 — Favoritos y Comparador de Productos + Carrito
 
@@ -855,6 +1045,14 @@ stock), no de números fijos en el HTML.
     todos los controllers tocados.
   - Dejar documentado (se ejecuta en el Día 12): agregar pruebas
     automáticas reales antes de un deploy serio.
+- **Deuda técnica de días anteriores a corregir aquí:**
+  - `ProductoDetails.tsx` (Día 5) recibe el producto por `location.state` de
+    react-router, pasado desde `Tienda.tsx` al navegar — **nunca vuelve a
+    pedirlo al backend por su id**. Recargar la página, entrar por un enlace
+    directo o compartirlo muestra "Producto no encontrado" sin forma de
+    recuperarse. Se agrega `GET /api/productos/{id}` a `ProductoController`
+    (hoy solo tiene `/listarAll` y `/filtrar`) y `ProductoDetails.tsx` lo usa
+    como respaldo cuando `location.state` viene vacío.
 - **Patrón + qué se construye:** `HomeUser.tsx` unifica toda la paleta a
   `color-primary`/`color-accent` (quita la mezcla azul/índigo) **y
   reestructura el orden de secciones** (ver `IDENTIDAD_VISUAL.md`): hero de
@@ -878,7 +1076,9 @@ stock), no de números fijos en el HTML.
   ya corregidos en Días 2, 6, 9 y 10 para confirmar que ninguno se volvió a
   abrir por un cambio de otro día; entrar a una ruta inexistente y ver la
   página 404 con el estilo de la marca, no un error en blanco; confirmar
-  que los links del footer a Términos/Privacidad/Devoluciones funcionan.
+  que los links del footer a Términos/Privacidad/Devoluciones funcionan;
+  recargar la página de un producto (`/tienda/producto/:id`) directo y
+  confirmar que ya no dice "Producto no encontrado".
 
 ## Día 12 — Despliegue a producción
 

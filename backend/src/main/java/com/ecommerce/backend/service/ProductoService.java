@@ -38,9 +38,102 @@ public class ProductoService {
     private final CategoriaRepository categoriaRepository;
     private final MarcaRepository marcaRepository;
 
-    private final String uploadDir = Paths.get("backend", "src", "main", "resources", "static", "uploads")
+    private final String uploadDir = Paths.get("src", "main", "resources", "static", "uploads")
             .toAbsolutePath()
             .toString() + File.separator;
+
+    private static final long TAMANO_MAXIMO_IMAGEN = 5L * 1024 * 1024; // 5 MB
+
+    private static final Map<String, String> TIPOS_PERMITIDOS = Map.of(
+            "image/jpeg", "jpg",
+            "image/png", "png",
+            "image/webp", "webp",
+            "image/gif", "gif");
+
+    /**
+     * Valida tipo, extension, tamaño y los primeros bytes del archivo subido como imagen
+     * de producto y devuelve un nombre de archivo seguro (UUID + extension), sin usar nada
+     * del nombre original para evitar path traversal o nombres manipulados.
+     */
+    private String validarYGenerarNombreImagen(MultipartFile imagen) throws IOException {
+        if (imagen.getSize() > TAMANO_MAXIMO_IMAGEN) {
+            throw new IllegalArgumentException("La imagen no puede superar los 5 MB");
+        }
+
+        String contentType = imagen.getContentType();
+        if (contentType == null || !TIPOS_PERMITIDOS.containsKey(contentType.toLowerCase())) {
+            throw new IllegalArgumentException(
+                    "Tipo de imagen no permitido. Solo se aceptan JPEG, PNG, WEBP o GIF");
+        }
+
+        String nombreOriginal = imagen.getOriginalFilename();
+        String extensionNombre = "";
+        if (nombreOriginal != null) {
+            String soloNombre = Paths.get(nombreOriginal).getFileName().toString();
+            int punto = soloNombre.lastIndexOf('.');
+            if (punto >= 0 && punto < soloNombre.length() - 1) {
+                extensionNombre = soloNombre.substring(punto + 1).toLowerCase();
+            }
+        }
+        String extensionEsperada = TIPOS_PERMITIDOS.get(contentType.toLowerCase());
+        boolean extensionValida = extensionEsperada.equals(extensionNombre)
+                || ("jpg".equals(extensionEsperada) && "jpeg".equals(extensionNombre));
+        if (!extensionValida) {
+            throw new IllegalArgumentException(
+                    "La extensión del archivo no corresponde al tipo de imagen declarado");
+        }
+
+        byte[] cabecera = new byte[12];
+        int leidos;
+        try (var in = imagen.getInputStream()) {
+            leidos = in.read(cabecera);
+        }
+        if (!cabeceraValida(contentType.toLowerCase(), cabecera, leidos)) {
+            throw new IllegalArgumentException("El contenido del archivo no corresponde a una imagen válida");
+        }
+
+        return UUID.randomUUID() + "." + extensionEsperada;
+    }
+
+    private boolean cabeceraValida(String contentType, byte[] c, int leidos) {
+        if (leidos < 4) return false;
+        switch (contentType) {
+            case "image/jpeg":
+                return (c[0] & 0xFF) == 0xFF && (c[1] & 0xFF) == 0xD8;
+            case "image/png":
+                return leidos >= 8 && (c[0] & 0xFF) == 0x89 && c[1] == 'P' && c[2] == 'N' && c[3] == 'G';
+            case "image/gif":
+                return c[0] == 'G' && c[1] == 'I' && c[2] == 'F';
+            case "image/webp":
+                return leidos >= 12 && c[0] == 'R' && c[1] == 'I' && c[2] == 'F' && c[3] == 'F'
+                        && c[8] == 'W' && c[9] == 'E' && c[10] == 'B' && c[11] == 'P';
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Calcula promedio (redondeado a 1 decimal) y total de calificaciones de una lista
+     * de comentarios ya cargada (aprobados), sin disparar consultas nuevas.
+     */
+    private double[] calcularCalificacion(List<Comentario> comentariosAprobados) {
+        if (comentariosAprobados == null || comentariosAprobados.isEmpty()) {
+            return new double[] { 0.0, 0 };
+        }
+        double suma = 0;
+        int total = 0;
+        for (Comentario c : comentariosAprobados) {
+            if (c.getCalificacion() != null) {
+                suma += c.getCalificacion();
+                total++;
+            }
+        }
+        if (total == 0) {
+            return new double[] { 0.0, 0 };
+        }
+        double promedio = Math.round((suma / total) * 10.0) / 10.0;
+        return new double[] { promedio, total };
+    }
 
     public ProductoDTO parsearJson(String json, List<MultipartFile> imgs) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
@@ -96,7 +189,7 @@ public class ProductoService {
                 if (!mf.isEmpty()) {
                     ProductoImg img = new ProductoImg();
                     img.setProducto(prod);
-                    img.setNombre(UUID.randomUUID() + "_" + mf.getOriginalFilename());
+                    img.setNombre(validarYGenerarNombreImagen(mf));
                     productoImgRepository.save(img);
                     mf.transferTo(new File(uploadDir + img.getNombre()));
                 }
@@ -162,6 +255,9 @@ public class ProductoService {
                         .collect(Collectors.toList()));
 
         dto.setComentariosAprobados(comentarios);
+        double[] calificacion = calcularCalificacion(comentarios);
+        dto.setCalificacionPromedio(calificacion[0]);
+        dto.setTotalResenas((int) calificacion[1]);
         return dto;
     }
 
@@ -204,6 +300,9 @@ public class ProductoService {
                     }).collect(Collectors.toList()));
 
             dto.setComentariosAprobados(comentariosAprobados);
+            double[] calificacion = calcularCalificacion(comentariosAprobados);
+            dto.setCalificacionPromedio(calificacion[0]);
+            dto.setTotalResenas((int) calificacion[1]);
 
             return dto;
         }).collect(Collectors.toList());
@@ -247,6 +346,9 @@ public class ProductoService {
             }).toList());
 
             dto.setComentariosAprobados(comentariosAprobados);
+            double[] calificacion = calcularCalificacion(comentariosAprobados);
+            dto.setCalificacionPromedio(calificacion[0]);
+            dto.setTotalResenas((int) calificacion[1]);
             return dto;
         }).toList();
     }
@@ -315,7 +417,7 @@ public class ProductoService {
                 if (!mf.isEmpty()) {
                     ProductoImg img = new ProductoImg();
                     img.setProducto(prod);
-                    img.setNombre(UUID.randomUUID() + "_" + mf.getOriginalFilename());
+                    img.setNombre(validarYGenerarNombreImagen(mf));
                     productoImgRepository.save(img);
                     mf.transferTo(new File(uploadDir + img.getNombre()));
                 }

@@ -43,7 +43,8 @@ Sistema de diseño: `IDENTIDAD_VISUAL.md`. Plan de 12 días: `PLAN_DISENO_PORTAF
 - Piezas compartidas en `src/components/ui/`: `Button`, `Badge`, `Card`, `FormField` (+ `Input`/`Textarea`/`Select`); helper `src/lib/cn.ts`.
 - Cliente HTTP central `src/lib/api.ts` (`api`, `API_BASE_URL`, `assetUrl`) que lee `VITE_API_BASE_URL` de `frontend/.env`. Las pantallas viejas todavía usan `http://localhost:8080` a mano (pendiente de migrar).
 - Pantalla de muestra solo en dev: `/dev/ui` (`src/dev/UiShowcase.tsx`).
-- Estructura: `src/admin/` (panel), `src/user/` (tienda), `src/autenticacion/`, `src/context/` (AuthContext), `src/components/` (rutas protegidas + `ui/`).
+- Estructura: `src/admin/` (panel), `src/user/` (tienda — `pages/`, `components/header|footer/`, `hooks/`), `src/autenticacion/`, `src/context/` (AuthContext), `src/router/` (guards: GuestRoute/ProtectedRoute/PublicRoute/HomeRoute), `src/layouts/` (UserLayout: Header+Outlet+Footer), `src/components/ui/`.
+- Alias `@/` → `src/` configurado en `vite.config.ts` y `tsconfig.app.json`, en uso solo en los archivos del área cliente tocados en el Día 4 (Header y piezas, Footer, hooks, layout, guards, router, `user/pages/*`) — el resto del proyecto sigue con imports relativos.
 - Build: `npm run build` (tsc + vite); dev: `npm run dev`; `npm run lint` (tiene errores previos en archivos viejos).
 
 ## Arranque
