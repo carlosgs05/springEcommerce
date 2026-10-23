@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,9 @@ import java.util.Map;
 @RequestMapping("/api/marcas")
 @RequiredArgsConstructor
 public class MarcaController {
+    private static final Logger log = LoggerFactory.getLogger(MarcaController.class);
+    private static final String MSG_GENERICO = "No se pudo completar la operación. Inténtalo de nuevo más tarde.";
+
     private final MarcaService marcaService;
     private final ObjectMapper objectMapper;
 
@@ -35,8 +40,9 @@ public class MarcaController {
             response.put("data", marcas);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Fallo al listar marcas", e);
             response.put("success", false);
-            response.put("message", "Error al listar marcas: " + e.getMessage());
+            response.put("message", MSG_GENERICO);
             return ResponseEntity.internalServerError().body(response);
         }
     }
@@ -50,9 +56,14 @@ public class MarcaController {
             response.put("message", "Marca obtenida correctamente");
             response.put("data", marca);
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             response.put("success", false);
-            response.put("message", "Error al obtener marca: " + e.getMessage());
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            log.error("Fallo al obtener marca {}", id, e);
+            response.put("success", false);
+            response.put("message", MSG_GENERICO);
             return ResponseEntity.badRequest().body(response);
         }
     }
@@ -88,13 +99,15 @@ public class MarcaController {
             return ResponseEntity.badRequest().body(response);
 
         } catch (IOException e) {
+            log.error("Fallo al procesar la imagen de la marca", e);
             response.put("success", false);
-            response.put("message", "Error al procesar imagen: " + e.getMessage());
+            response.put("message", MSG_GENERICO);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
 
         } catch (Exception e) {
+            log.error("Fallo al crear marca", e);
             response.put("success", false);
-            response.put("message", "Error interno: " + e.getMessage());
+            response.put("message", MSG_GENERICO);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
@@ -129,12 +142,14 @@ public class MarcaController {
             response.put("message", e.getMessage());
             return ResponseEntity.badRequest().body(response);
         } catch (IOException e) {
+            log.error("Fallo al procesar la imagen de la marca {}", id, e);
             response.put("success", false);
-            response.put("message", "Error al procesar imagen: " + e.getMessage());
+            response.put("message", MSG_GENERICO);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         } catch (Exception e) {
+            log.error("Fallo al actualizar marca {}", id, e);
             response.put("success", false);
-            response.put("message", "Error interno: " + e.getMessage());
+            response.put("message", MSG_GENERICO);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
@@ -147,9 +162,14 @@ public class MarcaController {
             response.put("success", true);
             response.put("message", "Marca eliminada correctamente");
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             response.put("success", false);
-            response.put("message", "Error al eliminar marca: " + e.getMessage());
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            log.error("Fallo al eliminar marca {}", id, e);
+            response.put("success", false);
+            response.put("message", MSG_GENERICO);
             return ResponseEntity.badRequest().body(response);
         }
     }

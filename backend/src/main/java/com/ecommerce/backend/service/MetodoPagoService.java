@@ -22,7 +22,7 @@ public class MetodoPagoService {
 
     private final MetodoPagoRepository metodoPagoRepository;
     private final ObjectMapper objectMapper;
-    private final String uploadDir = Paths.get("backend", "src", "main", "resources", "static", "uploads")
+    private final String uploadDir = Paths.get("src", "main", "resources", "static", "uploads")
             .toAbsolutePath()
             .toString() + File.separator;
 
