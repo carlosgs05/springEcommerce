@@ -1,18 +1,26 @@
-import { useState, useEffect, ChangeEvent, useCallback } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import axios from "axios";
 import Swal from "sweetalert2/dist/sweetalert2.all.js";
 import {
-  FiCreditCard,
-  FiEdit2,
-  FiTrash2,
-  FiPlus,
-  FiX,
-  FiPlusCircle,
-  FiMinus,
-  FiRefreshCw,
-  FiCheckCircle,
-} from "react-icons/fi";
-import { FaSpinner } from "react-icons/fa";
+  MagnifyingGlass,
+  CreditCard,
+  PencilSimple,
+  Trash,
+  Plus,
+  X,
+  CaretLeft,
+  CaretRight,
+  Minus,
+  ArrowsClockwise,
+} from "@phosphor-icons/react";
+import { api, assetUrl } from "../../lib/api";
+import { Card, CardBody } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { Input, Select } from "../../components/ui/FormField";
+
+type TipoMetodoPago = "MANUAL" | "PASARELA";
+type ProveedorPasarela = "CULQI" | "MERCADOPAGO";
 
 interface MetodoPagoDTO {
   idMetodoPago: number;
@@ -21,6 +29,8 @@ interface MetodoPagoDTO {
   activo: boolean;
   iconoImg: string;
   configAdicional: string;
+  tipo: TipoMetodoPago;
+  proveedor: ProveedorPasarela | null;
 }
 
 interface ConfigItem {
@@ -40,22 +50,17 @@ const MetodosPagoAdmin = () => {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [currentIcon, setCurrentIcon] = useState<File | null>(null);
   const [existingIcon, setExistingIcon] = useState<string>("");
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [iconRefresh, setIconRefresh] = useState(Date.now());
+  const [guardando, setGuardando] = useState(false);
 
   const [idEdit, setIdEdit] = useState<number | null>(null);
   const [nombre, setNombre] = useState<string>("");
   const [descripcion, setDescripcion] = useState<string>("");
+  const [tipo, setTipo] = useState<TipoMetodoPago>("MANUAL");
+  const [proveedor, setProveedor] = useState<ProveedorPasarela | "">("");
   const [configItems, setConfigItems] = useState<ConfigItem[]>([]);
 
-  // Barra de progreso
-  const [progressVisible, setProgressVisible] = useState(false);
-  const [progress, setProgress] = useState(1);
-  const [progressMsg, setProgressMsg] = useState("Procesando...");
-
-  // Forzar refresh imagen (anti-cache)
-  const [iconRefresh, setIconRefresh] = useState(Date.now());
-
-  // Paginación
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -64,45 +69,74 @@ const MetodosPagoAdmin = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const fetchMetodos = useCallback(async () => {
+  const iconUrl = (icono: string) => assetUrl(`uploads/${icono}?t=${iconRefresh}`);
+
+  const fetchMetodos = async () => {
     try {
       setLoading(true);
-      const resp = await axios.get(
-        "http://localhost:8080/api/metodopago/listar"
-      );
-      if (resp.data.success) setMetodos(resp.data.data);
-      else setError(resp.data.message);
-      setIconRefresh(Date.now());
-    } catch {
-      setError("Error al cargar métodos de pago");
+      setError(null);
+      const resp = await api.get("/api/metodopago/listar");
+      if (resp.data.success) {
+        setMetodos(resp.data.data);
+      } else {
+        setError(resp.data.message);
+      }
+    } catch (err) {
+      setError("No se pudo cargar la lista de métodos de pago");
+      console.error(err);
     } finally {
       setLoading(false);
+      setIconRefresh(Date.now());
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchMetodos();
-  }, [fetchMetodos]);
-
-  // Si cambia search o lista, volver a página 1
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm, metodos.length]);
+  }, []);
 
   const filtered = metodos.filter(
     (m) =>
       m.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // Paginar resultados
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, metodos.length]);
+
+  const renderPagination = () =>
+    totalPages > 1 ? (
+      <div className="flex justify-center items-center gap-2 py-6 select-none">
+        <button
+          onClick={() => setPage((p) => Math.max(p - 1, 1))}
+          disabled={page === 1}
+          className="p-2 bg-canvas rounded-full text-text-muted hover:bg-border transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label="Página anterior"
+        >
+          <CaretLeft />
+        </button>
+        <span className="text-sm text-text-muted px-2">
+          Página {page} de {totalPages}
+        </span>
+        <button
+          onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+          disabled={page === totalPages}
+          className="p-2 bg-canvas rounded-full text-text-muted hover:bg-border transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label="Página siguiente"
+        >
+          <CaretRight />
+        </button>
+      </div>
+    ) : null;
+
+  // Drag & drop del icono
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(e.type === "dragenter" || e.type === "dragover");
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -135,24 +169,20 @@ const MetodosPagoAdmin = () => {
     setIdEdit(null);
     setNombre("");
     setDescripcion("");
+    setTipo("MANUAL");
+    setProveedor("");
     setConfigItems([]);
     removeIcon();
     setShowModal(false);
   };
 
-  const handleConfigChange = (
-    index: number,
-    field: keyof ConfigItem,
-    value: string
-  ) => {
+  const handleConfigChange = (index: number, field: keyof ConfigItem, value: string) => {
     const newItems = [...configItems];
     newItems[index][field] = value;
     setConfigItems(newItems);
   };
 
-  const addConfigItem = () => {
-    setConfigItems([...configItems, { clave: "", valor: "" }]);
-  };
+  const addConfigItem = () => setConfigItems([...configItems, { clave: "", valor: "" }]);
 
   const removeConfigItem = (index: number) => {
     const newItems = [...configItems];
@@ -160,24 +190,13 @@ const MetodosPagoAdmin = () => {
     setConfigItems(newItems);
   };
 
-  // Barra de progreso con animación suave
-  const animateProgress = (target: number, cb?: () => void) => {
-    let current = progress;
-    const step = () => {
-      if (current < target) {
-        current += Math.max(1, Math.ceil((target - current) / 10));
-        setProgress(Math.min(current, target));
-        setTimeout(step, 15);
-      } else if (cb) {
-        cb();
-      }
-    };
-    step();
-  };
-
-  const handleSubmit = async () => {
+  const handleGuardar = async () => {
     if (!nombre.trim()) {
-      Swal.fire("Error", "Nombre requerido", "error");
+      Swal.fire("Error", "El nombre no puede estar vacío", "error");
+      return;
+    }
+    if (tipo === "PASARELA" && !proveedor) {
+      Swal.fire("Error", "Selecciona el proveedor de la pasarela", "error");
       return;
     }
 
@@ -185,9 +204,7 @@ const MetodosPagoAdmin = () => {
       configItems.length > 0
         ? JSON.stringify(
             configItems.reduce((acc: Record<string, string>, item) => {
-              if (item.clave.trim()) {
-                acc[item.clave.trim()] = item.valor.trim();
-              }
+              if (item.clave.trim()) acc[item.clave.trim()] = item.valor.trim();
               return acc;
             }, {})
           )
@@ -201,110 +218,82 @@ const MetodosPagoAdmin = () => {
         descripcion: descripcion.trim(),
         activo: true,
         configAdicional: configJson,
+        tipo,
+        proveedor: tipo === "PASARELA" ? proveedor : null,
       })
     );
     if (currentIcon) form.append("icono", currentIcon);
 
-    setProgress(1);
-    setProgressMsg(idEdit ? "Actualizando método..." : "Creando método...");
-    setProgressVisible(true);
-
     try {
+      setGuardando(true);
       const url = idEdit
-        ? `http://localhost:8080/api/metodopago/actualizar/${idEdit}`
-        : "http://localhost:8080/api/metodopago/crear";
+        ? `/api/metodopago/actualizar/${idEdit}`
+        : "/api/metodopago/crear";
       const method = idEdit ? "put" : "post";
-      await axios[method]<any>(url, form, {
+      const resp = await api[method](url, form, {
         headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            let percent = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setProgress(percent < 99 ? percent : 99);
-          }
-        },
       });
-      animateProgress(100, () => {
-        setTimeout(() => {
-          setProgressVisible(false);
-          setProgress(1);
-          setIconRefresh(Date.now());
-          Swal.fire(
-            idEdit ? "Actualizado" : "Creado",
-            `Método de pago ${
-              idEdit ? "actualizado" : "creado"
-            } correctamente.`,
-            "success"
-          );
-          resetForm();
-          fetchMetodos();
-        }, 300);
-      });
-    } catch (e: any) {
-      setProgressVisible(false);
-      Swal.fire("Error", e.response?.data?.message || e.message, "error");
+      if (resp.data.success) {
+        await Swal.fire(
+          idEdit ? "¡Actualizado!" : "¡Éxito!",
+          `Método de pago ${idEdit ? "actualizado" : "creado"} correctamente`,
+          "success"
+        );
+        resetForm();
+        fetchMetodos();
+      } else {
+        throw new Error(resp.data.message);
+      }
+    } catch (err: any) {
+      const msg =
+        (axios.isAxiosError(err) && err.response?.data?.message) ||
+        err.message ||
+        "No se pudo guardar el método de pago";
+      Swal.fire("Error", msg, "error");
+    } finally {
+      setGuardando(false);
     }
   };
 
-  // Simula progreso suave para DELETE o PUT "estado"
-  const fakeProgressDeleteOrEstado = (msg: string, cb: () => Promise<any>) => {
-    setProgress(1);
-    setProgressMsg(msg);
-    setProgressVisible(true);
-    let current = 1;
-    const fakeStep = () => {
-      if (current < 98) {
-        current += Math.max(1, Math.ceil((100 - current) / 13));
-        setProgress(current);
-        setTimeout(fakeStep, 20);
-      }
-    };
-    fakeStep();
-    cb().then(() => {
-      animateProgress(100, () => {
-        setTimeout(() => {
-          setProgressVisible(false);
-          setProgress(1);
-          setIconRefresh(Date.now());
-        }, 350);
-      });
-    });
+  const abrirModalNuevo = () => {
+    resetForm();
+    setShowModal(true);
   };
 
-  const handleEdit = (m: MetodoPagoDTO) => {
+  const handleEditClick = (m: MetodoPagoDTO) => {
     setIdEdit(m.idMetodoPago);
     setNombre(m.nombre);
     setDescripcion(m.descripcion);
+    setTipo(m.tipo ?? "MANUAL");
+    setProveedor(m.proveedor ?? "");
     setExistingIcon(m.iconoImg);
-    setPreviewUrl(
-      m.iconoImg ? `http://localhost:8080/uploads/${m.iconoImg}` : ""
-    );
+    setPreviewUrl(m.iconoImg ? iconUrl(m.iconoImg) : "");
     try {
       if (m.configAdicional) {
-        const parsedConfig = JSON.parse(m.configAdicional);
-        const items = Object.entries(parsedConfig).map(([clave, valor]) => ({
-          clave,
-          valor: typeof valor === "string" ? valor : JSON.stringify(valor),
-        }));
-        setConfigItems(items);
+        const parsed = JSON.parse(m.configAdicional);
+        setConfigItems(
+          Object.entries(parsed).map(([clave, valor]) => ({
+            clave,
+            valor: typeof valor === "string" ? valor : JSON.stringify(valor),
+          }))
+        );
       } else {
         setConfigItems([]);
       }
-    } catch (error) {
+    } catch {
       setConfigItems([]);
     }
     setShowModal(true);
   };
 
-  const handleDelete = async (m: MetodoPagoDTO) => {
-    const r = await Swal.fire({
-      title: "Eliminar método?",
+  const handleEliminar = async (m: MetodoPagoDTO) => {
+    const result = await Swal.fire({
+      title: "¿Eliminar método de pago?",
       text: m.nombre,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Sí",
-      cancelButtonText: "No",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
       customClass: {
         container: "font-sans rounded-2xl",
         popup: "rounded-2xl",
@@ -314,570 +303,448 @@ const MetodosPagoAdmin = () => {
           "bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-xl transition-all",
       },
     });
-    if (!r.isConfirmed) return;
-    fakeProgressDeleteOrEstado("Eliminando método de pago...", async () => {
-      try {
-        const { data } = await axios.delete(
-          `http://localhost:8080/api/metodopago/eliminar/${m.idMetodoPago}`
-        );
-        if (data.success) {
-          Swal.fire("Eliminado", data.message, "success");
-          fetchMetodos();
-        } else throw new Error(data.message);
-      } catch (e: any) {
-        Swal.fire("Error", e.response?.data?.message || e.message, "error");
+    if (!result.isConfirmed) return;
+    try {
+      const resp = await api.delete(`/api/metodopago/eliminar/${m.idMetodoPago}`);
+      if (resp.data.success) {
+        await Swal.fire("¡Eliminado!", "Método de pago eliminado correctamente", "success");
+        fetchMetodos();
+      } else {
+        throw new Error(resp.data.message);
       }
-    });
+    } catch (err: any) {
+      const msg =
+        (axios.isAxiosError(err) && err.response?.data?.message) ||
+        err.message ||
+        "No se pudo eliminar el método de pago";
+      Swal.fire("Error", msg, "error");
+    }
   };
 
   const toggleActivo = async (m: MetodoPagoDTO) => {
     const result = await Swal.fire({
       title: m.activo ? "¿Desactivar método?" : "¿Activar método?",
-      text: `Estás a punto de ${
-        m.activo ? "desactivar" : "activar"
-      } el método: ${m.nombre}`,
+      text: `Estás a punto de ${m.activo ? "desactivar" : "activar"} el método: ${m.nombre}`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
       confirmButtonText: m.activo ? "Sí, desactivar" : "Sí, activar",
       cancelButtonText: "Cancelar",
       customClass: {
         container: "font-sans rounded-2xl",
         popup: "rounded-2xl",
-        confirmButton: m.activo
-          ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-medium px-4 py-2 rounded-xl transition-all"
-          : "bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-medium px-4 py-2 rounded-xl transition-all",
+        confirmButton:
+          "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-medium px-4 py-2 rounded-xl transition-all",
         cancelButton:
           "bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-xl transition-all",
       },
     });
-
-    if (result.isConfirmed) {
-      fakeProgressDeleteOrEstado(
-        m.activo ? "Desactivando método..." : "Activando método...",
-        async () => {
-          try {
-            const { data } = await axios.put(
-              `http://localhost:8080/api/metodopago/cambiar-estado/${
-                m.idMetodoPago
-              }?activo=${!m.activo}`
-            );
-            if (data.success) {
-              setMetodos((prev) =>
-                prev.map((x) =>
-                  x.idMetodoPago === m.idMetodoPago
-                    ? { ...x, activo: !x.activo }
-                    : x
-                )
-              );
-              Swal.fire(
-                m.activo ? "Desactivado" : "Activado",
-                data.message,
-                "success"
-              );
-            } else throw new Error(data.message);
-          } catch (e: any) {
-            Swal.fire("Error", e.response?.data?.message || e.message, "error");
-          }
-        }
+    if (!result.isConfirmed) return;
+    try {
+      const resp = await api.put(
+        `/api/metodopago/cambiar-estado/${m.idMetodoPago}?activo=${!m.activo}`
       );
+      if (resp.data.success) {
+        setMetodos((prev) =>
+          prev.map((x) =>
+            x.idMetodoPago === m.idMetodoPago ? { ...x, activo: !x.activo } : x
+          )
+        );
+        Swal.fire(m.activo ? "Desactivado" : "Activado", resp.data.message, "success");
+      } else {
+        throw new Error(resp.data.message);
+      }
+    } catch (err: any) {
+      const msg =
+        (axios.isAxiosError(err) && err.response?.data?.message) ||
+        err.message ||
+        "No se pudo cambiar el estado";
+      Swal.fire("Error", msg, "error");
     }
   };
 
-  // UI Paginación
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-    return (
-      <div className="flex justify-center gap-2 py-5">
-        <button
-          className={`px-3 py-1 rounded-lg font-medium ${
-            page === 1
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-white text-blue-600 hover:bg-cyan-50 cursor-pointer"
-          }`}
-          onClick={() => setPage(page - 1)}
-          disabled={page === 1}
-          type="button"
-        >
-          &laquo;
-        </button>
-        {[...Array(totalPages)].map((_, idx) => (
-          <button
-            key={idx}
-            className={`px-3 py-1 rounded-lg font-medium transition-all duration-200 ${
-              page === idx + 1
-                ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md"
-                : "bg-white text-blue-600 hover:bg-cyan-50 cursor-pointer"
-            }`}
-            onClick={() => setPage(idx + 1)}
-            type="button"
-          >
-            {idx + 1}
-          </button>
-        ))}
-        <button
-          className={`px-3 py-1 rounded-lg font-medium ${
-            page === totalPages
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-white text-blue-600 hover:bg-cyan-50 cursor-pointer"
-          }`}
-          onClick={() => setPage(page + 1)}
-          disabled={page === totalPages}
-          type="button"
-        >
-          &raquo;
-        </button>
-      </div>
+  const Icono = ({ icono, size }: { icono: string; size: "sm" | "md" }) => (
+    <div
+      className={`flex items-center justify-center overflow-hidden bg-canvas rounded-xl border border-border shrink-0 ${
+        size === "sm" ? "w-12 h-12" : "w-16 h-16"
+      }`}
+    >
+      {icono ? (
+        <img src={iconUrl(icono)} className="w-full h-full object-contain p-1" alt="Icono del método de pago" />
+      ) : (
+        <CreditCard className="text-text-muted" size={20} />
+      )}
+    </div>
+  );
+
+  const BadgeTipo = ({ m }: { m: MetodoPagoDTO }) =>
+    m.tipo === "PASARELA" ? (
+      <Badge variant="info">
+        Pasarela{m.proveedor ? ` · ${m.proveedor === "CULQI" ? "Culqi" : "Mercado Pago"}` : ""}
+      </Badge>
+    ) : (
+      <Badge variant="neutral">Manual</Badge>
     );
-  };
+
+  const AccionesMetodo = ({ m }: { m: MetodoPagoDTO }) => (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() => toggleActivo(m)}
+        leftIcon={<ArrowsClockwise size={16} />}
+      >
+        {m.activo ? "Desactivar" : "Activar"}
+      </Button>
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() => handleEditClick(m)}
+        leftIcon={<PencilSimple size={16} />}
+      >
+        Editar
+      </Button>
+      <Button
+        size="sm"
+        variant="danger"
+        onClick={() => handleEliminar(m)}
+        leftIcon={<Trash size={16} />}
+      >
+        Eliminar
+      </Button>
+    </div>
+  );
 
   return (
     <div className="p-4 sm:p-6">
-      {/* MODAL DE PROGRESO */}
-      {progressVisible && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[1050]">
-          <div className="w-[410px] sm:w-[500px] bg-white rounded-2xl shadow-2xl p-6 flex flex-col items-center border-4 border-cyan-100">
-            <div className="text-base font-semibold mb-3 text-cyan-700">
-              {progressMsg}
+      {/* Modal Crear/Editar */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <Card
+            elevation={3}
+            padding="none"
+            className="max-w-2xl w-full mx-4 my-8 overflow-hidden"
+          >
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+              <h3 className="text-xl font-bold text-text">
+                {idEdit ? "Editar método de pago" : "Nuevo método de pago"}
+              </h3>
+              <button
+                onClick={resetForm}
+                className="text-text-muted hover:text-text transition cursor-pointer"
+                aria-label="Cerrar"
+              >
+                <X size={22} />
+              </button>
             </div>
-            <div className="w-full bg-cyan-100 h-5 rounded-xl overflow-hidden shadow-inner flex items-center">
-              <div
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 h-5 rounded-xl transition-all duration-150"
-                style={{
-                  width: `${progress}%`,
-                  minWidth: "1.5rem",
-                }}
-              />
-              <span className="absolute right-7 text-cyan-900 font-bold text-sm">
-                {progress}%
-              </span>
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-sm font-semibold text-text mb-2">Nombre</label>
+                <Input
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej: PayPal, Tarjeta de crédito"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-text mb-2">
+                    Tipo <span className="text-danger">*</span>
+                  </label>
+                  <Select
+                    value={tipo}
+                    onChange={(e) => {
+                      const nuevoTipo = e.target.value as TipoMetodoPago;
+                      setTipo(nuevoTipo);
+                      if (nuevoTipo === "MANUAL") setProveedor("");
+                    }}
+                  >
+                    <option value="MANUAL">Manual (Yape, Plin, transferencia)</option>
+                    <option value="PASARELA">Pasarela (cobro con tarjeta)</option>
+                  </Select>
+                </div>
+                {tipo === "PASARELA" && (
+                  <div>
+                    <label className="block text-sm font-semibold text-text mb-2">
+                      Proveedor <span className="text-danger">*</span>
+                    </label>
+                    <Select
+                      value={proveedor}
+                      onChange={(e) => setProveedor(e.target.value as ProveedorPasarela)}
+                    >
+                      <option value="">Selecciona un proveedor...</option>
+                      <option value="CULQI">Culqi</option>
+                      <option value="MERCADOPAGO">Mercado Pago</option>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-text mb-2">Descripción</label>
+                  <textarea
+                    className="block w-full min-h-11 h-[140px] rounded-control border border-border bg-surface px-3 py-2 text-base text-text sm:text-sm placeholder:text-text-muted focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Describe el método de pago"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-semibold text-text mb-2">Icono</label>
+                  <div
+                    className={`relative border-2 border-dashed rounded-xl p-4 text-center transition-colors min-h-[140px] flex items-center justify-center ${
+                      dragActive
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleFileChange}
+                      aria-label="Subir icono"
+                    />
+                    {previewUrl || existingIcon ? (
+                      <div className="absolute inset-0 flex items-center justify-center p-2">
+                        <div className="relative w-full h-full flex justify-center">
+                          <img
+                            src={previewUrl || iconUrl(existingIcon)}
+                            className="max-w-full max-h-[100px] mx-auto object-contain"
+                            alt="Previsualización"
+                          />
+                          <button
+                            onClick={removeIcon}
+                            className="absolute top-2 right-2 bg-surface p-1.5 text-danger hover:brightness-90 rounded-full shadow-elevation-1 transition-colors cursor-pointer"
+                            aria-label="Quitar icono"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <CreditCard className="text-text-muted" size={32} />
+                        <p className="text-sm text-text-muted">
+                          Arrastra o haz clic para seleccionar
+                        </p>
+                        <p className="text-xs text-text-muted">PNG, JPG, SVG (máx 2MB)</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <label className="block text-sm font-semibold text-text">
+                    Información adicional (opcional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addConfigItem}
+                    className="flex items-center gap-1 text-sm text-primary hover:brightness-110 cursor-pointer"
+                  >
+                    <Plus size={16} /> Agregar campo
+                  </button>
+                </div>
+                {configItems.length > 0 && (
+                  <div className="space-y-3">
+                    {configItems.map((item, index) => (
+                      <div key={index} className="flex gap-3">
+                        <Input
+                          className="flex-1"
+                          type="text"
+                          placeholder="Clave (ej: comisión, moneda)"
+                          value={item.clave}
+                          onChange={(e) => handleConfigChange(index, "clave", e.target.value)}
+                        />
+                        <Input
+                          className="flex-1"
+                          type="text"
+                          placeholder="Valor (ej: 2.5%, USD)"
+                          value={item.valor}
+                          onChange={(e) => handleConfigChange(index, "valor", e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeConfigItem(index)}
+                          className="p-2.5 rounded-xl text-danger hover:bg-danger/10 cursor-pointer transition-colors"
+                          aria-label="Quitar campo"
+                        >
+                          <Minus size={20} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+            <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
+              <Button variant="secondary" onClick={resetForm} disabled={guardando}>
+                Cancelar
+              </Button>
+              <Button variant="primary" onClick={handleGuardar} loading={guardando}>
+                {idEdit ? "Actualizar" : "Crear"}
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
 
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-2 rounded-xl shadow-sm">
-              <FiCreditCard className="text-white text-xl" />
+            <div className="bg-primary/15 p-2 rounded-xl">
+              <CreditCard className="text-primary text-xl" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-cyan-500 to-blue-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl font-bold text-text">
                 Gestión de Métodos de Pago
               </h1>
+              <p className="text-sm text-text-muted">
+                {filtered.length} método{filtered.length === 1 ? "" : "s"}
+              </p>
             </div>
           </div>
         </header>
-        <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Buscar..."
-            className="w-full sm:w-64 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium rounded-xl transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer"
-          >
-            <FiPlusCircle className="mr-2" />
-            Nuevo Método
-          </button>
-        </div>
-        {showModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[95vh] overflow-y-auto">
-              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <FiCreditCard className="text-blue-500" />
-                  {idEdit ? "Editar Método" : "Nuevo Método"}
-                </h3>
-                <button
-                  onClick={resetForm}
-                  className="text-gray-400 hover:text-gray-500 text-2xl font-light cursor-pointer"
-                >
-                  <FiX />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all text-gray-700 placeholder-gray-400"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    placeholder="Ej: PayPal, Tarjeta de crédito"
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Descripción
-                    </label>
-                    <textarea
-                      className="w-full px-4 py-3 h-[155px] bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all text-gray-700 placeholder-gray-400"
-                      value={descripcion}
-                      onChange={(e) => setDescripcion(e.target.value)}
-                      placeholder="Describe el método de pago"
-                    />
-                  </div>
-                  <div className="md:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Icono
-                    </label>
-                    <div
-                      className={`relative border-2 border-dashed rounded-xl p-4 text-center transition-colors min-h-[140px] flex items-center justify-center
-                        ${
-                          dragActive
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-300 hover:border-blue-400"
-                        }`}
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDragOver={handleDrag}
-                      onDrop={handleDrop}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={handleFileChange}
-                      />
-                      {previewUrl || existingIcon ? (
-                        <div className="absolute inset-0 flex items-center justify-center p-2">
-                          <div className="relative w-full h-full flex justify-center">
-                            <img
-                              src={
-                                previewUrl ||
-                                `http://localhost:8080/uploads/${existingIcon}?t=${iconRefresh}`
-                              }
-                              className="max-w-full max-h-[100px] mx-auto object-contain"
-                              alt="Previsualización"
-                            />
-                            <button
-                              onClick={removeIcon}
-                              className="absolute top-2 right-2 bg-white p-1.5 text-red-600 hover:text-red-700 rounded-full shadow-sm hover:bg-red-50 transition-colors cursor-pointer"
-                            >
-                              <FiX size={18} />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center space-y-2">
-                          <div className="bg-blue-100 p-3 rounded-full">
-                            <FiCreditCard className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            Arrastra y suelta el icono aquí o haz clic para
-                            seleccionar
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Formatos: PNG, JPG, SVG (max 2MB)
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Información Adicional (Opcional)
-                    </label>
-                    <button
-                      type="button"
-                      onClick={addConfigItem}
-                      className="flex items-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
-                    >
-                      <FiPlus className="mr-1" /> Agregar campo
-                    </button>
-                  </div>
-                  {configItems.length > 0 && (
-                    <div className="space-y-3">
-                      {configItems.map((item, index) => (
-                        <div key={index} className="flex gap-3">
-                          <div className="flex-1">
-                            <input
-                              type="text"
-                              placeholder="Clave (ej: comisión, moneda)"
-                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all text-gray-700 placeholder-gray-400"
-                              value={item.clave}
-                              onChange={(e) =>
-                                handleConfigChange(
-                                  index,
-                                  "clave",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <input
-                              type="text"
-                              placeholder="Valor (ej: 2.5%, USD)"
-                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all text-gray-700 placeholder-gray-400"
-                              value={item.valor}
-                              onChange={(e) =>
-                                handleConfigChange(
-                                  index,
-                                  "valor",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeConfigItem(index)}
-                            className="p-2.5 rounded-xl text-red-500 hover:bg-red-50 cursor-pointer transition-colors"
-                          >
-                            <FiMinus size={20} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-                <button
-                  onClick={resetForm}
-                  className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl transition-colors cursor-pointer text-white font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl transition-all cursor-pointer font-medium"
-                >
-                  {idEdit ? "Actualizar" : "Crear"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* TABLA & UI */}
+        <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+          <div className="relative w-full sm:w-80">
+            <MagnifyingGlass
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+              aria-hidden="true"
+            />
+            <Input
+              className="pl-9"
+              placeholder="Buscar método..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Buscar método de pago"
+            />
+          </div>
+          <Button onClick={abrirModalNuevo} leftIcon={<Plus size={18} />} className="shrink-0">
+            Añadir método
+          </Button>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="flex flex-col items-center">
-              <FaSpinner className="animate-spin text-3xl text-blue-500 mb-3" />
-              <span className="text-gray-500">Cargando métodos...</span>
+            <div className="flex flex-col items-center gap-3">
+              <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <span className="text-text-muted">Cargando métodos de pago...</span>
             </div>
           </div>
         ) : error ? (
-          <div className="bg-red-50 p-5 rounded-2xl text-red-500 border border-red-100 flex items-center gap-3">
-            <div className="bg-red-100 p-2 rounded-full">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-red-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <span>{error}</span>
-          </div>
-        ) : paged.length === 0 ? (
-          <div className="bg-white bg-opacity-80 backdrop-blur-sm p-8 rounded-2xl shadow-sm text-center text-gray-500 border border-gray-200 flex flex-col items-center">
-            <div className="bg-blue-50 p-4 rounded-full mb-4">
-              <FiCreditCard className="text-2xl text-blue-400" />
-            </div>
-            <p className="text-lg mb-1">No hay métodos de pago registrados</p>
-            <p className="text-sm">
-              Agrega tu primer método usando el botón superior
-            </p>
-          </div>
+          <Card elevation={1} padding="md" className="border-danger/30">
+            <CardBody className="flex items-center gap-3 text-danger">
+              <X size={24} />
+              <span>{error}</span>
+            </CardBody>
+          </Card>
+        ) : filtered.length === 0 ? (
+          <Card elevation={1} padding="lg">
+            <CardBody className="text-center flex flex-col items-center gap-2">
+              <CreditCard size={32} className="text-text-muted" />
+              <p className="text-lg text-text">
+                {searchTerm
+                  ? "No hay métodos que coincidan con tu búsqueda"
+                  : "No hay métodos de pago registrados"}
+              </p>
+              {!searchTerm && (
+                <p className="text-sm text-text-muted">
+                  Agrega tu primer método usando el botón superior
+                </p>
+              )}
+            </CardBody>
+          </Card>
         ) : isMobile ? (
           <div className="space-y-4">
             {paged.map((m) => (
-              <div
-                key={m.idMetodoPago}
-                className="bg-white bg-opacity-80 backdrop-blur-sm p-4 shadow-sm rounded-2xl border border-gray-200 transition-all hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div className="flex items-start gap-4">
-                  {m.iconoImg && (
-                    <div className="flex-shrink-0">
-                      <div className="bg-blue-50 rounded-xl p-2">
-                        <img
-                          src={`http://localhost:8080/uploads/${m.iconoImg}?t=${iconRefresh}`}
-                          className="w-12 h-12 object-contain"
-                          alt="Icono"
-                        />
-                      </div>
-                    </div>
-                  )}
+              <Card key={m.idMetodoPago} elevation={1} padding="md">
+                <div className="flex items-start gap-3 mb-3">
+                  <Icono icono={m.iconoImg} size="sm" />
                   <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-medium text-gray-900">{m.nombre}</h3>
-                      <button
-                        onClick={() => toggleActivo(m)}
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          m.activo
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-semibold text-text">{m.nombre}</span>
+                      <Badge variant={m.activo ? "success" : "danger"}>
                         {m.activo ? "Activo" : "Inactivo"}
-                      </button>
+                      </Badge>
                     </div>
-                    <p className="mt-1 text-sm text-gray-600">
-                      {m.descripcion}
-                    </p>
+                    <div className="mt-1">
+                      <BadgeTipo m={m} />
+                    </div>
+                    {m.descripcion && (
+                      <p className="mt-2 text-sm text-text-muted">{m.descripcion}</p>
+                    )}
                   </div>
                 </div>
-                <div className="mt-4 flex justify-between border-t border-gray-100 pt-3">
-                  <button
-                    onClick={() => toggleActivo(m)}
-                    className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
-                  >
-                    <FiRefreshCw className="mr-1.5 h-4 w-4" />
-                    Cambiar estado
-                  </button>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(m)}
-                      className="p-2.5 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer text-blue-500"
-                    >
-                      <FiEdit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(m)}
-                      className="p-2.5 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer text-red-500"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+                <AccionesMetodo m={m} />
+              </Card>
             ))}
             {renderPagination()}
           </div>
         ) : (
           <>
-            <div className="bg-white bg-opacity-80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <Card elevation={1} padding="none" className="overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-canvas">
                     <tr>
-                      <th className="px-6 py-4 text-left text-base font-medium uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-muted uppercase tracking-wider">
                         Icono
                       </th>
-                      <th className="px-6 py-4 text-left text-base font-medium uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-muted uppercase tracking-wider">
                         Método
                       </th>
-                      <th className="px-6 py-4 text-left text-base font-medium uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-muted uppercase tracking-wider">
+                        Tipo
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-muted uppercase tracking-wider">
                         Descripción
                       </th>
-                      <th className="px-6 py-4 text-left text-base font-medium uppercase tracking-wider">
-                        Información Adicional
-                      </th>
-                      <th className="px-6 py-4 text-left text-base font-medium uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-muted uppercase tracking-wider">
                         Estado
                       </th>
-                      <th className="px-6 py-4 text-left text-base font-medium uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-muted uppercase tracking-wider">
                         Acciones
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-border">
                     {paged.map((m) => (
-                      <tr
-                        key={m.idMetodoPago}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {m.iconoImg && (
-                            <div className="bg-blue-50 rounded-xl p-1 w-12 h-12 flex items-center justify-center">
-                              <img
-                                src={`http://localhost:8080/uploads/${m.iconoImg}?t=${iconRefresh}`}
-                                className="max-w-full max-h-full object-contain"
-                                alt="Icono"
-                              />
-                            </div>
-                          )}
-                        </td>
+                      <tr key={m.idMetodoPago} className="hover:bg-canvas/60 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="text-base font-medium text-gray-900">
-                            {m.nombre}
-                          </div>
+                          <Icono icono={m.iconoImg} size="md" />
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-600 max-w-xs">
-                            {m.descripcion}
-                          </div>
+                        <td className="px-6 py-4 text-sm font-medium text-text">{m.nombre}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <BadgeTipo m={m} />
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-600 max-w-xs">
-                            {m.configAdicional ? (
-                              <ul className="list-disc pl-5 space-y-1">
-                                {Object.entries(
-                                  JSON.parse(m.configAdicional)
-                                ).map(([clave, valor], idx) => (
-                                  <li key={idx}>
-                                    <span className="font-semibold">
-                                      {clave}:
-                                    </span>{" "}
-                                    {valor as string}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </div>
+                        <td className="px-6 py-4 text-sm text-text-muted max-w-xs">
+                          {m.descripcion || "-"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => toggleActivo(m)}
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${
-                              m.activo
-                                ? "bg-green-100 text-green-800 hover:bg-green-200"
-                                : "bg-red-100 text-red-800 hover:bg-red-200"
-                            }`}
-                          >
-                            {m.activo ? (
-                              <FiCheckCircle className="mr-1.5 h-4 w-4" />
-                            ) : (
-                              <FiX className="mr-1.5 h-4 w-4" />
-                            )}
+                        <td className="px-6 py-4 text-sm">
+                          <Badge variant={m.activo ? "success" : "danger"}>
                             {m.activo ? "Activo" : "Inactivo"}
-                          </button>
+                          </Badge>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleEdit(m)}
-                              className="p-2.5 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer text-blue-500 hover:text-blue-700"
-                            >
-                              <FiEdit2 size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(m)}
-                              className="p-2.5 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer text-red-500 hover:text-red-700"
-                            >
-                              <FiTrash2 size={18} />
-                            </button>
-                          </div>
+                        <td className="px-6 py-4 text-sm">
+                          <AccionesMetodo m={m} />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
             {renderPagination()}
           </>
         )}

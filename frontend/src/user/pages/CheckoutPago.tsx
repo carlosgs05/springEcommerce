@@ -1,11 +1,17 @@
 import React, { useEffect, useState, ChangeEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { AiOutlineFilePdf, AiOutlineCreditCard } from "react-icons/ai";
 import { HiOutlineTrash, HiOutlineArrowNarrowLeft } from "react-icons/hi";
 import { useAuth } from "@/context/AuthContext";
 import Select, { components } from "react-select";
 import Swal from "sweetalert2/dist/sweetalert2.all.js";
+import { api, assetUrl } from "@/lib/api";
+
+/** Llaves públicas de las pasarelas (null = esa pasarela aún no está configurada). */
+interface LlavesPasarelas {
+  culqiPublicKey: string | null;
+  mercadopagoPublicKey: string | null;
+}
 
 const parseConfigAdicional = (configAdicional: string) => {
   try {
@@ -72,9 +78,7 @@ const Option = (props: any) => {
     <components.Option {...props}>
       {data.iconoImg && (
         <img
-          src={`http://localhost:8080/uploads/${encodeURIComponent(
-            data.iconoImg
-          )}`}
+          src={assetUrl(`uploads/${encodeURIComponent(data.iconoImg)}`)}
           alt={data.nombre}
           className="w-8 h-8 object-contain rounded mr-2"
         />
@@ -93,9 +97,7 @@ const SingleValue = (props: any) => {
     <components.SingleValue {...props}>
       {data.iconoImg && (
         <img
-          src={`http://localhost:8080/uploads/${encodeURIComponent(
-            data.iconoImg
-          )}`}
+          src={assetUrl(`uploads/${encodeURIComponent(data.iconoImg)}`)}
           alt={data.nombre}
           className="w-7 h-7 object-contain rounded mr-2"
         />
@@ -121,15 +123,32 @@ const CheckoutPago: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [progressMsg, setProgressMsg] = useState("Procesando pedido...");
 
+  // Llaves públicas de pasarela (null mientras carga o si falla - nunca tumba la pantalla)
+  const [llavesPasarelas, setLlavesPasarelas] = useState<LlavesPasarelas | null>(null);
+  const [cargandoLlaves, setCargandoLlaves] = useState(true);
+
   useEffect(() => {
     if (!state?.productos) {
       navigate("/carrito");
       return;
     }
-    axios
-      .get("http://localhost:8080/api/metodopago/listar-activos")
+    api
+      .get("/api/metodopago/listar-activos")
       .then((res) => setMetodosPago(res.data.data || []))
       .catch(() => setMetodosPago([]));
+
+    api
+      .get("/api/config/pasarelas")
+      .then((res) => {
+        if (res.data?.success) setLlavesPasarelas(res.data.data);
+        else setLlavesPasarelas({ culqiPublicKey: null, mercadopagoPublicKey: null });
+      })
+      .catch(() => {
+        // Si la petición falla o tarda, se asume que ninguna pasarela está
+        // disponible todavía: nunca tumba la pantalla, solo muestra el aviso.
+        setLlavesPasarelas({ culqiPublicKey: null, mercadopagoPublicKey: null });
+      })
+      .finally(() => setCargandoLlaves(false));
   }, [state, navigate]);
 
   useEffect(() => {
@@ -223,10 +242,12 @@ const CheckoutPago: React.FC = () => {
     };
   };
 
+  const esMetodoPasarela = metodoPagoSeleccionado?.tipo === "PASARELA";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!metodoPagoSeleccionado || !comprobante) {
+    if (!metodoPagoSeleccionado || esMetodoPasarela || !comprobante) {
       return;
     }
 
@@ -241,8 +262,8 @@ const CheckoutPago: React.FC = () => {
     formData.append("comprobante", comprobante);
 
     try {
-      await axios.post(
-        "http://localhost:8080/api/pedidos/registrar",
+      await api.post(
+        "/api/pedidos/registrar",
         formData,
         {
           headers: {
@@ -372,9 +393,7 @@ const CheckoutPago: React.FC = () => {
                         className="flex items-center py-3"
                       >
                         <img
-                          src={`http://localhost:8080/uploads/${encodeURIComponent(
-                            prod.imagen || ""
-                          )}`}
+                          src={assetUrl(`uploads/${encodeURIComponent(prod.imagen || "")}`)}
                           alt={prod.nombre}
                           className="w-14 h-14 rounded-lg bg-gray-100 object-contain border mr-4"
                         />
@@ -447,7 +466,7 @@ const CheckoutPago: React.FC = () => {
                     menuShouldScrollIntoView={false}
                   />
                 </div>
-                {metodoPagoSeleccionado && (
+                {metodoPagoSeleccionado && !esMetodoPasarela && (
                   <div>
                     <div className="text-base font-semibold text-cyan-600 mb-2">
                       Información para el pago
@@ -468,7 +487,74 @@ const CheckoutPago: React.FC = () => {
                     </div>
                   </div>
                 )}
-                {metodoPagoSeleccionado && (
+
+                {/* Pago con pasarela (Culqi/Mercado Pago): punto de integración del widget.
+                    Mientras no haya llave pública real cargada, se muestra el aviso de que
+                    todavía no está disponible. Nunca se muestra el bloque de "comprobante". */}
+                {metodoPagoSeleccionado && esMetodoPasarela && (
+                  <div>
+                    <div className="text-base font-semibold text-cyan-600 mb-2">
+                      Pago con tarjeta
+                    </div>
+                    {cargandoLlaves ? (
+                      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200 text-center text-gray-500">
+                        Verificando disponibilidad de la pasarela...
+                      </div>
+                    ) : (
+                      (() => {
+                        const proveedor = metodoPagoSeleccionado.proveedor as
+                          | "CULQI"
+                          | "MERCADOPAGO"
+                          | undefined;
+                        const llavePublica =
+                          proveedor === "CULQI"
+                            ? llavesPasarelas?.culqiPublicKey
+                            : proveedor === "MERCADOPAGO"
+                            ? llavesPasarelas?.mercadopagoPublicKey
+                            : null;
+                        const nombreProveedor =
+                          proveedor === "CULQI"
+                            ? "Culqi"
+                            : proveedor === "MERCADOPAGO"
+                            ? "Mercado Pago"
+                            : "la pasarela";
+
+                        if (!llavePublica) {
+                          return (
+                            <div className="bg-amber-50 rounded-xl p-6 border border-amber-200 text-center">
+                              <p className="text-amber-700 font-medium">
+                                Pago con tarjeta ({nombreProveedor}) — próximamente
+                                disponible
+                              </p>
+                              <p className="text-sm text-amber-600 mt-1">
+                                Por ahora usa Yape, Plin o transferencia bancaria para
+                                completar tu compra.
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        // TODO (pendiente de llaves reales + decisión del dueño sobre cargar
+                        // un script externo): este contenedor es donde se montaría el widget
+                        // oficial de Culqi.js o el Brick de Mercado Pago, inicializado con
+                        // `llavePublica`. El widget genera un token en el navegador (nunca el
+                        // número de tarjeta) y ese token se envía a
+                        // POST /api/pagos/culqi/cargo o /api/pagos/mercadopago/pago con `api`.
+                        // function montarWidgetPasarela(proveedor, llavePublica) { ... }
+                        return (
+                          <div
+                            id="contenedor-widget-pasarela"
+                            className="bg-gray-50 rounded-xl p-6 border border-dashed border-gray-300 text-center text-gray-500"
+                          >
+                            Widget de {nombreProveedor} pendiente de integrar
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
+                )}
+
+                {metodoPagoSeleccionado && !esMetodoPasarela && (
                   <div>
                     <div className="text-base font-semibold text-cyan-600 mb-2">
                       Comprobante de pago
@@ -544,9 +630,11 @@ const CheckoutPago: React.FC = () => {
                 <button
                   className="w-full mt-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   type="submit"
-                  disabled={!metodoPagoSeleccionado || !comprobante}
+                  disabled={!metodoPagoSeleccionado || esMetodoPasarela || !comprobante}
                 >
-                  Enviar comprobante y finalizar compra
+                  {esMetodoPasarela
+                    ? "Pago con tarjeta no disponible todavía"
+                    : "Enviar comprobante y finalizar compra"}
                 </button>
               </form>
             </div>

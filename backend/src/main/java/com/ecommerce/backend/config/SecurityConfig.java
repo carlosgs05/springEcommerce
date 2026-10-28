@@ -96,6 +96,28 @@ public class SecurityConfig {
                                 new AuthorizationDecision(tieneSesionAccess(auth.get())
                                         && auth.get().getAuthorities().stream()
                                                 .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        // Escritura de metodos de pago: sesion access Y rol ADMINISTRADOR. El GET sigue publico.
+                        .requestMatchers(HttpMethod.POST, "/api/metodopago/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.PUT, "/api/metodopago/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        .requestMatchers(HttpMethod.DELETE, "/api/metodopago/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())
+                                        && auth.get().getAuthorities().stream()
+                                                .anyMatch(g -> "ADMINISTRADOR".equals(g.getAuthority()))))
+                        // Pasarelas de pago: cargo/token lo pide el cliente con su propia sesion (igual que carrito).
+                        .requestMatchers(HttpMethod.POST, "/api/pagos/culqi/cargo").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())))
+                        .requestMatchers(HttpMethod.POST, "/api/pagos/mercadopago/pago").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())))
+                        // Webhooks: los llama la pasarela externa, no un usuario con JWT -> publicos.
+                        // La validacion de autenticidad va DENTRO del controller (validarFirma), no aqui.
+                        .requestMatchers("/api/pagos/culqi/webhook").permitAll()
+                        .requestMatchers("/api/pagos/mercadopago/webhook").permitAll()
                         // /error debe ser accesible: sin esto un JSON mal formado de un anonimo acaba en 401 en vez de 400
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/**").permitAll()

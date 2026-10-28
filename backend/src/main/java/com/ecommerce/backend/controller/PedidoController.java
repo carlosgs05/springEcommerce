@@ -140,6 +140,9 @@ public class PedidoController {
                     pedidoMap.put("comprobantePago", pedido.getComprobantePago());
                     pedidoMap.put("direccionEnvio", pedido.getDireccionEnvio());
                     pedidoMap.put("observacion", pedido.getObservacion());
+                    pedidoMap.put("moneda", pedido.getMoneda());
+                    pedidoMap.put("estadoPagoPasarela", pedido.getEstadoPagoPasarela());
+                    pedidoMap.put("idTransaccionPasarela", pedido.getIdTransaccionPasarela());
 
                     // Información del usuario
                     if (pedido.getUsuario() != null) {
@@ -302,6 +305,9 @@ public class PedidoController {
         pedidoMap.put("comprobantePago", pedido.getComprobantePago());
         pedidoMap.put("direccionEnvio", pedido.getDireccionEnvio());
         pedidoMap.put("observacion", pedido.getObservacion());
+        pedidoMap.put("moneda", pedido.getMoneda());
+        pedidoMap.put("estadoPagoPasarela", pedido.getEstadoPagoPasarela());
+        pedidoMap.put("idTransaccionPasarela", pedido.getIdTransaccionPasarela());
 
         // Información del usuario
         if (pedido.getUsuario() != null) {

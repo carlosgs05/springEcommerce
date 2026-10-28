@@ -14,11 +14,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class MetodoPagoService {
+
+    private static final Set<String> TIPOS_VALIDOS = Set.of("MANUAL", "PASARELA");
+    private static final Set<String> PROVEEDORES_VALIDOS = Set.of("CULQI", "MERCADOPAGO");
 
     private final MetodoPagoRepository metodoPagoRepository;
     private final ObjectMapper objectMapper;
@@ -41,59 +45,81 @@ public class MetodoPagoService {
         return dto;
     }
 
+    /**
+     * Valida tipo/proveedor y normaliza el DTO: si tipo=MANUAL, limpia cualquier
+     * proveedor que haya llegado (se ignora, nunca se guarda).
+     */
+    private void validarYNormalizarTipoProveedor(MetodoPagoDTO dto) {
+        String tipo = dto.getTipo();
+        if (tipo == null || tipo.isBlank()) {
+            throw new IllegalArgumentException("El tipo de método de pago es obligatorio");
+        }
+        tipo = tipo.trim().toUpperCase();
+        if (!TIPOS_VALIDOS.contains(tipo)) {
+            throw new IllegalArgumentException("Tipo de método de pago inválido: " + tipo);
+        }
+        dto.setTipo(tipo);
+
+        if ("PASARELA".equals(tipo)) {
+            String proveedor = dto.getProveedor();
+            if (proveedor == null || proveedor.isBlank()) {
+                throw new IllegalArgumentException("El proveedor es obligatorio cuando el tipo es PASARELA");
+            }
+            proveedor = proveedor.trim().toUpperCase();
+            if (!PROVEEDORES_VALIDOS.contains(proveedor)) {
+                throw new IllegalArgumentException("Proveedor inválido: " + proveedor);
+            }
+            dto.setProveedor(proveedor);
+        } else {
+            // tipo MANUAL: cualquier proveedor que haya llegado se ignora/limpia
+            dto.setProveedor(null);
+        }
+    }
+
+    private MetodoPagoDTO aDTO(MetodoPago m) {
+        MetodoPagoDTO dto = new MetodoPagoDTO();
+        dto.setIdMetodoPago(m.getIdMetodoPago());
+        dto.setNombre(m.getNombre());
+        dto.setDescripcion(m.getDescripcion());
+        dto.setActivo(m.getActivo());
+        dto.setIconoImg(m.getIconoImg());
+        dto.setConfigAdicional(m.getConfigAdicional());
+        dto.setTipo(m.getTipo());
+        dto.setProveedor(m.getProveedor());
+        return dto;
+    }
+
     @Transactional(readOnly = true)
     @Cacheable(value = "metodosPago")
     public List<MetodoPagoDTO> obtenerTodosMetodosPago() {
-        return metodoPagoRepository.findAll().stream().map(m -> {
-            MetodoPagoDTO dto = new MetodoPagoDTO();
-            dto.setIdMetodoPago(m.getIdMetodoPago());
-            dto.setNombre(m.getNombre());
-            dto.setDescripcion(m.getDescripcion());
-            dto.setActivo(m.getActivo());
-            dto.setIconoImg(m.getIconoImg());
-            dto.setConfigAdicional(m.getConfigAdicional());
-            return dto;
-        }).collect(Collectors.toList());
+        return metodoPagoRepository.findAll().stream().map(this::aDTO).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     @Cacheable(value = "metodosPagoActivos")
     public List<MetodoPagoDTO> obtenerMetodosPagoActivos() {
-        return metodoPagoRepository.findByActivo(true).stream().map(m -> {
-            MetodoPagoDTO dto = new MetodoPagoDTO();
-            dto.setIdMetodoPago(m.getIdMetodoPago());
-            dto.setNombre(m.getNombre());
-            dto.setDescripcion(m.getDescripcion());
-            dto.setActivo(m.getActivo());
-            dto.setIconoImg(m.getIconoImg());
-            dto.setConfigAdicional(m.getConfigAdicional());
-            return dto;
-        }).collect(Collectors.toList());
+        return metodoPagoRepository.findByActivo(true).stream().map(this::aDTO).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<MetodoPagoDTO> obtenerPrimerosCuatroMetodosPago() {
-        return metodoPagoRepository.findTop4ByOrderByIdMetodoPagoAsc().stream().map(m -> {
-            MetodoPagoDTO dto = new MetodoPagoDTO();
-            dto.setIdMetodoPago(m.getIdMetodoPago());
-            dto.setNombre(m.getNombre());
-            dto.setDescripcion(m.getDescripcion());
-            dto.setActivo(m.getActivo());
-            dto.setIconoImg(m.getIconoImg());
-            dto.setConfigAdicional(m.getConfigAdicional());
-            return dto;
-        }).collect(Collectors.toList());
+        return metodoPagoRepository.findTop4ByOrderByIdMetodoPagoAsc().stream().map(this::aDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional
     @CacheEvict(value = { "metodosPago", "metodoPago", "metodosPagoActivos" }, allEntries = true)
     public MetodoPagoDTO crearMetodoPago(MetodoPagoDTO req) throws IOException {
+        validarYNormalizarTipoProveedor(req);
+
         MetodoPago m = new MetodoPago();
         m.setNombre(req.getNombre());
         m.setDescripcion(req.getDescripcion());
         m.setActivo(req.getActivo());
         m.setIconoImg(req.getIconoImg());
         m.setConfigAdicional(req.getConfigAdicional());
+        m.setTipo(req.getTipo());
+        m.setProveedor(req.getProveedor());
         m = metodoPagoRepository.save(m);
 
         if (req.getIconoMultipart() != null) {
@@ -103,25 +129,22 @@ public class MetodoPagoService {
             req.getIconoMultipart().transferTo(new File(uploadDir + req.getIconoImg()));
         }
 
-        MetodoPagoDTO out = new MetodoPagoDTO();
-        out.setIdMetodoPago(m.getIdMetodoPago());
-        out.setNombre(m.getNombre());
-        out.setDescripcion(m.getDescripcion());
-        out.setActivo(m.getActivo());
-        out.setIconoImg(m.getIconoImg());
-        out.setConfigAdicional(m.getConfigAdicional());
-        return out;
+        return aDTO(m);
     }
 
     @Transactional
     @CacheEvict(value = { "metodosPago", "metodoPago", "metodosPagoActivos" }, allEntries = true)
     public MetodoPagoDTO actualizarMetodoPago(Long id, MetodoPagoDTO req) throws IOException {
+        validarYNormalizarTipoProveedor(req);
+
         MetodoPago m = metodoPagoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado"));
         m.setNombre(req.getNombre());
         m.setDescripcion(req.getDescripcion());
         m.setActivo(req.getActivo());
         m.setConfigAdicional(req.getConfigAdicional());
+        m.setTipo(req.getTipo());
+        m.setProveedor(req.getProveedor());
 
         if (req.getIconoMultipart() != null && !req.getIconoMultipart().isEmpty()) {
             String nombreArchivo = UUID.randomUUID() + "_" + req.getIconoMultipart().getOriginalFilename();
@@ -133,15 +156,7 @@ public class MetodoPagoService {
         }
 
         m = metodoPagoRepository.save(m);
-
-        MetodoPagoDTO out = new MetodoPagoDTO();
-        out.setIdMetodoPago(m.getIdMetodoPago());
-        out.setNombre(m.getNombre());
-        out.setDescripcion(m.getDescripcion());
-        out.setActivo(m.getActivo());
-        out.setIconoImg(m.getIconoImg());
-        out.setConfigAdicional(m.getConfigAdicional());
-        return out;
+        return aDTO(m);
     }
 
     @Transactional
@@ -160,14 +175,6 @@ public class MetodoPagoService {
                 .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado"));
         m.setActivo(activo);
         m = metodoPagoRepository.save(m);
-
-        MetodoPagoDTO dto = new MetodoPagoDTO();
-        dto.setIdMetodoPago(m.getIdMetodoPago());
-        dto.setNombre(m.getNombre());
-        dto.setDescripcion(m.getDescripcion());
-        dto.setActivo(m.getActivo());
-        dto.setIconoImg(m.getIconoImg());
-        dto.setConfigAdicional(m.getConfigAdicional());
-        return dto;
+        return aDTO(m);
     }
 }

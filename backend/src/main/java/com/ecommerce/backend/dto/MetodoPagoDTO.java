@@ -13,5 +13,7 @@ public class MetodoPagoDTO {
     private Boolean activo;
     private String iconoImg;
     private String configAdicional;
+    private String tipo;
+    private String proveedor;
     private MultipartFile iconoMultipart;
 }

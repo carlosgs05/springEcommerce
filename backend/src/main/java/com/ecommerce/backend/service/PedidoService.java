@@ -107,8 +107,20 @@ public class PedidoService {
         pedido.setFechaPedido(dto.getFechaPedido() != null ? dto.getFechaPedido() : LocalDateTime.now());
         pedido.setMetodoEnvio(metodoEnvioRepository.findById(dto.getIdMetodoEnvio())
                 .orElseThrow(() -> new IllegalArgumentException("Método de envío no encontrado")));
-        pedido.setMetodoPago(metodoPagoRepository.findById(dto.getIdMetodoPago())
-                .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado")));
+        com.ecommerce.backend.entity.MetodoPago metodoPago = metodoPagoRepository.findById(dto.getIdMetodoPago())
+                .orElseThrow(() -> new IllegalArgumentException("Método de pago no encontrado"));
+        pedido.setMetodoPago(metodoPago);
+
+        // Moneda y estado de pasarela: nunca se toman del body del cliente, se
+        // derivan aquí del método de pago real guardado en la base.
+        pedido.setMoneda("PEN");
+        if ("PASARELA".equals(metodoPago.getTipo())) {
+            pedido.setEstadoPagoPasarela("PENDIENTE");
+        } else {
+            pedido.setEstadoPagoPasarela(null);
+        }
+        pedido.setIdTransaccionPasarela(null);
+
         pedido.setEstado(dto.getEstado());
         pedido.setMontoPedido(dto.getMontoPedido());
         pedido.setMontoEnvio(dto.getMontoEnvio());

@@ -34,6 +34,14 @@ public class MetodoPago {
     @Column(name = "config_adicional", columnDefinition = "TEXT")
     private String configAdicional;
 
+    // 'MANUAL' | 'PASARELA'
+    @Column(name = "tipo", length = 20, nullable = false)
+    private String tipo;
+
+    // null | 'CULQI' | 'MERCADOPAGO'
+    @Column(name = "proveedor", length = 20)
+    private String proveedor;
+
     @JsonIgnore
     @OneToMany(mappedBy = "metodoPago", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Pedido> pedidos;

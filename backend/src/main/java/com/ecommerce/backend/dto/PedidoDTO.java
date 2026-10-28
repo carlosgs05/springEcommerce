@@ -24,6 +24,9 @@ public class PedidoDTO {
     private String comprobantePago;
     private String direccionEnvio;
     private String observacion;
+    private String idTransaccionPasarela;
+    private String estadoPagoPasarela;
+    private String moneda;
     private List<DetalleProductoDTO> productos;
 
     // Nuevos campos para actualización de estado

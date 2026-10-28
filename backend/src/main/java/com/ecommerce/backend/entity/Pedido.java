@@ -55,6 +55,16 @@ public class Pedido {
     @Column(name = "observacion", columnDefinition = "TEXT")
     private String observacion;
 
+    @Column(name = "idtransaccion_pasarela", length = 100)
+    private String idTransaccionPasarela;
+
+    // null | 'PENDIENTE' | 'PAGADO' | 'RECHAZADO'
+    @Column(name = "estado_pago_pasarela", length = 20)
+    private String estadoPagoPasarela;
+
+    @Column(name = "moneda", length = 3, nullable = false)
+    private String moneda;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DetallePedido> detalles;
 

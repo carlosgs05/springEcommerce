@@ -1167,6 +1167,16 @@ real, con un usuario de prueba creado y borrado por SQL para la verificación.
   igual que hoy; confirmar que ninguna llave secreta aparece en las
   respuestas del API ni en el código del frontend (buscar en el bundle
   compilado); sin sesión admin, no se puede editar el catálogo de métodos.
+- **Decisión del dueño (cierre del Día 7):** todavía no tiene cuentas
+  sandbox de Culqi ni de Mercado Pago. El código de este día queda
+  **100% construido y conectado** (endpoints, validación de firma de
+  webhook, catálogo admin, UI de checkout) pero **sin llaves cargadas** —
+  `PagoPasarelaController` responde 503 mientras no haya
+  `CULQI_SECRET_KEY`/`MERCADOPAGO_ACCESS_TOKEN` en el `.env`. Crear las
+  cuentas sandbox, cargar las 4 llaves y hacer la prueba de pago de punta
+  a punta con tarjeta de prueba queda movido al **Día 12**, que de todas
+  formas es cuando el webhook por fin tiene una URL pública real para que
+  la pasarela le avise.
 
 ## Día 8 — Métodos de Envío + Comentarios/Reseñas + Testimonios
 
@@ -1395,6 +1405,13 @@ construyó (incluida la base de datos versionada con Flyway desde el Día 1).
 Va al final porque recién tiene sentido cuando hay algo terminado que
 mostrar, y porque los webhooks de pago del Día 7 **necesitan una URL
 pública**, algo que no existe hoy (todo corre en `localhost`).
+
+**Pendiente heredado del Día 7:** crear las cuentas sandbox de Culqi y
+Mercado Pago, cargar las 4 llaves (`CULQI_SECRET_KEY`, `CULQI_PUBLIC_KEY`,
+`MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY`) y probar un pago de
+punta a punta con tarjeta de prueba de cada pasarela — el código ya está
+listo desde el Día 7, solo faltan las llaves y la URL pública que este
+día por fin provee.
 
 **Pendientes de seguridad heredados del Día 2 (revisar antes de abrir al público):**
 - Sin segundo factor (decisión del dueño), las cuentas admin dependen solo
