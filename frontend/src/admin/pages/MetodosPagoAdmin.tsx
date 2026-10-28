@@ -459,6 +459,7 @@ const MetodosPagoAdmin = () => {
                       const nuevoTipo = e.target.value as TipoMetodoPago;
                       setTipo(nuevoTipo);
                       if (nuevoTipo === "MANUAL") setProveedor("");
+                      if (nuevoTipo === "PASARELA") setConfigItems([]);
                     }}
                   >
                     <option value="MANUAL">Manual (Yape, Plin, transferencia)</option>
@@ -542,50 +543,61 @@ const MetodosPagoAdmin = () => {
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <label className="block text-sm font-semibold text-text">
-                    Información adicional (opcional)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addConfigItem}
-                    className="flex items-center gap-1 text-sm text-primary hover:brightness-110 cursor-pointer"
-                  >
-                    <Plus size={16} /> Agregar campo
-                  </button>
+              {tipo === "PASARELA" ? (
+                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                  <p className="text-sm text-amber-700">
+                    Un método de pasarela no usa "Información adicional": el
+                    pago se procesa con las llaves del proveedor configuradas
+                    en el servidor, nunca con datos sueltos aquí (este campo
+                    es público, lo ve cualquiera sin iniciar sesión).
+                  </p>
                 </div>
-                {configItems.length > 0 && (
-                  <div className="space-y-3">
-                    {configItems.map((item, index) => (
-                      <div key={index} className="flex gap-3">
-                        <Input
-                          className="flex-1"
-                          type="text"
-                          placeholder="Clave (ej: comisión, moneda)"
-                          value={item.clave}
-                          onChange={(e) => handleConfigChange(index, "clave", e.target.value)}
-                        />
-                        <Input
-                          className="flex-1"
-                          type="text"
-                          placeholder="Valor (ej: 2.5%, USD)"
-                          value={item.valor}
-                          onChange={(e) => handleConfigChange(index, "valor", e.target.value)}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeConfigItem(index)}
-                          className="p-2.5 rounded-xl text-danger hover:bg-danger/10 cursor-pointer transition-colors"
-                          aria-label="Quitar campo"
-                        >
-                          <Minus size={20} />
-                        </button>
-                      </div>
-                    ))}
+              ) : (
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="block text-sm font-semibold text-text">
+                      Información adicional (opcional)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addConfigItem}
+                      className="flex items-center gap-1 text-sm text-primary hover:brightness-110 cursor-pointer"
+                    >
+                      <Plus size={16} /> Agregar campo
+                    </button>
                   </div>
-                )}
-              </div>
+                  {configItems.length > 0 && (
+                    <div className="space-y-3">
+                      {configItems.map((item, index) => (
+                        <div key={index} className="flex gap-3">
+                          <Input
+                            className="flex-1"
+                            type="text"
+                            placeholder="Clave (ej: comisión, moneda)"
+                            value={item.clave}
+                            onChange={(e) => handleConfigChange(index, "clave", e.target.value)}
+                          />
+                          <Input
+                            className="flex-1"
+                            type="text"
+                            placeholder="Valor (ej: 2.5%, USD)"
+                            value={item.valor}
+                            onChange={(e) => handleConfigChange(index, "valor", e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeConfigItem(index)}
+                            className="p-2.5 rounded-xl text-danger hover:bg-danger/10 cursor-pointer transition-colors"
+                            aria-label="Quitar campo"
+                          >
+                            <Minus size={20} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
               <Button variant="secondary" onClick={resetForm} disabled={guardando}>

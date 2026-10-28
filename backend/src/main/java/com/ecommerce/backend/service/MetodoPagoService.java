@@ -47,7 +47,12 @@ public class MetodoPagoService {
 
     /**
      * Valida tipo/proveedor y normaliza el DTO: si tipo=MANUAL, limpia cualquier
-     * proveedor que haya llegado (se ignora, nunca se guarda).
+     * proveedor que haya llegado (se ignora, nunca se guarda). Si tipo=PASARELA,
+     * limpia cualquier configAdicional que haya llegado: ese campo lo devuelve
+     * público GET /api/metodopago/listar (lo necesita el checkout para mostrar
+     * el Yape/cuenta de los métodos MANUAL), así que un método PASARELA nunca
+     * debe poder guardar ahí un dato sensible por error del admin. Las llaves
+     * reales de cada pasarela viven solo en variables de entorno del backend.
      */
     private void validarYNormalizarTipoProveedor(MetodoPagoDTO dto) {
         String tipo = dto.getTipo();
@@ -70,6 +75,7 @@ public class MetodoPagoService {
                 throw new IllegalArgumentException("Proveedor inválido: " + proveedor);
             }
             dto.setProveedor(proveedor);
+            dto.setConfigAdicional(null);
         } else {
             // tipo MANUAL: cualquier proveedor que haya llegado se ignora/limpia
             dto.setProveedor(null);
