@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
-class ComentarioDTO {
+public class ComentarioDTO {
     private Long idcomentario;
     private String descripcion;
     private LocalDateTime fechacomentario;
@@ -13,10 +13,8 @@ class ComentarioDTO {
     private UsuarioDTO usuario;
 
     @Data
-    static class UsuarioDTO {
-        private Integer iduser;
+    public static class UsuarioDTO {
         private String nombre;
         private String apellido;
-        private String correo;
     }
 }

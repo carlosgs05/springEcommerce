@@ -9,6 +9,8 @@ import { getStockBadge } from "@/lib/stockBadge";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { useFavoritos } from "@/user/hooks/useFavoritos";
+import FavoritoButton from "@/user/components/FavoritoButton";
 
 interface Especificacion {
   unidadmedida: string;
@@ -97,6 +99,7 @@ const ProductoDetails = () => {
   const { state } = useLocation();
   const producto = state as Producto;
   const { user, isAuthenticated } = useAuth();
+  const { esFavorito, toggleFavorito } = useFavoritos(isAuthenticated);
 
   const reviews = producto?.comentariosAprobados || [];
 
@@ -212,6 +215,7 @@ const ProductoDetails = () => {
         cantidad: 1,
         precio: producto.precio,
         imagen: producto.imagenesNombres[0] || "",
+        stock: producto.stock,
       };
 
       carrito.push(productoSimplificado);
@@ -287,7 +291,16 @@ const ProductoDetails = () => {
 
           {/* Detalles del producto */}
           <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-text">{producto.nombre}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-3xl font-bold text-text">{producto.nombre}</h1>
+              <FavoritoButton
+                idproducto={producto.idproducto}
+                esFavorito={esFavorito(producto.idproducto)}
+                toggleFavorito={toggleFavorito}
+                size={24}
+                className="shrink-0"
+              />
+            </div>
             <div className="flex items-center space-x-2">
               <Estrellas calificacion={producto.calificacionPromedio} />
               <span className="text-sm text-text-muted">

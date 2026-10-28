@@ -20,6 +20,12 @@ public interface ComentarioRepository extends JpaRepository<Comentario, Long> {
         Optional<Comentario> findByProductoIdAndComentarioId(@Param("productoId") Long productoId,
                         @Param("comentarioId") Long comentarioId);
 
+        // batch: mismo criterio que findByProductoIdAndEstado (sin traer el Usuario completo)
+        // pero para varios ids de producto a la vez
+        @Query("SELECT c FROM Comentario c WHERE c.producto.idproducto IN (:productoIds) AND c.estado = :estado")
+        List<Comentario> findByProductoIdInAndEstado(@Param("productoIds") List<Long> productoIds,
+                        @Param("estado") Integer estado);
+
         // MÉTODO MEJORADO
         @Query("SELECT c FROM Comentario c " +
                         "JOIN FETCH c.usuario u " +

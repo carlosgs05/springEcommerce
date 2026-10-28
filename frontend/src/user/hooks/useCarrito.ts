@@ -60,7 +60,7 @@ export function useCarrito(
       if (isAuthenticated && user && user.iduser && user.rol.idrol === 2) {
         let carritoBD: ProductoCarrito[] = [];
         try {
-          const resp = await api.get(`/api/carrito/${user.iduser}`);
+          const resp = await api.get(`/api/carrito`);
           if (
             resp.data.success &&
             resp.data.data &&
@@ -94,7 +94,7 @@ export function useCarrito(
 
         if (carritoBD.length > 0 || carritoFinal.length > 0) {
           try {
-            await api.delete(`/api/carrito/eliminar/${user.iduser}`);
+            await api.delete(`/api/carrito`);
           } catch (e) {}
         }
       }
@@ -118,13 +118,12 @@ export function useCarrito(
       if (carritoLocal.length > 0) {
         try {
           await api.post("/api/carrito/guardar", {
-            iduser: usuarioActual.iduser,
             listaProductos: JSON.stringify(carritoLocal),
           });
         } catch (e) {}
       } else {
         try {
-          await api.delete(`/api/carrito/${usuarioActual.iduser}`);
+          await api.delete(`/api/carrito`);
         } catch (e) {}
       }
     }

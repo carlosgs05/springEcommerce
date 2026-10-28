@@ -16,7 +16,7 @@ Sistema de diseño: `IDENTIDAD_VISUAL.md`. Plan de 12 días: `PLAN_DISENO_PORTAF
   - `backend/.env.example` lista las variables. `.env` no se versiona.
   - Propiedades propias: `app.jwt.secret` (Base64, ≥32 bytes) y `app.cors.allowed-origins` (lista separada por comas).
 - Paquete `com.ecommerce.backend`, por capas:
-  - `controller/` — endpoints REST (Usuario, Producto, Categoria, Marca, Carrito, Pedido, Comentario, Testimonio, MetodoPago, MetodoEnvio, Notificacion).
+  - `controller/` — endpoints REST (Usuario, Producto, Categoria, Marca, Carrito, Favorito, Pedido, Comentario, Testimonio, MetodoPago, MetodoEnvio, Notificacion). `Favorito` (Día 6) y `Carrito` sacan el id de usuario siempre de `SesionActual`, nunca de path/body.
   - `service/` — lógica (incluye `JWTUtils`).
   - `repository/` — Spring Data JPA.
   - `entity/` — entidades JPA (Usuario, Rol, Permiso, RolPermiso, Producto, ProductoImg, Especificacion, Categoria, Marca, Carrito, Pedido, DetallePedido, Venta, Comentario, Testimonio, MetodoPago, MetodoEnvio, Notificacion).
@@ -44,6 +44,7 @@ Sistema de diseño: `IDENTIDAD_VISUAL.md`. Plan de 12 días: `PLAN_DISENO_PORTAF
 - Cliente HTTP central `src/lib/api.ts` (`api`, `API_BASE_URL`, `assetUrl`) que lee `VITE_API_BASE_URL` de `frontend/.env`. Las pantallas viejas todavía usan `http://localhost:8080` a mano (pendiente de migrar).
 - Pantalla de muestra solo en dev: `/dev/ui` (`src/dev/UiShowcase.tsx`).
 - Estructura: `src/admin/` (panel), `src/user/` (tienda — `pages/`, `components/header|footer/`, `hooks/`), `src/autenticacion/`, `src/context/` (AuthContext), `src/router/` (guards: GuestRoute/ProtectedRoute/PublicRoute/HomeRoute), `src/layouts/` (UserLayout: Header+Outlet+Footer), `src/components/ui/`.
+- Favoritos (Día 6): `src/user/hooks/useFavoritos.ts` (carga `/api/favoritos/ids`, toggle optimista) + `src/user/components/FavoritoButton.tsx` (corazón compartido, usado en `Tienda.tsx` y `ProductoDetails.tsx`) + `src/user/pages/Favoritos.tsx` (ruta `/favoritos`, protegida rol cliente). Comparador (Día 6): `src/user/pages/ComparadorProductos.tsx` (ruta `/comparador`, pública, lee `ids` de la query string).
 - Alias `@/` → `src/` configurado en `vite.config.ts` y `tsconfig.app.json`, en uso solo en los archivos del área cliente tocados en el Día 4 (Header y piezas, Footer, hooks, layout, guards, router, `user/pages/*`) — el resto del proyecto sigue con imports relativos.
 - Build: `npm run build` (tsc + vite); dev: `npm run dev`; `npm run lint` (tiene errores previos en archivos viejos).
 

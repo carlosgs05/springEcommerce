@@ -2,7 +2,6 @@ package com.ecommerce.backend.dto;
 
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
-import com.ecommerce.backend.entity.Comentario;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.math.BigDecimal;
@@ -26,7 +25,7 @@ public class ProductoDTO {
     private List<EspecificacionDTO> especificaciones;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private List<Comentario> comentariosAprobados;
+    private List<ComentarioDTO> comentariosAprobados;
 
     private Double calificacionPromedio;
     private Integer totalResenas;

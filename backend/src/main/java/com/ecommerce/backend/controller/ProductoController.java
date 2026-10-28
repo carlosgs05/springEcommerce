@@ -3,6 +3,8 @@ package com.ecommerce.backend.controller;
 import com.ecommerce.backend.dto.ProductoDTO;
 import com.ecommerce.backend.service.ProductoService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,9 @@ import java.util.Map;
 @RequestMapping("/api/productos")
 @RequiredArgsConstructor
 public class ProductoController {
+    private static final Logger log = LoggerFactory.getLogger(ProductoController.class);
+    private static final String MSG_GENERICO = "No se pudo completar la operación. Inténtalo de nuevo más tarde.";
+
     private final ProductoService productoService;
 
     @GetMapping("/estadisticas-stock")
@@ -84,6 +89,23 @@ public class ProductoController {
         }
     }
 
+    // Comparador: catálogo público, igual que listarAll/filtrar. Hasta 3 ids; los que no existan se omiten.
+    @GetMapping("/comparar")
+    public ResponseEntity<?> compararProductos(@RequestParam List<Long> ids) {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            List<ProductoDTO> productos = productoService.compararProductos(ids);
+            resp.put("success", true);
+            resp.put("data", productos);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            log.error("Fallo al comparar productos {}", ids, e);
+            resp.put("success", false);
+            resp.put("message", MSG_GENERICO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
+        }
+    }
+
     @GetMapping("/filtrar")
     public ResponseEntity<?> filtrarProductos(
             @RequestParam(required = false) Long categoria,
@@ -96,14 +118,15 @@ public class ProductoController {
     public ResponseEntity<?> actualizarProducto(
             @PathVariable Long id,
             @RequestParam("producto") String productoJson,
-            @RequestParam(value = "imagenes", required = false) MultipartFile[] imagenes) {
+            @RequestParam(value = "imagenes", required = false) MultipartFile[] imagenes,
+            @RequestParam(value = "keepImages", required = false) List<String> keepImages) {
         Map<String, Object> resp = new HashMap<>();
         try {
             // Parseamos el JSON y las imágenes (si vienen)
             ProductoDTO req = productoService.parsearJson(
                     productoJson,
                     imagenes != null ? Arrays.asList(imagenes) : null);
-            ProductoDTO actualizado = productoService.actualizarProducto(id, req);
+            ProductoDTO actualizado = productoService.actualizarProducto(id, req, keepImages);
 
             resp.put("success", true);
             resp.put("message", "Producto actualizado correctamente");

@@ -11,6 +11,9 @@ public interface ProductoImgRepository extends JpaRepository<ProductoImg, Long> 
     // método derivado para cargar imágenes por separado
     List<ProductoImg> findByProducto_Idproducto(Long idproducto);
 
+    // batch: mismo criterio que findByProducto_Idproducto pero para varios ids a la vez
+    List<ProductoImg> findByProducto_IdproductoIn(List<Long> idproductos);
+
     Optional<ProductoImg> findByNombre(String nombre);
 
     void deleteByProducto_Idproducto(Long idproducto);

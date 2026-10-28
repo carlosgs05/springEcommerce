@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { List, X, ClipboardText, Storefront } from "@phosphor-icons/react";
+import { List, X, ClipboardText, Storefront, Heart } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 import { useNotificaciones } from "@/user/hooks/useNotificaciones";
 import { useCarrito } from "@/user/hooks/useCarrito";
@@ -99,6 +99,12 @@ const Header: React.FC = () => {
     navigate("/mis-pedidos");
   };
 
+  const handleVerFavoritos = () => {
+    setCarritoOpen(false);
+    closeMenu();
+    navigate("/favoritos");
+  };
+
   const handleNavigateLogin = () => {
     navigate("/login");
     closeMenu();
@@ -172,6 +178,17 @@ const Header: React.FC = () => {
 
           {isAuthenticated && user?.rol.idrol === 2 && (
             <button
+              aria-label="Mis favoritos"
+              className={`${iconBtn} text-text-muted hover:text-primary transition-all duration-300`}
+              onClick={handleVerFavoritos}
+              type="button"
+            >
+              <Heart size={23} />
+            </button>
+          )}
+
+          {isAuthenticated && user?.rol.idrol === 2 && (
+            <button
               aria-label="Pedidos realizados"
               className={`${iconBtn} text-text-muted hover:text-primary transition-all duration-300`}
               onClick={handleVerPedidos}
@@ -228,6 +245,7 @@ const Header: React.FC = () => {
           cantidadCarrito={productosCarrito.length}
           onVerCarrito={handleVerCarrito}
           onVerPedidos={handleVerPedidos}
+          onVerFavoritos={handleVerFavoritos}
           userDropdownOpen={userDropdownOpen}
           userDropdownRef={userDropdownRef}
           onToggleUserDropdown={toggleUserDropdown}

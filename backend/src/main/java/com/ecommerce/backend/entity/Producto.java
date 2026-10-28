@@ -54,15 +54,11 @@ public class Producto {
     @JsonManagedReference("producto-especificacion")
     private List<Especificacion> especificaciones = new ArrayList<>();
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Cambiado
-                                                                                                                // a
-                                                                                                                // EAGER
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference("producto-imagen")
     private List<ProductoImg> imagenes = new ArrayList<>();
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER) // Cambiado
-                                                                                                                // a
-                                                                                                                // EAGER
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference("producto-comentario")
     private List<Comentario> comentarios = new ArrayList<>();
 

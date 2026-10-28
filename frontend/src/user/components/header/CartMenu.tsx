@@ -1,4 +1,4 @@
-import React, { type RefObject } from "react";
+import React, { type RefObject, useEffect, useRef, useState } from "react";
 import {
   ShoppingCart,
   Trash,
@@ -33,17 +33,50 @@ const CartMenu: React.FC<CartMenuProps> = ({
   onVerCarrito,
   iconBtnClassName,
 }) => {
+  const [bump, setBump] = useState(false);
+  const prevLengthRef = useRef(productosCarrito.length);
+
+  // Escucha carrito-updated: si el carrito creció, rebota el ícono y el badge hace "pop"
+  useEffect(() => {
+    const handler = () => {
+      // Se compara contra la ref (no el prop) porque el evento dispara antes de que
+      // React re-renderice con la nueva longitud
+      setTimeout(() => {
+        const nuevaLongitud = JSON.parse(
+          localStorage.getItem("carrito") || "[]"
+        ).length;
+        if (nuevaLongitud > prevLengthRef.current) {
+          setBump(true);
+          setTimeout(() => setBump(false), 300);
+        }
+        prevLengthRef.current = nuevaLongitud;
+      }, 0);
+    };
+    window.addEventListener("carrito-updated", handler);
+    return () => window.removeEventListener("carrito-updated", handler);
+  }, []);
+
+  useEffect(() => {
+    prevLengthRef.current = productosCarrito.length;
+  }, [productosCarrito.length]);
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         aria-label="Carrito"
-        className={`${iconBtnClassName} text-text-muted hover:text-primary relative`}
+        className={`${iconBtnClassName} text-text-muted hover:text-primary relative transition-transform duration-200 ease-standard motion-reduce:transform-none ${
+          bump ? "scale-125" : "scale-100"
+        }`}
         onClick={onToggle}
         type="button"
       >
         <ShoppingCart size={22} />
         {productosCarrito.length > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-primary to-primary-hover rounded-full text-xs flex items-center justify-center text-canvas font-bold">
+          <span
+            className={`absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-primary to-primary-hover rounded-full text-xs flex items-center justify-center text-canvas font-bold transition-transform duration-200 ease-standard motion-reduce:transform-none ${
+              bump ? "scale-125" : "scale-100"
+            }`}
+          >
             {productosCarrito.length}
           </span>
         )}

@@ -1,5 +1,6 @@
 package com.ecommerce.backend.service;
 
+import com.ecommerce.backend.dto.ComentarioDTO;
 import com.ecommerce.backend.dto.EspecificacionDTO;
 import com.ecommerce.backend.dto.ProductoDTO;
 import com.ecommerce.backend.entity.*;
@@ -9,6 +10,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,6 +40,7 @@ public class ProductoService {
     private final ComentarioRepository comentarioRepository;
     private final CategoriaRepository categoriaRepository;
     private final MarcaRepository marcaRepository;
+    private final CacheManager cacheManager;
 
     private final String uploadDir = Paths.get("src", "main", "resources", "static", "uploads")
             .toAbsolutePath()
@@ -116,6 +120,21 @@ public class ProductoService {
      * Calcula promedio (redondeado a 1 decimal) y total de calificaciones de una lista
      * de comentarios ya cargada (aprobados), sin disparar consultas nuevas.
      */
+    private ComentarioDTO aComentarioDTO(Comentario c) {
+        ComentarioDTO dto = new ComentarioDTO();
+        dto.setIdcomentario(c.getIdcomentario());
+        dto.setDescripcion(c.getDescripcion());
+        dto.setFechacomentario(c.getFechacomentario());
+        dto.setCalificacion(c.getCalificacion());
+        ComentarioDTO.UsuarioDTO usuarioDto = new ComentarioDTO.UsuarioDTO();
+        if (c.getUsuario() != null) {
+            usuarioDto.setNombre(c.getUsuario().getNombre());
+            usuarioDto.setApellido(c.getUsuario().getApellido());
+        }
+        dto.setUsuario(usuarioDto);
+        return dto;
+    }
+
     private double[] calcularCalificacion(List<Comentario> comentariosAprobados) {
         if (comentariosAprobados == null || comentariosAprobados.isEmpty()) {
             return new double[] { 0.0, 0 };
@@ -254,7 +273,7 @@ public class ProductoService {
                         })
                         .collect(Collectors.toList()));
 
-        dto.setComentariosAprobados(comentarios);
+        dto.setComentariosAprobados(comentarios.stream().map(this::aComentarioDTO).toList());
         double[] calificacion = calcularCalificacion(comentarios);
         dto.setCalificacionPromedio(calificacion[0]);
         dto.setTotalResenas((int) calificacion[1]);
@@ -299,7 +318,7 @@ public class ProductoService {
                         return er;
                     }).collect(Collectors.toList()));
 
-            dto.setComentariosAprobados(comentariosAprobados);
+            dto.setComentariosAprobados(comentariosAprobados.stream().map(this::aComentarioDTO).toList());
             double[] calificacion = calcularCalificacion(comentariosAprobados);
             dto.setCalificacionPromedio(calificacion[0]);
             dto.setTotalResenas((int) calificacion[1]);
@@ -345,12 +364,91 @@ public class ProductoService {
                 return er;
             }).toList());
 
-            dto.setComentariosAprobados(comentariosAprobados);
+            dto.setComentariosAprobados(comentariosAprobados.stream().map(this::aComentarioDTO).toList());
             double[] calificacion = calcularCalificacion(comentariosAprobados);
             dto.setCalificacionPromedio(calificacion[0]);
             dto.setTotalResenas((int) calificacion[1]);
             return dto;
         }).toList();
+    }
+
+    /**
+     * Igual que obtenerProductoConRelaciones pero batcheado: 3 consultas FIJAS para
+     * N ids, en vez de 3 por id. Usado por compararProductos y FavoritoService.listarFavoritos
+     * para evitar el N+1 (ver cierre Día 6). No tiene @Cacheable propia — es
+     * independiente de la caché "producto" por id que usan obtenerProductoConRelaciones
+     * y el resto de flujos individuales (no se toca ni se reusa aquí).
+     * Devuelve un Map id -> DTO; los ids que no existan simplemente no aparecen.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, ProductoDTO> obtenerProductosConRelacionesBatch(List<Long> ids) {
+        List<Long> idsUnicos = ids.stream().distinct().toList();
+        if (idsUnicos.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Producto> productos = productoRepository.findByIdsWithRelations(idsUnicos);
+        List<ProductoImg> todasImagenes = productoImgRepository.findByProducto_IdproductoIn(idsUnicos);
+        List<Comentario> todosComentarios = comentarioRepository.findByProductoIdInAndEstado(idsUnicos, 1);
+
+        Map<Long, List<ProductoImg>> imagenesPorProducto = todasImagenes.stream()
+                .collect(Collectors.groupingBy(img -> img.getProducto().getIdproducto()));
+        Map<Long, List<Comentario>> comentariosPorProducto = todosComentarios.stream()
+                .collect(Collectors.groupingBy(c -> c.getProducto().getIdproducto()));
+
+        Map<Long, ProductoDTO> resultado = new LinkedHashMap<>();
+        for (Producto prod : productos) {
+            List<ProductoImg> imagenes = imagenesPorProducto.getOrDefault(prod.getIdproducto(), List.of());
+            List<Comentario> comentarios = comentariosPorProducto.getOrDefault(prod.getIdproducto(), List.of());
+
+            ProductoDTO dto = new ProductoDTO();
+            dto.setIdproducto(prod.getIdproducto());
+            dto.setNombre(prod.getNombre());
+            dto.setDescripcion(prod.getDescripcion());
+            dto.setPrecio(prod.getPrecio());
+            dto.setStock(prod.getStock());
+            dto.setIdcategoria(prod.getCategoria().getIdcategoria());
+            dto.setNombreCategoria(prod.getCategoria().getNombre());
+            dto.setIdmarca(prod.getMarca().getIdmarca());
+            dto.setNombreMarca(prod.getMarca().getNombre());
+            dto.setFechacreacion(prod.getFechacreacion());
+
+            dto.setImagenesNombres(
+                    imagenes.stream().map(ProductoImg::getNombre).collect(Collectors.toList()));
+
+            dto.setEspecificaciones(
+                    prod.getEspecificaciones()
+                            .stream()
+                            .map(e -> {
+                                EspecificacionDTO er = new EspecificacionDTO();
+                                er.setUnidadmedida(e.getUnidadMedida());
+                                er.setValor(e.getValor());
+                                er.setDescripcion(e.getDescripcion());
+                                return er;
+                            })
+                            .collect(Collectors.toList()));
+
+            dto.setComentariosAprobados(comentarios.stream().map(this::aComentarioDTO).toList());
+            double[] calificacion = calcularCalificacion(comentarios);
+            dto.setCalificacionPromedio(calificacion[0]);
+            dto.setTotalResenas((int) calificacion[1]);
+
+            resultado.put(prod.getIdproducto(), dto);
+        }
+        return resultado;
+    }
+
+    /**
+     * Compara hasta 3 productos por id (catálogo público, igual que listarAll/filtrar).
+     * Si algún id no existe, se omite del resultado en vez de romper la respuesta completa.
+     */
+    public List<ProductoDTO> compararProductos(List<Long> ids) {
+        List<Long> limitados = ids.stream().distinct().limit(3).toList();
+        Map<Long, ProductoDTO> batch = obtenerProductosConRelacionesBatch(limitados);
+        return limitados.stream()
+                .map(batch::get)
+                .filter(dto -> dto != null)
+                .toList();
     }
 
     /**
@@ -371,17 +469,35 @@ public class ProductoService {
 
     /**
      * Elimina una sola imagen de producto y limpia la caché del producto afectado.
+     *
+     * OJO (corregido): el @CacheEvict anterior usaba key = "#nombreImagen", pero
+     * la caché "producto" se guarda con key = idProducto (ver
+     * obtenerProductoConRelaciones). Como nombreImagen nunca es igual al id del
+     * producto, ese evict nunca limpiaba la entrada real: tras borrar una imagen,
+     * un GET seguía devolviendo el producto cacheado con la imagen ya borrada
+     * todavía en la lista. Se cambia a limpiar por el id real del producto
+     * (obtenido de la propia imagen antes de borrarla) usando el CacheManager
+     * directamente, porque ese id no es un parámetro del método.
      */
     @Transactional
-    @CacheEvict(value = { "producto" }, key = "#nombreImagen")
     public void eliminarImagen(String nombreImagen) {
         ProductoImg img = productoImgRepository.findByNombre(nombreImagen)
                 .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada: " + nombreImagen));
+        Long idProducto = img.getProducto().getIdproducto();
         File f = new File(uploadDir + nombreImagen);
         if (f.exists()) {
             f.delete();
         }
         productoImgRepository.delete(img);
+
+        var cache = cacheManager.getCache("producto");
+        if (cache != null) {
+            cache.evict(idProducto);
+        }
+        var listasCache = cacheManager.getCache("productos");
+        if (listasCache != null) {
+            listasCache.clear();
+        }
     }
 
     /**
@@ -389,7 +505,7 @@ public class ProductoService {
      */
     @Transactional
     @CacheEvict(value = { "productos", "producto", "productosFiltro", "productosStock" }, allEntries = true)
-    public ProductoDTO actualizarProducto(Long id, ProductoDTO req) throws IOException {
+    public ProductoDTO actualizarProducto(Long id, ProductoDTO req, List<String> keepImages) throws IOException {
         Producto prod = productoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
 
@@ -411,8 +527,34 @@ public class ProductoService {
         if (!carpeta.exists())
             carpeta.mkdirs();
 
-        productoImgRepository.deleteByProducto_Idproducto(prod.getIdproducto());
-        if (req.getImagenes() != null) {
+        if (keepImages != null) {
+            // Llamador real (frontend admin): borra solo las imágenes existentes que
+            // NO estén en keepImages (archivo + fila), conserva el resto.
+            List<ProductoImg> existentes = productoImgRepository.findByProducto_Idproducto(prod.getIdproducto());
+            for (ProductoImg existente : existentes) {
+                if (!keepImages.contains(existente.getNombre())) {
+                    File f = new File(uploadDir + existente.getNombre());
+                    if (f.exists()) {
+                        f.delete();
+                    }
+                    productoImgRepository.delete(existente);
+                }
+            }
+            if (req.getImagenes() != null) {
+                for (MultipartFile mf : req.getImagenes()) {
+                    if (!mf.isEmpty()) {
+                        ProductoImg img = new ProductoImg();
+                        img.setProducto(prod);
+                        img.setNombre(validarYGenerarNombreImagen(mf));
+                        productoImgRepository.save(img);
+                        mf.transferTo(new File(uploadDir + img.getNombre()));
+                    }
+                }
+            }
+        } else if (req.getImagenes() != null) {
+            // Llamador sin keepImages (API directa) que sí mandó archivos nuevos:
+            // comportamiento de respaldo, reemplaza todas las imágenes existentes.
+            productoImgRepository.deleteByProducto_Idproducto(prod.getIdproducto());
             for (MultipartFile mf : req.getImagenes()) {
                 if (!mf.isEmpty()) {
                     ProductoImg img = new ProductoImg();
@@ -423,16 +565,27 @@ public class ProductoService {
                 }
             }
         }
+        // Si keepImages == null y req.getImagenes() == null: no se toca nada de imágenes.
 
-        especificacionRepository.deleteByProducto_Idproducto(prod.getIdproducto());
         if (req.getEspecificaciones() != null) {
+            // OJO: Producto.especificaciones es EAGER + cascade=ALL + orphanRemoval=true
+            // (ver entity/Producto.java). `prod` ya trae esa colección cargada desde
+            // `findById` de arriba. Borrar por `especificacionRepository.deleteByProducto_Idproducto`
+            // directo, sin tocar esa colección en memoria, resucitaba las filas: Hibernate
+            // las volvía a insertar al hacer flush porque seguían referenciadas por
+            // `prod.especificaciones` (cascade persist). Hay que mutar la colección
+            // gestionada (clear + add) para que orphanRemoval/cascade hagan el borrado e
+            // inserción de verdad, no la fila síguía viva tras un "especificaciones: []"
+            // explícito. Confirmado con curl: antes de este cambio la fila vieja no se
+            // borraba nunca, aunque el delete "se ejecutaba".
+            prod.getEspecificaciones().clear();
             for (EspecificacionDTO er : req.getEspecificaciones()) {
                 Especificacion e = new Especificacion();
                 e.setProducto(prod);
                 e.setUnidadMedida(er.getUnidadmedida());
                 e.setValor(er.getValor());
                 e.setDescripcion(er.getDescripcion());
-                especificacionRepository.save(e);
+                prod.getEspecificaciones().add(e);
             }
         }
 

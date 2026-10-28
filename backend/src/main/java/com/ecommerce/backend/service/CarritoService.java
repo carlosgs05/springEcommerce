@@ -22,12 +22,12 @@ public class CarritoService {
         return carritoRepository.findByUsuario_Iduser(idUsuario);
     }
 
-    // Guardar o actualizar carrito (sincronización)
-    public Carrito guardarActualizarCarrito(CarritoDTO dto) {
-        Usuario usuario = usuarioRepository.findById(dto.getIduser())
+    // Guardar o actualizar carrito (sincronización). El id de usuario viene SIEMPRE de la sesion.
+    public Carrito guardarActualizarCarrito(Integer idUsuario, CarritoDTO dto) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
-        Carrito carrito = carritoRepository.findByUsuario_Iduser(dto.getIduser())
+        Carrito carrito = carritoRepository.findByUsuario_Iduser(idUsuario)
                 .orElse(new Carrito());
 
         carrito.setUsuario(usuario);

@@ -24,6 +24,7 @@ import MarcasAdmin from "./admin/pages/MarcasAdmin";
 import TestimoniosAdmin from "./admin/pages/TestimoniosAdmin";
 import ReviewsProductosAdmin from "./admin/pages/ReviewsProductosAdmin";
 import ProductoDetails from "./user/pages/ProductoDetails";
+import ComparadorProductos from "./user/pages/ComparadorProductos";
 import ForgotPassword from "./autenticacion/ForgotPassword";
 import VerificationAccount from "./autenticacion/VerificationAccount";
 import VerifyResetCode from "./autenticacion/VerifyResetCode";
@@ -31,6 +32,7 @@ import ResetPassword from "./autenticacion/ResetPassword";
 import MetodosEnvioAdmin from "./admin/pages/MetodosEnvioAdmin";
 import MetodosPagoAdmin from "./admin/pages/MetodosPagoAdmin";
 import CarritoDetalle from "./user/pages/CarritoDetalle";
+import Favoritos from "./user/pages/Favoritos";
 import CheckoutPago from "./user/pages/CheckoutPago";
 import MisPedidos from "./user/pages/MisPedidos";
 import DetallePedido from "./user/pages/DetallePedido";
@@ -87,6 +89,7 @@ function App() {
             <Route path="/tienda" element={<Tienda />} />
             <Route path="/contacto" element={<Contacto />} />
             <Route path="/tienda/producto/:id" element={<ProductoDetails />} />
+            <Route path="/comparador" element={<ComparadorProductos />} />
           </Route>
         </Route>
 
@@ -140,6 +143,22 @@ function App() {
         >
           <Route element={<UserLayout />}>
             <Route index element={<CarritoDetalle />} />
+          </Route>
+        </Route>
+
+        {/* RUTA PROTEGIDA PARA FAVORITOS (solo clientes, rol 2) */}
+        <Route
+          path="/favoritos"
+          element={
+            <ProtectedRoute
+              roles={[2]}
+              redirectTo="/login"
+              specialRedirectPath="/"
+            />
+          }
+        >
+          <Route element={<UserLayout />}>
+            <Route index element={<Favoritos />} />
           </Route>
         </Route>
 

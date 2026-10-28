@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaStar, FaRegStar } from "react-icons/fa";
+import { Scales } from "@phosphor-icons/react";
 import { api, assetUrl } from "@/lib/api";
 import { getStockBadge } from "@/lib/stockBadge";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
+import { useFavoritos } from "@/user/hooks/useFavoritos";
+import FavoritoButton from "@/user/components/FavoritoButton";
+
+const MAX_COMPARAR = 3;
 
 interface Categoria {
   idcategoria: number;
@@ -100,9 +106,12 @@ const Tienda = () => {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [comparando, setComparando] = useState<number[]>([]);
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
+  const { esFavorito, toggleFavorito } = useFavoritos(isAuthenticated);
 
   // 1) Cargo categorías y marcas
   useEffect(() => {
@@ -186,6 +195,20 @@ const Tienda = () => {
   };
 
   const limpiarFiltros = () => navigate("/tienda");
+
+  const toggleComparar = (idproducto: number) => {
+    setComparando((prev) => {
+      if (prev.includes(idproducto)) {
+        return prev.filter((id) => id !== idproducto);
+      }
+      if (prev.length >= MAX_COMPARAR) return prev;
+      return [...prev, idproducto];
+    });
+  };
+
+  const irAComparador = () => {
+    navigate(`/comparador?ids=${comparando.join(",")}`);
+  };
 
   const filtrosContent = (
     <>
@@ -286,6 +309,9 @@ const Tienda = () => {
                         navigate(`/tienda/producto/${producto.idproducto}`, {
                           state: producto,
                         });
+                      const enComparador = comparando.includes(producto.idproducto);
+                      const comparadorLleno =
+                        !enComparador && comparando.length >= MAX_COMPARAR;
                       return (
                         <Card
                           key={producto.idproducto}
@@ -294,17 +320,60 @@ const Tienda = () => {
                           className="card-enter overflow-hidden flex flex-col transition-[box-shadow,transform] duration-[var(--duration-base)] ease-standard hover:shadow-elevation-3 hover:scale-[1.02]"
                           style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
                         >
-                          <button
-                            onClick={irADetalle}
-                            className="aspect-square w-full overflow-hidden bg-canvas cursor-pointer"
-                            aria-label={`Ver detalles de ${producto.nombre}`}
-                          >
-                            <img
-                              src={assetUrl(`uploads/${producto.imagenesNombres[0]}`)}
-                              alt={producto.nombre}
-                              className="w-full h-full object-cover"
+                          <div className="relative aspect-square w-full overflow-hidden bg-canvas">
+                            <button
+                              onClick={irADetalle}
+                              className="block w-full h-full cursor-pointer"
+                              aria-label={`Ver detalles de ${producto.nombre}`}
+                            >
+                              <img
+                                src={assetUrl(`uploads/${producto.imagenesNombres[0]}`)}
+                                alt={producto.nombre}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                            <FavoritoButton
+                              idproducto={producto.idproducto}
+                              esFavorito={esFavorito(producto.idproducto)}
+                              toggleFavorito={toggleFavorito}
+                              className="absolute top-2 right-2"
                             />
-                          </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!comparadorLleno) toggleComparar(producto.idproducto);
+                              }}
+                              disabled={comparadorLleno}
+                              aria-pressed={enComparador}
+                              aria-label={
+                                enComparador
+                                  ? "Quitar de comparador"
+                                  : comparadorLleno
+                                  ? "Ya seleccionaste 3 productos para comparar"
+                                  : "Agregar a comparador"
+                              }
+                              title={
+                                comparadorLleno
+                                  ? "Ya seleccionaste 3 productos para comparar"
+                                  : undefined
+                              }
+                              className={`absolute top-2 left-2 p-2 rounded-full transition-colors duration-[var(--duration-fast)] ease-standard ${
+                                comparadorLleno
+                                  ? "bg-surface/70 cursor-not-allowed opacity-50"
+                                  : "bg-surface/90 hover:bg-surface cursor-pointer"
+                              }`}
+                            >
+                              <Scales
+                                size={20}
+                                weight={enComparador ? "fill" : "regular"}
+                                className={
+                                  enComparador ? "text-accent" : "text-text-muted"
+                                }
+                              />
+                            </button>
+                          </div>
                           <div className="p-4 flex flex-col gap-2 flex-1">
                             <button
                               onClick={irADetalle}
@@ -367,6 +436,23 @@ const Tienda = () => {
           </section>
         </div>
       </main>
+
+      {comparando.length > 0 && (
+        <div className="fixed bottom-4 inset-x-0 z-40 flex justify-center px-4">
+          <Card
+            elevation={3}
+            padding="sm"
+            className="flex items-center gap-4 card-enter"
+          >
+            <span className="text-sm text-text-muted">
+              {comparando.length} de {MAX_COMPARAR} seleccionados
+            </span>
+            <Button size="sm" onClick={irAComparador}>
+              Comparar ({comparando.length})
+            </Button>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

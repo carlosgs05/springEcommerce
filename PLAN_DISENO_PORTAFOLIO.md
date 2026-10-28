@@ -7,7 +7,7 @@
 - [x] Día 3 — Usuarios/Perfil + Roles y Permisos + Gestión de Clientes (admin) — ver nota de verificación pendiente abajo
 - [x] Día 4 — Categorías + Marcas
 - [x] Día 5 — Productos
-- [ ] Día 6 — Favoritos y Comparador de Productos + Carrito
+- [x] Día 6 — Favoritos y Comparador de Productos + Carrito
 - [ ] Día 7 — Métodos de Pago: pasarelas reales + manual
 - [ ] Día 8 — Métodos de Envío + Comentarios/Reseñas + Testimonios
 - [ ] Día 9 — Checkout / Pedidos / Ventas (incluye pantalla de pago fallido)
@@ -808,6 +808,306 @@ backend (hoy `ProductoController` no tiene uno — solo `/listarAll` y
   intenta pedir el carrito de Usuario B cambiando el id → 403/404; logout
   limpia el carrito local (confirmar el fix del Día 2).
 
+**Cierre real del Día 6:** repartido en 5 pasadas (base de datos, backend,
+frontend carrito+header, frontend favoritos, frontend comparador) más
+`seguridad` al final — ninguna se quedó corta salvo la primera pasada de
+frontend, que agotó su presupuesto a mitad y entregó solo Carrito antes de
+parar (regla de turnguard respetada: avisó qué faltaba en vez de improvisar);
+Favoritos y Comparador se relanzaron después como encargos nuevos y acotados,
+no como continuación de esa conversación agotada.
+
+**Backend (probado de verdad, no solo leído):** compiló limpio con
+`JAVA_HOME=jdk-23` + `-Dmaven.compiler.proc=full`; 140/140 pruebas unitarias
+en verde (127 preexistentes + 13 nuevas, con mocks — incluye un
+`Dia6CarritoFavoritosTest` con JWT real vía `MockMvc` que confirma: sin token
+→ 401 en los 3 endpoints de carrito y los 4 de favoritos; con token de un
+usuario, el service siempre se llama con el id de ESE usuario, nunca otro;
+producto inexistente en favoritos → 400; comparador público omite ids que no
+existen). **No se ejecutó contra una base real ni descartable** — la tabla
+`favorito` y su restricción única `uq_favorito_usuario_producto` se
+verificaron leyendo la migración, no corriéndola.
+
+**Revisión posterior de `pruebas` con curl real (mismo día, después del cierre
+de arriba) — 3 hallazgos adicionales, ya corregidos:**
+
+1. **Fuga de PII (serio):** `listarAll`/`filtrar`/`comparar` (públicos, sin
+   sesión) devolvían en `comentariosAprobados[]` la entidad `Comentario`
+   completa, con el `Usuario` completo adentro (DNI, correo, celular,
+   password, rol) — confirmado con curl sin token. Corregido: `ComentarioDTO`
+   (antes a medio hacer y sin usar) ahora pública y reducida a
+   `idcomentario`/`descripcion`/`fechacomentario`/`calificacion`/`usuario{nombre,apellido}`;
+   `ProductoDTO.comentariosAprobados` pasó de `List<Comentario>` a
+   `List<ComentarioDTO>`; `ProductoService` mapea con un método
+   `aComentarioDTO()` en los 3 puntos que construyen el DTO. Verificado con
+   curl antes/después: ya no aparece `dni`/`correo`/`celular`/`password` en
+   ninguna de las 3 rutas, sigue saliendo el texto/calificación/nombre de
+   cada reseña.
+2. **Formato de error inconsistente (cosmético):** un id no numérico o un
+   JSON malformado contra `/api/favoritos`, `/api/carrito`, `/api/productos`
+   (y el resto fuera de auth) devolvía la página de error por defecto de
+   Spring. Corregido con `GlobalExcepcionesAdvice` nuevo (cubre los 11
+   controllers fuera de `UsuarioController`/`AdminUsuarioController`, que ya
+   tenían su propio advice de auth y no se tocaron) → mismo formato
+   `{success:false, message:"Solicitud inválida."}` con 400.
+3. **N+1 con caché fría — corregido (medido con SQL real, no estimado):**
+   `compararProductos` y `FavoritoService.listarFavoritos` llamaban a
+   `obtenerProductoConRelaciones` una vez por id (3 consultas cada una,
+   3×N con caché fría). Se agregó un camino batch nuevo
+   (`ProductoService.obtenerProductosConRelacionesBatch`, con
+   `ProductoRepository.findByIdsWithRelations`,
+   `ProductoImgRepository.findByProducto_IdproductoIn` y
+   `ComentarioRepository.findByProductoIdInAndEstado`, todas con `IN (:ids)`)
+   que reemplaza el loop en ambos métodos, **sin tocar**
+   `obtenerProductoConRelaciones` ni la caché `@Cacheable(value="producto",
+   key="#idProd")` que usan `ProductoDetails.tsx`/`Tienda.tsx` y el resto de
+   flujos por id individual.
+   - Medido con `logging.level.org.hibernate.SQL=DEBUG` + `curl` real, caché
+     fría, 2 productos (`GET /api/favoritos` con 2 favoritos y
+     `GET /api/productos/comparar?ids=1,2`), comparando el código antes/después
+     con los mismos datos de prueba: **favoritos pasó de 17 a 10 consultas**
+     y **comparar pasó de 15 a 8 consultas** (conteo real de líneas
+     `org.hibernate.SQL` por request, no estimación).
+   - **Hallazgo nuevo al medir (no se sabía hasta hoy):** la mejora NO llega a
+     "pocas consultas fijas" porque `Producto.imagenes` y
+     `Producto.comentarios` están mapeados en la entidad JPA como
+     `@OneToMany(fetch = FetchType.EAGER)` — eso dispara una consulta por
+     producto para cada una de esas dos colecciones **sin importar qué
+     método de repositorio se use**, batch o no. El batch de hoy sí elimina
+     el 3×N de las 3 consultas manuales (ahora 3 consultas fijas en vez de
+     3×N), pero las 2 consultas EAGER de la entidad siguen creciendo con N.
+     Cambiar esas colecciones a `FetchType.LAZY` resolvería esto del todo,
+     pero es un cambio de mayor riesgo (afecta cualquier endpoint que
+     serialice `Producto` directo, no solo DTOs) y queda fuera del alcance
+     de hoy — anotado como deuda nueva, no como "pendiente" (ya no bloquea:
+     el 3×N original está resuelto).
+   - Confirmado con `curl` que las respuestas de `GET /api/favoritos` y
+     `GET /api/productos/comparar` son **idénticas byte a byte** antes/después
+     (incluido un ajuste de `ORDER BY` en la consulta batch de
+     especificaciones, porque sin él el mismo contenido podía salir en otro
+     orden al combinarse varias filas del `IN`). `GET /api/productos/listarAll`
+     (camino individual de `Tienda.tsx`/`ProductoDetails.tsx`) se probó aparte
+     y sigue funcionando igual, sin tocar.
+   - 140/140 pruebas unitarias en verde después del cambio (incluye
+     `Dia6CarritoFavoritosTest` y `FavoritoServiceTest`).
+   - **Nota de verificación:** la primera pasada de `backend` para este
+     arreglo se quedó sin turnos a mitad de camino (había dejado una
+     dependencia a `CacheManager` para poblar la caché por id desde el
+     batch, opcional, que no existe como bean real en este proyecto —
+     el proyecto nunca tuvo `@EnableCaching` ni `spring-boot-starter-cache`,
+     así que **los `@Cacheable`/`@CacheEvict` de todo el backend nunca
+     cacheraron nada de verdad, siempre fueron anotaciones sin efecto** —
+     ver nota nueva en `CLAUDE.md`). Eso hacía que el backend real no
+     arrancara (`APPLICATION FAILED TO START`). El líder lo detectó
+     arrancando el sistema de verdad, quitó esa dependencia opcional
+     (innecesaria para el batch) y completó la medición de arriba.
+
+**Hallazgo nuevo de `seguridad` al revisar el fix de PII (NO corregido hoy,
+fuera del alcance de este cierre — ver nota en `CLAUDE.md`):**
+`/api/comentarios/**` entero es público (sin sesión ni rol) —
+`GET /estado/{estado}` expone el correo de cualquier usuario que comentó,
+`PUT /estado_update/...` deja aprobar/rechazar cualquier comentario sin ser
+admin, y `POST /crear` toma el `iduser` del body en vez de la sesión
+(cualquiera puede comentar a nombre de otro). Arreglarlo bien no es un
+cambio de una línea: `ReviewsProductosAdmin.tsx` (admin, todavía sin migrar
+al cliente `api` con token — ver sección de convenciones del Día 4) se
+rompería en cuanto `/api/comentarios/**` exija `ROLE_ADMIN`, porque hoy llama
+con `axios` plano sin `Authorization`. Se deja pendiente como tarea propia
+(asegurar `SecurityConfig` + migrar `ReviewsProductosAdmin.tsx` al cliente
+`api` + sacar el `iduser` de `crear` de la sesión, no del body).
+
+**Migración:** `V9__favoritos.sql` escrita siguiendo el estilo de cabecera de
+`V8`, sin `ON DELETE CASCADE` (igual que las FKs equivalentes de `V1`); no se
+aplicó a ninguna base, solo se escribió.
+
+**Frontend (probado con `tsc --noEmit`/`npm run build`, no en navegador
+real):** las 3 pasadas de frontend confirmaron compilación limpia pero
+**ninguna llegó a abrir el navegador contra el backend real** — en las dos
+últimas pasadas el backend no estaba levantado al momento de probar y no se
+intentó levantarlo (consciente, para no agotar el presupuesto del encargo
+acotado). Esto es un hueco real: nadie vio con sus propios ojos que el
+corazón de favoritos, el comparador o el carrito rediseñado funcionen de
+punta a punta en la pantalla. Quien siga puede levantar `iniciar_sistema.bat`
+en una terminal persistente (no un comando de un solo uso — ver trampa ya
+anotada en este `CLAUDE.md`) y probar en vivo contra la base local del dueño,
+creando y borrando usuarios de prueba por SQL.
+
+**`seguridad` revisó** `CarritoController`, `FavoritoController`,
+`SecurityConfig`, el nuevo `GET /api/productos/comparar`, `FavoritoService`,
+la migración `V9`, y el frontend de ambos módulos. Encontró un hallazgo real
+(no bloqueante pero sí una fuga real): `ProductoController.compararProductos`
+devolvía `"Error interno: " + e.getMessage()` crudo en un endpoint **público
+sin sesión** — a diferencia de los otros 6 endpoints de ese mismo controller
+con el mismo defecto (deuda preexistente, no de hoy, casi todos protegidos
+por rol admin), este es alcanzable por cualquier anónimo. **Corregido antes
+de cerrar** (el líder lo arregló directo, es mecánico: mismo patrón
+`MSG_GENERICO` + `log.error(...)` que ya usa `CategoriaController`,
+verificado que compila). El resto de lo revisado salió limpio: el IDOR de
+carrito y favoritos está cerrado de verdad (el id siempre sale de
+`SesionActual`, nunca de un path/body/DTO que el cliente controle, confirmado
+línea por línea en los 7 endpoints nuevos/tocados); la carrera de favoritos
+duplicados está cerrada tanto en código (check-then-save) como en la base (el
+índice único real); las rutas `/favoritos` y `/comparador` quedaron protegida
+y pública respectivamente, a propósito.
+
+**Deuda del Día 4 resuelta de pasada:** la entrada de este `CLAUDE.md` sobre
+`DELETE /api/carrito/{iduser}` devolviendo 405 ya no aplica — el nuevo
+contrato de carrito (`GET/POST/DELETE /api/carrito`, sin id en la URL) hizo
+que esa ruta vieja deje de usarse del todo. Se quita esa nota del `CLAUDE.md`
+en este mismo cierre.
+
+**Decisiones de diseño que tomaron los especialistas por su cuenta (no
+estaban en el encargo original, documentadas para que el dueño las vea):**
+- El corazón de favoritos se implementó como hook (`useFavoritos.ts`) +
+  componente compartido (`FavoritoButton.tsx`) en vez de duplicar la lógica
+  en `Tienda.tsx` y `ProductoDetails.tsx` por separado — mismo patrón que ya
+  usa el proyecto con `useCarrito`/`CartMenu`.
+- Sin sesión, el corazón redirige directo a `/login` (no se mostró
+  deshabilitado ni con tooltip).
+- El selector de "comparar" en `Tienda.tsx` usa el ícono `Scales` de
+  Phosphor; al llegar a 3 seleccionados, agregar un 4to queda deshabilitado
+  (no reemplaza al más antiguo).
+- En `ComparadorProductos.tsx` se agregó un `Badge` de stock por producto
+  además de las especificaciones (no pedido explícitamente, criterio del
+  especialista — fácil de quitar si no se quiere).
+
+**Verificación de punta a punta en navegador real (posterior al cierre de
+arriba):** hecha directamente contra la base local del dueño, sistema
+levantado con `iniciar_sistema.bat` en terminal persistente, dos usuarios de
+prueba (`prueba.dia6.a@test.local` / `prueba.dia6.b@test.local`) creados por
+SQL y borrados al terminar (igual que sus filas en `favorito`).
+
+- ✅ **Favoritos:** marcar/desmarcar ambos productos desde `Tienda.tsx`
+  persiste; confirmado con recarga de página (`GET /api/favoritos` real al
+  backend, no `localStorage`) y en `Favoritos.tsx`. Usuario B logueado ve su
+  lista vacía — no ve los favoritos de A (no hay id manipulable en la URL,
+  el backend siempre usa la sesión).
+- ✅ **Carrito, IDOR:** confirmado que las rutas viejas con id en la URL
+  (`GET /api/carrito/{id}`, `DELETE /api/carrito/eliminar/{id}`) ya no
+  existen (404 con curl); `GET /api/carrito` siempre devuelve el carrito de
+  la sesión. Usuario B ve su carrito vacío, no el de A.
+- ✅ **Bug corregido y confirmado en navegador — Comparador:**
+  `ComparadorProductos.tsx` mostraba cada especificación sin su unidad ("4.5
+  undefined", "16 undefined", "33 undefined" en vez de "4.5 GHz", "16 GB",
+  "33 ppm"). Causa real: el DTO que manda el backend
+  (`backend/.../dto/EspecificacionDTO.java`) serializa el campo como
+  `unidadmedida` (todo minúscula); `ProductoDetails.tsx` ya leía ese nombre
+  bien, pero `ComparadorProductos.tsx` había declarado y usado `unidadMedida`
+  (con M mayúscula) en su interfaz y en los dos sitios donde arma el texto —
+  por eso salía `undefined`. Corregido: los tres usos pasan a `unidadmedida`.
+  **Confirmado en navegador real** (sistema levantado con `iniciar_sistema.bat`
+  en una pestaña de terminal persistente — sí funciona, ver nota corregida más
+  abajo sobre esto en el `CLAUDE.md`): `/comparador?ids=1,2` ahora muestra
+  "4.5 GHz", "16 GB", "1 TB", "33 ppm", "15 ppm", "5760 dpi".
+- ✅ **Bug corregido y confirmado en navegador — Carrito:**
+  `ProductoDetails.tsx` (función `handleCarrito`) armaba el ítem que manda al
+  carrito sin el campo `stock` (`productoSimplificado` solo traía
+  `idproducto/nombre/cantidad/precio/imagen`), y `useCarrito.ts` lee
+  `stock: Number(producto.stock) || 0` del localStorage — con el campo
+  ausente, todo producto agregado desde la ficha quedaba con `stock: 0`.
+  Consecuencia: `CarritoDetalle.tsx` mostraba "Agotado" aunque hubiera stock
+  real, y el botón "+" (`disabled={p.cantidad >= p.stock}`) quedaba siempre
+  bloqueado. Corregido agregando `stock: producto.stock` a
+  `productoSimplificado`. Se confirmó que `Tienda.tsx` no tiene su propio
+  camino de "agregar al carrito" (solo favoritos), así que no hacía falta
+  tocarlo. **Confirmado en navegador real**: agregada la Impresora (30
+  unidades) desde la ficha, el carrito ya no muestra "Agotado" y el botón "+"
+  subió la cantidad a 2 (subtotal recalculado a S/ 1399.80).
+- No verificado (requiere ojo humano, no herramienta): las animaciones (pop
+  del corazón, rebote del carrito, stagger del comparador) — se vieron
+  transiciones ocurrir pero el dueño es quien da por bueno que "se sienten
+  bien", según la regla del proyecto.
+
+Los dos bugs quedan cerrados: corregidos en código y confirmados en pantalla
+real, con un usuario de prueba creado y borrado por SQL para la verificación.
+
+**Cierre de los dos pendientes del Día 6 (fecha posterior, mismo plan):**
+
+1. **`Producto.imagenes`/`Producto.comentarios` de EAGER a LAZY.**
+   `Producto.especificaciones` queda igual (EAGER), fuera de este encargo.
+   Se buscaron todos los sitios que leían esas colecciones sobre la entidad
+   fuera de DTO: solo dos, en `PedidoService`
+   (`obtenerPedidosPorEstadoConDetalles` y `obtenerPedidoCompletoPorId`), y
+   ambos ya estaban dentro de `@Transactional(readOnly = true)` con
+   `Hibernate.initialize(...)` explícito — no hizo falta ningún cambio
+   adicional. Confirmado con `curl` antes/después (JSON idéntico en
+   `listarAll`, `filtrar`, `comparar`) y 140/140 pruebas unitarias en verde.
+   **No se probó en navegador real** esta parte (sin cambio de contrato JSON,
+   no había motivo esperado de romper pantalla, pero nadie lo vio con sus
+   propios ojos todavía).
+2. **Caché real activada.** Se agregó `spring-boot-starter-cache` a
+   `backend/pom.xml` y `config/CacheConfig.java` con `@EnableCaching` (sin
+   Redis, `ConcurrentMapCacheManager` en memoria). Se encontró y corrigió un
+   mismatch real que quedaba invisible mientras la caché no hacía nada:
+   `ProductoService.eliminarImagen` evicteaba con `key = "#nombreImagen"`
+   contra una caché que se guarda por id de producto — nunca limpiaba la
+   entrada real. Corregido con eviction manual por `CacheManager` usando el
+   id real. El resto de evicts de `CategoriaService`/`MarcaService`/
+   `MetodoEnvioService`/`MetodoPagoService` ya tenían nombre/key correctos.
+   **Verificado con pruebas reales, no solo leído:** un `UPDATE` directo por
+   SQL sobre `categoria` no se reflejó en el siguiente `GET` (caché
+   desactualizada a propósito, confirma que la trampa del `CLAUDE.md` aplica
+   de verdad ahora); el mismo cambio hecho por el endpoint real
+   (`PUT /api/categorias/actualizar/{id}`) sí se reflejó de inmediato. Se
+   repitió la verificación de "cambio por endpoint se refleja sin esperar"
+   para marca y producto (precio), con resultado correcto en los 3. Esto se
+   hizo por API/curl con una cuenta admin de prueba creada y borrada por SQL
+   — **no se verificó en navegador real** contra las 3 pantallas admin.
+   140/140 pruebas unitarias en verde.
+   - **Hallazgo del cierre del Día 6, corregido:** `ProductoService.actualizarProducto`
+     (`PUT /api/productos/actualizar/{id}`) borraba todas las imágenes y
+     especificaciones existentes del producto y solo reinsertaba las que
+     venían en el request — si se llamaba sin reenviarlas, se perdían de
+     verdad en la base. Corregido en dos partes:
+     - `ProductoController`/`ProductoService.actualizarProducto` ahora distinguen
+       "campo ausente" (no se toca) de "campo presente" (se reemplaza), tanto
+       para `especificaciones` (null vs `[]` en el JSON) como para imágenes
+       (nuevo parámetro `keepImages`, que el frontend —`ProductosAdmin.tsx`—
+       ya mandaba pero el backend ignoraba por completo: ese contrato ya
+       existía del lado del frontend y solo faltaba leerlo).
+     - **Bug nuevo encontrado al verificar el fix con curl contra la base
+       real** (no estaba en el reporte original): `Producto.especificaciones`
+       está mapeado EAGER + `cascade=ALL` + `orphanRemoval=true`. Borrar las
+       especificaciones viejas llamando directo a
+       `especificacionRepository.deleteByProducto_Idproducto(...)` mientras esa
+       colección ya estaba cargada en memoria (por el `findById` de arriba, en
+       la misma transacción) hacía que Hibernate "resucitara" la fila al hacer
+       flush — el DELETE no sobrevivía el commit. Se confirmó con curl real:
+       un `PUT` con `especificaciones:[]` explícito devolvía 200 pero la fila
+       vieja seguía en la tabla `especificacion`. Corregido mutando la
+       colección gestionada (`prod.getEspecificaciones().clear()` +
+       `.add(...)`) en vez de llamar al repositorio directo, dejando que
+       `orphanRemoval`/`cascade` hagan el borrado e inserción de verdad.
+     - **Verificado con curl real** contra la base local (producto, imagen y
+       especificación de prueba creados por el endpoint real, usuario admin
+       de prueba por SQL, todo borrado al terminar): (1) `PUT` sin
+       `imagenes`/`keepImages`/`especificaciones` en el body — imagen y specs
+       sobreviven, solo cambia precio; (2) `PUT` con `especificaciones:[]`
+       explícito — las specs sí se borran (reemplazo intencional sigue
+       funcionando); (3) `PUT` con una especificación nueva reemplaza la
+       lista completa (no acumula duplicados). **No se verificó en navegador
+       real** contra `ProductosAdmin.tsx`/`ProductoDetails.tsx` — pendiente.
+     - Pruebas unitarias: 143/143 en verde (se agregó
+       `ProductoActualizarSinBorrarTest` con los 3 casos: sin tocar nada,
+       lista vacía explícita, reemplazo con datos).
+     - Un agente de `backend` se quedó sin turnos a mitad de camino sin
+       entregar informe (dejó el fix de `keepImages`/null-check aplicado y
+       compilando, pero con un `System.out.println` de depuración olvidado en
+       `parsearJson`, el backend caído, y datos/archivos de prueba sin
+       limpiar: un producto, un usuario admin y ~20 archivos `uploads/`). El
+       líder comprobó todo directo: quitó el debug, limpió los residuos,
+       encontró y corrigió el bug de la colección EAGER (que el agente no
+       llegó a descubrir porque no probó el caso `especificaciones:[]`
+       explícito contra la base real), corrió las 143 pruebas, y repitió la
+       verificación con curl él mismo.
+   - Un agente de esta ronda se quedó sin turnos a mitad de camino sin
+     entregar informe final (después de agregar la dependencia, la
+     configuración y corregir el mismatch de `eliminarImagen`, pero antes de
+     confirmar nada en ejecución). El líder comprobó directo: el backend
+     estaba caído tras el cambio, compiló limpio, se reinició en terminal
+     persistente, y se hicieron las pruebas de arriba — así que lo no
+     confirmado por ese agente quedó confirmado después por el líder mismo,
+     no asumido.
+
 ## Día 7 — Métodos de Pago: pasarelas reales (Culqi + Mercado Pago) + Yape/Plin/transferencia manual
 
 - **Problema real:** hoy el "pago" es 100% manual (confirmado en el código:
@@ -938,6 +1238,14 @@ backend (hoy `ProductoController` no tiene uno — solo `/listarAll` y
     controller — generalizar.
   - Limpieza de clases muertas del sistema "Venta" viejo: `CheckoutDTO`,
     `ItemCompraDTO`, `VentaDTO`, `DetalleVentaDTO` — se eliminan aquí.
+  - **Pendiente del Día 6:** el carrito guardado hoy no valida su contenido
+    contra la base real (ids de producto inexistentes, cantidades
+    negativas, texto arbitrario) — `pruebas` lo notó revisando
+    carrito/favoritos, pero esa validación de verdad es del Checkout, no de
+    guardar el carrito. Cuando se construya este día, el paso de armar el
+    pedido final debe revalidar cada ítem del carrito contra el producto
+    real (existe, stock suficiente, precio actual) antes de confirmar la
+    compra — no confiar en lo que ya quedó guardado.
 - **Patrón + qué se construye:** `CheckoutPago.tsx` con pasos claros
   (dirección → pago/envío → confirmación), `Card` `elevation-2` por paso,
   resumen de orden siempre visible, y el paso de pago usando ya el widget de

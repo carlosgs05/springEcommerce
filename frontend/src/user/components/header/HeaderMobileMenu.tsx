@@ -1,5 +1,5 @@
 import React, { type RefObject } from "react";
-import { ShoppingCart, ClipboardText } from "@phosphor-icons/react";
+import { ShoppingCart, ClipboardText, Heart } from "@phosphor-icons/react";
 import HeaderNav, { type Tab } from "./HeaderNav";
 import UserMenu from "./UserMenu";
 import NotificationsMenu from "./NotificationsMenu";
@@ -28,6 +28,7 @@ interface HeaderMobileMenuProps {
   cantidadCarrito: number;
   onVerCarrito: () => void;
   onVerPedidos: () => void;
+  onVerFavoritos: () => void;
   userDropdownOpen: boolean;
   userDropdownRef: RefObject<HTMLDivElement | null>;
   onToggleUserDropdown: () => void;
@@ -55,6 +56,7 @@ const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
   cantidadCarrito,
   onVerCarrito,
   onVerPedidos,
+  onVerFavoritos,
   userDropdownOpen,
   userDropdownRef,
   onToggleUserDropdown,
@@ -100,6 +102,17 @@ const HeaderMobileMenu: React.FC<HeaderMobileMenuProps> = ({
               {cantidadCarrito}
             </span>
           </button>
+
+          {isAuthenticated && user?.rol.idrol === 2 && (
+            <button
+              aria-label="Mis favoritos"
+              className={`${iconBtnClassName} text-text-muted hover:text-primary transition-all duration-300`}
+              onClick={onVerFavoritos}
+              type="button"
+            >
+              <Heart size={21} />
+            </button>
+          )}
 
           {isAuthenticated && user?.rol.idrol === 2 && (
             <button

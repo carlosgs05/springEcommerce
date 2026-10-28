@@ -33,10 +33,11 @@ class ProductoImagenValidacionTest {
         ComentarioRepository comentarioRepository = mock(ComentarioRepository.class);
         CategoriaRepository categoriaRepository = mock(CategoriaRepository.class);
         MarcaRepository marcaRepository = mock(MarcaRepository.class);
+        org.springframework.cache.CacheManager cacheManager = mock(org.springframework.cache.CacheManager.class);
 
         ProductoService service = new ProductoService(
                 productoRepository, productoImgRepository, especificacionRepository,
-                comentarioRepository, categoriaRepository, marcaRepository);
+                comentarioRepository, categoriaRepository, marcaRepository, cacheManager);
 
         Categoria cat = new Categoria();
         cat.setIdcategoria(1L);
@@ -75,10 +76,11 @@ class ProductoImagenValidacionTest {
         ComentarioRepository comentarioRepository = mock(ComentarioRepository.class);
         CategoriaRepository categoriaRepository = mock(CategoriaRepository.class);
         MarcaRepository marcaRepository = mock(MarcaRepository.class);
+        org.springframework.cache.CacheManager cacheManager = mock(org.springframework.cache.CacheManager.class);
 
         ProductoService service = new ProductoService(
                 productoRepository, productoImgRepository, especificacionRepository,
-                comentarioRepository, categoriaRepository, marcaRepository);
+                comentarioRepository, categoriaRepository, marcaRepository, cacheManager);
 
         Categoria cat = new Categoria();
         cat.setIdcategoria(1L);

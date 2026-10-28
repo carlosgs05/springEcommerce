@@ -9,35 +9,29 @@ import {
 } from "react-icons/hi";
 import { TbMoodEmpty } from "react-icons/tb";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
+import { api, assetUrl } from "@/lib/api";
+import { getStockBadge } from "@/lib/stockBadge";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { useCarrito } from "@/user/hooks/useCarrito";
 import swal from "sweetalert2/dist/sweetalert2.all.js";
-
-// Helpers para localStorage
-const getCarrito = () => {
-  const stored = localStorage.getItem("carrito");
-  try {
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-};
-
-const setCarrito = (productos: any[]) => {
-  localStorage.setItem("carrito", JSON.stringify(productos));
-  window.dispatchEvent(new CustomEvent("carrito-updated"));
-};
-
-const eliminarCarritoLocal = () => {
-  localStorage.removeItem("carrito");
-  window.dispatchEvent(new CustomEvent("carrito-updated"));
-};
 
 const METODO_ENVIO_KEY = "metodo-envio";
 const PUNTO_RECOJO_KEY = "punto-recojo";
 const DIRECCION_ENVIO_KEY = "direccion-envio";
 
 const CarritoDetalle: React.FC = () => {
-  const [productosCarrito, setProductosCarrito] = useState<any[]>([]);
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const {
+    productosCarrito,
+    quitarDelCarrito: quitarDelCarritoBase,
+    vaciarCarrito,
+    actualizarCantidad,
+  } = useCarrito(user, isAuthenticated);
+
+  const [removiendo, setRemoviendo] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [metodosEnvio, setMetodosEnvio] = useState<any[]>([]);
   const [metodoEnvioSeleccionado, setMetodoEnvioSeleccionado] =
@@ -47,8 +41,6 @@ const CarritoDetalle: React.FC = () => {
   const [direccionEnvio, setDireccionEnvio] = useState<string>("");
   const [showMetodoModal, setShowMetodoModal] = useState(false);
   const [showPuntoModal, setShowPuntoModal] = useState(false);
-  const { user, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -57,19 +49,14 @@ const CarritoDetalle: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    setProductosCarrito(getCarrito());
-
     const cargarMetodosEnvio = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:8080/api/metodoenvio/listar-activos"
-        );
+        const response = await api.get("/api/metodoenvio/listar-activos");
         setMetodosEnvio(response.data.data);
       } catch (error) {
         console.error("Error cargando métodos de envío:", error);
       }
     };
-
     cargarMetodosEnvio();
 
     const savedMetodo = localStorage.getItem(METODO_ENVIO_KEY);
@@ -80,48 +67,21 @@ const CarritoDetalle: React.FC = () => {
 
     const savedDireccion = localStorage.getItem(DIRECCION_ENVIO_KEY);
     if (savedDireccion) setDireccionEnvio(savedDireccion);
-
-    const handler = () => setProductosCarrito(getCarrito());
-    window.addEventListener("carrito-updated", handler);
-    return () => window.removeEventListener("carrito-updated", handler);
   }, []);
 
-  const syncCarrito = async (nuevo: any[]) => {
-    setCarrito(nuevo);
-    setProductosCarrito(nuevo);
-    if (user?.iduser) {
-      try {
-        await axios.post("http://localhost:8080/api/carrito/guardar", {
-          idUsuario: user.iduser,
-          productos: nuevo,
-        });
-      } catch {}
-    }
-  };
-
-  const actualizarCantidad = (idproducto: number, nuevaCantidad: number) => {
-    if (nuevaCantidad < 1) return;
-    const nuevo = productosCarrito.map((p) =>
-      p.idproducto === idproducto ? { ...p, cantidad: nuevaCantidad } : p
-    );
-    syncCarrito(nuevo);
-  };
-
+  // Quitar un ítem con animación de salida (slide + fade) antes de eliminarlo de verdad
   const quitarDelCarrito = (idproducto: number) => {
-    const nuevo = productosCarrito.filter((p) => p.idproducto !== idproducto);
-    syncCarrito(nuevo);
+    setRemoviendo(idproducto);
+    setTimeout(() => {
+      quitarDelCarritoBase(idproducto);
+      setRemoviendo(null);
+    }, 220);
   };
 
-  const vaciarCarrito = async () => {
+  const handleVaciarCarrito = async () => {
     setLoading(true);
     try {
-      if (user?.iduser) {
-        await axios.delete(
-          `http://localhost:8080/api/carrito/eliminar/${user.iduser}`
-        );
-      }
-      eliminarCarritoLocal();
-      setProductosCarrito([]);
+      vaciarCarrito();
       localStorage.removeItem(METODO_ENVIO_KEY);
       localStorage.removeItem(PUNTO_RECOJO_KEY);
       localStorage.removeItem(DIRECCION_ENVIO_KEY);
@@ -137,7 +97,6 @@ const CarritoDetalle: React.FC = () => {
     setMetodoEnvioSeleccionado(metodo);
     localStorage.setItem(METODO_ENVIO_KEY, JSON.stringify(metodo));
 
-    // Limpiar datos de envío previos
     setPuntoRecojoSeleccionado(null);
     localStorage.removeItem(PUNTO_RECOJO_KEY);
     setDireccionEnvio("");
@@ -152,7 +111,6 @@ const CarritoDetalle: React.FC = () => {
   const seleccionarPuntoRecojo = (punto: any) => {
     setPuntoRecojoSeleccionado(punto);
     localStorage.setItem(PUNTO_RECOJO_KEY, JSON.stringify(punto));
-    // Limpiar dirección si se selecciona punto de recojo
     setDireccionEnvio("");
     localStorage.removeItem(DIRECCION_ENVIO_KEY);
   };
@@ -163,7 +121,6 @@ const CarritoDetalle: React.FC = () => {
     const direccion = e.target.value;
     setDireccionEnvio(direccion);
     localStorage.setItem(DIRECCION_ENVIO_KEY, direccion);
-    // Limpiar punto de recojo si se ingresa dirección
     setPuntoRecojoSeleccionado(null);
     localStorage.removeItem(PUNTO_RECOJO_KEY);
   };
@@ -172,9 +129,7 @@ const CarritoDetalle: React.FC = () => {
     (acc, p) => acc + p.precio * (p.cantidad || 1),
     0
   );
-  const costoEnvio = metodoEnvioSeleccionado
-    ? metodoEnvioSeleccionado.costo
-    : 0;
+  const costoEnvio = metodoEnvioSeleccionado ? metodoEnvioSeleccionado.costo : 0;
   const total = subtotal + costoEnvio;
 
   const handleCheckout = async () => {
@@ -188,10 +143,9 @@ const CarritoDetalle: React.FC = () => {
           imagen,
         })
       );
-      const resp = await axios.post(
-        "http://localhost:8080/api/pedidos/validar-stock",
-        JSON.stringify(productosFiltrados),
-        { headers: { "Content-Type": "application/json" } }
+      const resp = await api.post(
+        "/api/pedidos/validar-stock",
+        productosFiltrados
       );
       const sinStock = resp.data.data.filter((prod: any) => !prod.suficiente);
       if (sinStock.length > 0) {
@@ -230,57 +184,52 @@ const CarritoDetalle: React.FC = () => {
     } catch (e: any) {
       let msg = "Ocurrió un error al validar el stock. Intenta de nuevo.";
       if (e?.response?.data?.message) msg = e.response.data.message;
-      swal.fire({
-        icon: "error",
-        title: "Error",
-        text: msg,
-      });
+      swal.fire({ icon: "error", title: "Error", text: msg });
     }
   };
 
+  const puedeComprar =
+    total > 0 &&
+    metodoEnvioSeleccionado &&
+    (puntoRecojoSeleccionado || direccionEnvio);
+
   return (
     <>
-      <main className="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
-        <div className="max-w-[1410px] mx-auto px-4 py-12 sm:px-6">
+      <main className="bg-canvas min-h-screen pb-28 lg:pb-0">
+        <div className="max-w-[1410px] mx-auto px-4 py-10 sm:px-6">
           <div className="flex items-center mb-8">
-            <HiOutlineShoppingCart className="text-3xl text-cyan-500 mr-3" />
-            <h1 className="text-3xl font-semibold text-cyan-700">
+            <HiOutlineShoppingCart className="text-3xl text-primary mr-3" />
+            <h1 className="text-3xl font-extrabold text-text">
               Tu Carrito de Compras
             </h1>
           </div>
 
           {productosCarrito.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl shadow-md">
-              <TbMoodEmpty className="text-7xl mb-4 text-cyan-400" />
-              <h2 className="text-2xl font-semibold text-gray-700 mb-3">
+            <Card elevation={1} padding="lg" className="flex flex-col items-center text-center py-16">
+              <TbMoodEmpty className="text-7xl mb-4 text-text-muted" />
+              <h2 className="text-2xl font-semibold text-text mb-3">
                 ¡Tu carrito está vacío!
               </h2>
-              <p className="text-gray-500 mb-6 text-center max-w-md">
+              <p className="text-text-muted mb-6 max-w-md">
                 Parece que aún no has agregado productos a tu carrito. Explora
                 nuestra tienda y descubre increíbles productos.
               </p>
-              <button
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium px-6 py-3 rounded-lg shadow hover:shadow-md transition-all cursor-pointer"
-                onClick={() => navigate("/tienda")}
-                type="button"
-              >
-                Explorar productos
-              </button>
-            </div>
+              <Button onClick={() => navigate("/tienda")}>Explorar productos</Button>
+            </Card>
           ) : (
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Lista de productos */}
               <div className="lg:w-7/12">
-                <div className="bg-white rounded-xl shadow-md h-[80vh] overflow-y-auto">
-                  <div className="p-5 border-b border-gray-200">
+                <Card elevation={1} padding="none" className="h-[80vh] overflow-y-auto">
+                  <div className="p-5 border-b border-border">
                     <div className="flex justify-between items-center">
-                      <h2 className="text-xl font-semibold text-gray-800">
+                      <h2 className="text-xl font-semibold text-text">
                         Productos ({productosCarrito.length})
                       </h2>
                       <button
-                        onClick={vaciarCarrito}
+                        onClick={handleVaciarCarrito}
                         disabled={loading}
-                        className="flex items-center text-red-500 hover:text-red-700 text-sm font-medium cursor-pointer"
+                        className="flex items-center text-danger hover:text-danger/80 text-sm font-medium cursor-pointer"
                         type="button"
                       >
                         <HiOutlineTrash className="mr-1" />
@@ -289,106 +238,109 @@ const CarritoDetalle: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="divide-y divide-gray-100">
-                    {productosCarrito.map((p) => (
-                      <div key={p.idproducto} className="p-5 flex">
-                        {/* Imagen del producto */}
-                        <div className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                          <img
-                            src={`http://localhost:8080/uploads/${encodeURIComponent(
-                              p.imagen
-                            )}`}
-                            alt={p.nombre}
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-
-                        {/* Información del producto */}
-                        <div className="ml-4 flex-1">
-                          <div className="flex justify-between">
-                            <div>
-                              <h3 className="text-lg font-medium text-gray-800">
-                                {p.nombre}
-                              </h3>
-                              <p className="text-cyan-500 font-semibold mt-1">
-                                S/ {p.precio.toFixed(2)}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => quitarDelCarrito(p.idproducto)}
-                              className="text-gray-400 hover:text-red-500 cursor-pointer"
-                              title="Quitar"
-                              type="button"
-                            >
-                              <HiOutlineTrash className="w-5 h-5" />
-                            </button>
+                  <div className="divide-y divide-border">
+                    {productosCarrito.map((p) => {
+                      const stockBadge = getStockBadge(p.stock);
+                      const saliendo = removiendo === p.idproducto;
+                      return (
+                        <div
+                          key={p.idproducto}
+                          className="p-5 flex transition-[transform,opacity] duration-[var(--duration-base)] ease-standard"
+                          style={
+                            saliendo
+                              ? { transform: "translateX(24px)", opacity: 0 }
+                              : { transform: "translateX(0)", opacity: 1 }
+                          }
+                        >
+                          <div className="flex-shrink-0 w-24 h-24 bg-canvas rounded-control overflow-hidden flex items-center justify-center">
+                            <img
+                              src={assetUrl(`uploads/${encodeURIComponent(p.imagen)}`)}
+                              alt={p.nombre}
+                              className="w-full h-full object-contain"
+                            />
                           </div>
 
-                          {/* Detalle de precio */}
-                          <div className="mt-3 bg-gray-50 p-3 rounded-lg">
-                            <div className="text-sm text-gray-600 flex justify-between">
-                              <span>Precio unitario:</span>
-                              <span>S/ {p.precio.toFixed(2)}</span>
-                            </div>
-                            <div className="text-sm text-gray-600 flex justify-between mt-1">
-                              <span>Cantidad:</span>
-                              <span>{p.cantidad}</span>
-                            </div>
-                            <div className="text-base font-medium text-gray-800 flex justify-between mt-2 pt-2 border-t border-gray-200">
-                              <span>Subtotal:</span>
-                              <span className="text-cyan-600">
-                                S/ {(p.precio * p.cantidad).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Selector de cantidad */}
-                          <div className="mt-3 flex items-center">
-                            <span className="mr-3 text-gray-600">
-                              Cantidad:
-                            </span>
-                            <div className="flex items-center border border-gray-300 rounded-md">
+                          <div className="ml-4 flex-1">
+                            <div className="flex justify-between">
+                              <div>
+                                <h3 className="text-lg font-medium text-text">
+                                  {p.nombre}
+                                </h3>
+                                <p className="text-primary font-semibold mt-1">
+                                  S/ {p.precio.toFixed(2)}
+                                </p>
+                                {p.stock <= 5 && (
+                                  <Badge variant={stockBadge.variant} size="sm" className="mt-1">
+                                    {stockBadge.label}
+                                  </Badge>
+                                )}
+                              </div>
                               <button
-                                className="px-3 py-1 text-gray-600 hover:bg-gray-100 cursor-pointer"
-                                onClick={() =>
-                                  actualizarCantidad(
-                                    p.idproducto,
-                                    p.cantidad - 1
-                                  )
-                                }
+                                onClick={() => quitarDelCarrito(p.idproducto)}
+                                className="text-text-muted hover:text-danger cursor-pointer"
+                                title="Quitar"
                                 type="button"
                               >
-                                <HiOutlineMinus className="w-4 h-4" />
+                                <HiOutlineTrash className="w-5 h-5" />
                               </button>
-                              <span className="px-3 py-1 text-gray-800">
-                                {p.cantidad}
-                              </span>
-                              <button
-                                className="px-3 py-1 text-gray-600 hover:bg-gray-100 cursor-pointer"
-                                onClick={() =>
-                                  actualizarCantidad(
-                                    p.idproducto,
-                                    p.cantidad + 1
-                                  )
-                                }
-                                type="button"
-                              >
-                                <HiOutlinePlus className="w-4 h-4" />
-                              </button>
+                            </div>
+
+                            <div className="mt-3 bg-canvas p-3 rounded-control">
+                              <div className="text-sm text-text-muted flex justify-between">
+                                <span>Precio unitario:</span>
+                                <span>S/ {p.precio.toFixed(2)}</span>
+                              </div>
+                              <div className="text-sm text-text-muted flex justify-between mt-1">
+                                <span>Cantidad:</span>
+                                <span>{p.cantidad}</span>
+                              </div>
+                              <div className="text-base font-medium text-text flex justify-between mt-2 pt-2 border-t border-border">
+                                <span>Subtotal:</span>
+                                <span className="text-primary">
+                                  S/ {(p.precio * p.cantidad).toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex items-center">
+                              <span className="mr-3 text-text-muted">Cantidad:</span>
+                              <div className="flex items-center border border-border rounded-control">
+                                <button
+                                  className="px-3 py-1 text-text-muted hover:bg-canvas cursor-pointer"
+                                  onClick={() =>
+                                    actualizarCantidad(p.idproducto, p.cantidad - 1)
+                                  }
+                                  disabled={p.cantidad <= 1}
+                                  type="button"
+                                >
+                                  <HiOutlineMinus className="w-4 h-4" />
+                                </button>
+                                <span className="px-3 py-1 text-text">{p.cantidad}</span>
+                                <button
+                                  className="px-3 py-1 text-text-muted hover:bg-canvas cursor-pointer"
+                                  onClick={() =>
+                                    actualizarCantidad(p.idproducto, p.cantidad + 1)
+                                  }
+                                  disabled={p.cantidad >= p.stock}
+                                  type="button"
+                                >
+                                  <HiOutlinePlus className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                </div>
+                </Card>
               </div>
 
               {/* Resumen de compra */}
               <div className="lg:w-5/12">
-                <div className="bg-white rounded-xl shadow-md h-[80vh] overflow-y-auto">
-                  <div className="p-5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white">
-                    <h2 className="text-xl font-semibold">
+                <Card elevation={1} padding="none" className="h-[80vh] overflow-y-auto">
+                  <div className="p-5 bg-surface border-b border-border">
+                    <h2 className="text-xl font-semibold text-text">
                       Resumen de tu pedido
                     </h2>
                   </div>
@@ -396,61 +348,56 @@ const CarritoDetalle: React.FC = () => {
                   <div className="p-5">
                     <div className="space-y-4">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Subtotal:</span>
-                        <span className="font-medium">
+                        <span className="text-text-muted">Subtotal:</span>
+                        <span className="font-medium text-text">
                           S/ {subtotal.toFixed(2)}
                         </span>
                       </div>
 
-                      {/* Sección de envío */}
-                      <div className="pt-2 border-t border-gray-100">
+                      <div className="pt-2 border-t border-border">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-gray-600">Envío:</span>
+                          <span className="text-text-muted">Envío:</span>
                           <div className="flex items-center">
-                            <span className="font-medium mr-2">
+                            <span className="font-medium text-text mr-2">
                               {metodoEnvioSeleccionado
-                                ? `S/ ${metodoEnvioSeleccionado.costo.toFixed(
-                                    2
-                                  )}`
+                                ? `S/ ${metodoEnvioSeleccionado.costo.toFixed(2)}`
                                 : "--"}
                             </span>
                             <button
                               onClick={() => setShowMetodoModal(true)}
-                              className="text-cyan-500 hover:text-cyan-700 font-medium cursor-pointer text-sm"
+                              className="text-primary hover:text-primary-hover font-medium cursor-pointer text-sm"
                               type="button"
                             >
-                              {metodoEnvioSeleccionado
-                                ? "Cambiar"
-                                : "Seleccionar"}
+                              {metodoEnvioSeleccionado ? "Cambiar" : "Seleccionar"}
                             </button>
                           </div>
                         </div>
 
                         {metodoEnvioSeleccionado && (
-                          <div className="bg-gray-50 p-3 rounded-lg mt-2">
+                          <div className="bg-canvas p-3 rounded-control mt-2">
                             <div className="flex items-start">
-                              <HiOutlineLocationMarker className="text-cyan-500 mt-0.5 mr-2 flex-shrink-0" />
+                              <HiOutlineLocationMarker className="text-primary mt-0.5 mr-2 flex-shrink-0" />
                               <div>
-                                <div className="font-medium text-gray-800">
+                                <div className="font-medium text-text">
                                   {metodoEnvioSeleccionado.nombre}
                                 </div>
-                                <div className="text-sm text-gray-600 mt-1">
+                                <div className="text-sm text-text-muted mt-1">
                                   {metodoEnvioSeleccionado.descripcion}
                                 </div>
                                 {puntoRecojoSeleccionado ? (
                                   <div className="mt-2">
-                                    <div className="text-sm font-medium text-gray-700">
+                                    <div className="text-sm font-medium text-text">
                                       Punto de recojo:
                                     </div>
-                                    <div className="text-sm text-gray-600">
+                                    <div className="text-sm text-text-muted">
                                       {puntoRecojoSeleccionado.nombre}
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-text-muted">
                                       {puntoRecojoSeleccionado.direccion}
                                     </div>
                                     <button
                                       onClick={() => setShowPuntoModal(true)}
-                                      className="text-cyan-500 hover:text-cyan-700 text-xs mt-1 cursor-pointer"
+                                      className="text-primary hover:text-primary-hover text-xs mt-1 cursor-pointer"
                                       type="button"
                                     >
                                       Cambiar punto
@@ -458,15 +405,15 @@ const CarritoDetalle: React.FC = () => {
                                   </div>
                                 ) : direccionEnvio ? (
                                   <div className="mt-2">
-                                    <div className="text-sm font-medium text-gray-700">
+                                    <div className="text-sm font-medium text-text">
                                       Dirección de envío:
                                     </div>
-                                    <div className="text-sm text-gray-600">
+                                    <div className="text-sm text-text-muted">
                                       {direccionEnvio}
                                     </div>
                                     <button
                                       onClick={() => setShowPuntoModal(true)}
-                                      className="text-cyan-500 hover:text-cyan-700 text-xs mt-1 cursor-pointer"
+                                      className="text-primary hover:text-primary-hover text-xs mt-1 cursor-pointer"
                                       type="button"
                                     >
                                       Cambiar dirección
@@ -475,7 +422,7 @@ const CarritoDetalle: React.FC = () => {
                                 ) : (
                                   <button
                                     onClick={() => setShowPuntoModal(true)}
-                                    className="text-cyan-500 hover:text-cyan-700 text-sm mt-2 cursor-pointer"
+                                    className="text-primary hover:text-primary-hover text-sm mt-2 cursor-pointer"
                                     type="button"
                                   >
                                     {metodoEnvioSeleccionado.puntosRecojo
@@ -489,54 +436,57 @@ const CarritoDetalle: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="flex justify-between pt-4 border-t border-gray-200">
-                        <span className="text-lg font-semibold text-gray-800">
-                          Total:
-                        </span>
-                        <span className="text-xl font-bold text-cyan-600">
+                      <div className="flex justify-between pt-4 border-t border-border">
+                        <span className="text-lg font-semibold text-text">Total:</span>
+                        <span className="text-xl font-bold text-primary">
                           S/ {total.toFixed(2)}
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-6">
-                      <button
-                        className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={
-                          total === 0 ||
-                          !metodoEnvioSeleccionado ||
-                          (!puntoRecojoSeleccionado && !direccionEnvio)
-                        }
-                        onClick={handleCheckout}
-                        type="button"
-                      >
+                    {/* Desktop: botón normal. Mobile: se oculta, hay uno sticky abajo */}
+                    <div className="mt-6 hidden lg:block">
+                      <Button fullWidth disabled={!puedeComprar} onClick={handleCheckout}>
                         Proceder al checkout
-                      </button>
+                      </Button>
                     </div>
 
                     <div className="mt-6 flex justify-center">
                       <button
                         onClick={() => navigate("/tienda")}
-                        className="text-cyan-500 hover:text-cyan-700 font-medium cursor-pointer"
+                        className="text-primary hover:text-primary-hover font-medium cursor-pointer"
                         type="button"
                       >
                         ← Continuar comprando
                       </button>
                     </div>
                   </div>
-                </div>
+                </Card>
               </div>
             </div>
           )}
         </div>
       </main>
 
+      {/* CTA sticky en mobile */}
+      {productosCarrito.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border p-4 z-40 shadow-elevation-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-text-muted text-sm">Total</span>
+            <span className="text-lg font-bold text-primary">S/ {total.toFixed(2)}</span>
+          </div>
+          <Button fullWidth disabled={!puedeComprar} onClick={handleCheckout}>
+            Proceder al checkout
+          </Button>
+        </div>
+      )}
+
       {/* Modal de selección de método de envío */}
       {showMetodoModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-5 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-800">
+          <Card elevation={3} padding="none" className="w-full max-w-md">
+            <div className="p-5 border-b border-border">
+              <h3 className="text-xl font-bold text-text">
                 Selecciona método de envío
               </h3>
             </div>
@@ -545,11 +495,10 @@ const CarritoDetalle: React.FC = () => {
                 {metodosEnvio.map((metodo) => (
                   <div
                     key={metodo.idMetodoEnvio}
-                    className={`border rounded-lg p-4 transition-all cursor-pointer ${
-                      metodoEnvioSeleccionado?.idMetodoEnvio ===
-                      metodo.idMetodoEnvio
-                        ? "border-cyan-500 border-2 bg-cyan-50"
-                        : "border-gray-200 hover:border-cyan-300"
+                    className={`border rounded-control p-4 transition-all cursor-pointer ${
+                      metodoEnvioSeleccionado?.idMetodoEnvio === metodo.idMetodoEnvio
+                        ? "border-primary border-2 bg-canvas"
+                        : "border-border hover:border-primary/50"
                     }`}
                     onClick={() => seleccionarMetodoEnvio(metodo)}
                   >
@@ -557,31 +506,25 @@ const CarritoDetalle: React.FC = () => {
                       <div className="mr-3 mt-1">
                         <div
                           className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                            metodoEnvioSeleccionado?.idMetodoEnvio ===
-                            metodo.idMetodoEnvio
-                              ? "border-cyan-500 bg-cyan-500"
-                              : "border-gray-300"
+                            metodoEnvioSeleccionado?.idMetodoEnvio === metodo.idMetodoEnvio
+                              ? "border-primary bg-primary"
+                              : "border-border"
                           }`}
                         >
-                          {metodoEnvioSeleccionado?.idMetodoEnvio ===
-                            metodo.idMetodoEnvio && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          {metodoEnvioSeleccionado?.idMetodoEnvio === metodo.idMetodoEnvio && (
+                            <div className="w-2 h-2 bg-canvas rounded-full"></div>
                           )}
                         </div>
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between">
-                          <h4 className="font-semibold text-gray-800">
-                            {metodo.nombre}
-                          </h4>
-                          <span className="font-medium text-cyan-600">
+                          <h4 className="font-semibold text-text">{metodo.nombre}</h4>
+                          <span className="font-medium text-primary">
                             S/ {metodo.costo.toFixed(2)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {metodo.descripcion}
-                        </p>
-                        <div className="text-sm text-gray-500 mt-2">
+                        <p className="text-sm text-text-muted mt-1">{metodo.descripcion}</p>
+                        <div className="text-sm text-text-muted mt-2">
                           <span className="font-medium">Tiempo estimado:</span>{" "}
                           {metodo.tiempoEstimado}
                         </div>
@@ -591,30 +534,26 @@ const CarritoDetalle: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="p-5 border-t border-gray-200 flex justify-end">
-              <button
-                onClick={() => setShowMetodoModal(false)}
-                className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-lg shadow-md hover:from-red-600 hover:to-red-800 transition-all cursor-pointer"
-                type="button"
-              >
+            <div className="p-5 border-t border-border flex justify-end">
+              <Button variant="danger" onClick={() => setShowMetodoModal(false)}>
                 Cerrar
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* Modal de selección de punto de recojo o dirección */}
       {showPuntoModal && metodoEnvioSeleccionado && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-5 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-800">
+          <Card elevation={3} padding="none" className="w-full max-w-md">
+            <div className="p-5 border-b border-border">
+              <h3 className="text-xl font-bold text-text">
                 {metodoEnvioSeleccionado.puntosRecojo
                   ? "Selecciona punto de recojo"
                   : "Ingresa tu dirección de envío"}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-text-muted mt-1">
                 {metodoEnvioSeleccionado.nombre}
               </p>
             </div>
@@ -625,10 +564,10 @@ const CarritoDetalle: React.FC = () => {
                     (punto: any, index: number) => (
                       <div
                         key={index}
-                        className={`border rounded-lg p-4 transition-all cursor-pointer ${
+                        className={`border rounded-control p-4 transition-all cursor-pointer ${
                           puntoRecojoSeleccionado?.nombre === punto.nombre
-                            ? "border-cyan-500 border-2 bg-cyan-50"
-                            : "border-gray-200 hover:border-cyan-300"
+                            ? "border-primary border-2 bg-canvas"
+                            : "border-border hover:border-primary/50"
                         }`}
                         onClick={() => seleccionarPuntoRecojo(punto)}
                       >
@@ -637,23 +576,18 @@ const CarritoDetalle: React.FC = () => {
                             <div
                               className={`w-5 h-5 rounded-full border flex items-center justify-center ${
                                 puntoRecojoSeleccionado?.nombre === punto.nombre
-                                  ? "border-cyan-500 bg-cyan-500"
-                                  : "border-gray-300"
+                                  ? "border-primary bg-primary"
+                                  : "border-border"
                               }`}
                             >
-                              {puntoRecojoSeleccionado?.nombre ===
-                                punto.nombre && (
-                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                              {puntoRecojoSeleccionado?.nombre === punto.nombre && (
+                                <div className="w-2 h-2 bg-canvas rounded-full"></div>
                               )}
                             </div>
                           </div>
                           <div>
-                            <h4 className="font-medium text-gray-800">
-                              {punto.nombre}
-                            </h4>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {punto.direccion}
-                            </p>
+                            <h4 className="font-medium text-text">{punto.nombre}</h4>
+                            <p className="text-sm text-text-muted mt-1">{punto.direccion}</p>
                           </div>
                         </div>
                       </div>
@@ -663,47 +597,27 @@ const CarritoDetalle: React.FC = () => {
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-text mb-1">
                       Dirección completa
                     </label>
                     <input
                       type="text"
                       value={direccionEnvio}
                       onChange={handleDireccionEnvioChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
+                      className="w-full px-4 py-2 border border-border rounded-control bg-surface text-text focus:ring-primary focus:border-primary"
                       placeholder="Ej: Av. Lima 123, Lima, Perú"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Referencia (opcional)
-                    </label>
-                    <textarea
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-cyan-500 focus:border-cyan-500"
-                      placeholder="Ej: Casa verde portón negro"
-                      rows={2}
-                    ></textarea>
                   </div>
                 </div>
               )}
             </div>
-            <div className="p-5 border-t border-gray-200 flex justify-between">
-              <button
-                onClick={() => setShowPuntoModal(false)}
-                className="px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-700 text-white rounded-lg shadow-md hover:from-gray-600 hover:to-gray-800 transition-all cursor-pointer"
-                type="button"
-              >
+            <div className="p-5 border-t border-border flex justify-between">
+              <Button variant="secondary" onClick={() => setShowPuntoModal(false)}>
                 Cancelar
-              </button>
-              <button
-                onClick={() => setShowPuntoModal(false)}
-                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg shadow-md hover:from-cyan-600 hover:to-blue-600 transition-all cursor-pointer"
-                type="button"
-              >
-                Guardar
-              </button>
+              </Button>
+              <Button onClick={() => setShowPuntoModal(false)}>Guardar</Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </>

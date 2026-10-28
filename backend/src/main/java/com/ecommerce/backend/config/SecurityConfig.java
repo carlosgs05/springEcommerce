@@ -49,6 +49,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/auth/change-password").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/change-email").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/change-email/confirm").authenticated()
+                        // Carrito y favoritos: del dueño de la sesion, no admin. Sin sesion, 401.
+                        .requestMatchers("/api/carrito/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())))
+                        .requestMatchers("/api/favoritos/**").access((auth, ctx) ->
+                                new AuthorizationDecision(tieneSesionAccess(auth.get())))
                         // Administracion: sesion access Y rol ADMINISTRADOR (sin sesion 401, con otro rol 403).
                         .requestMatchers("/api/admin/**").access((auth, ctx) ->
                                 new AuthorizationDecision(tieneSesionAccess(auth.get())
